@@ -1,0 +1,31 @@
+{
+  "model_id": "nema17-20261016-v2",
+  "dataset_sha256": "8f727befb1182c45032702c4191d5cdbc9b5788c32972d9a287aebb9e954254f",
+  "validation": "Nested leave-one-complete-trial-out; exploratory retrospective evaluation, not a new blind test",
+  "profiles": {
+    "12.5": {
+      "window_ms": 800,
+      "worst_nested_trial_window_error": 0.6153846153846154,
+      "mean_nested_trial_window_error": 0.1382783882783883,
+      "runtime_policy": "uncertain only"
+    },
+    "25.0": {
+      "window_ms": 400,
+      "worst_nested_trial_window_error": 0.1,
+      "mean_nested_trial_window_error": 0.0375,
+      "runtime_policy": "classify with overlap/outlier uncertainty"
+    },
+    "60.0": {
+      "window_ms": 100,
+      "worst_nested_trial_window_error": 0.0,
+      "mean_nested_trial_window_error": 0.0,
+      "runtime_policy": "classify with overlap/outlier uncertainty"
+    },
+    "100.0": {
+      "window_ms": 100,
+      "worst_nested_trial_window_error": 0.08571428571428572,
+      "mean_nested_trial_window_error": 0.014285714285714285,
+      "runtime_policy": "classify with overlap/outlier uncertainty"
+    }
+  }
+}

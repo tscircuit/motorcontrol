@@ -1,5 +1,7 @@
 # NEMA17 observational stall model
 
+For archived recordings, reproduction instructions, label exclusions and mounted-gantry outcomes, see [stall-testing](../stall-testing/README.md). The firmware 1.0.13 section below describes historical estimator behavior; 1.0.17 uses a shared default model and configurable stall response. Physical XY homing has not yet been verified.
+
 The DRV8825 has no hardware torque-count register. This firmware compares the external coil-current measurements with labelled recordings. The resulting indicator is observational: it cannot command motion, change power, or stop the motor. A score is not a probability or shaft feedback.
 
 ## Data and validation

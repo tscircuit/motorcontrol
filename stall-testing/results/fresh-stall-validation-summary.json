@@ -1,0 +1,32 @@
+[
+  {
+    "speed_full_steps_s": 60.0,
+    "initial": "free",
+    "pre_cue_states": {
+      "uncertain": 21,
+      "free": 65
+    },
+    "spoken_cue_s": 10.02099025005009,
+    "first_target_state_s": 11.185413791041356,
+    "cue_to_first_target_s": 1.1644235409912653,
+    "mechanical_onset_measured": false,
+    "user_labels_confirmed": true,
+    "sample_drops": 0,
+    "pulse_underruns": 0
+  },
+  {
+    "speed_full_steps_s": 100.0,
+    "initial": "stalled",
+    "pre_cue_states": {
+      "suspected": 84,
+      "uncertain": 2
+    },
+    "spoken_cue_s": 10.006668374990113,
+    "first_target_state_s": 10.363756667007692,
+    "cue_to_first_target_s": 0.3570882920175791,
+    "mechanical_onset_measured": false,
+    "user_labels_confirmed": true,
+    "sample_drops": 0,
+    "pulse_underruns": 0
+  }
+]

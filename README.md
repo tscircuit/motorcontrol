@@ -6,6 +6,8 @@ MicroPython motor-control firmware with a Web Serial dashboard. Motion and safet
 
 [Public dashboard](https://motorcontrol.tscircuit.com) · [Porting guide](docs/architecture.md) · [Serial protocol](docs/protocol.md)
 
+[Stall-testing record](stall-testing/README.md): fixture procedure, original recordings, model validation and incomplete mounted-XY homing attempts.
+
 ## Supported hardware
 
 Hardware profiles include **RP2040 / DRV8847** and **RP2040 / DRV8825 / RGB**, for the [tscircuit RP2040 motor controller](https://tscircuit.com/imrishabh18/rp2040-motor-controller#files), with a TMP102 temperature sensor and a StepperOnline 17HE15-1504S motor (200 full steps/revolution).
