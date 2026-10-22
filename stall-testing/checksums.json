@@ -1,0 +1,17 @@
+{
+  "algorithm": "sha256",
+  "files": {
+    "data/nema17-fresh-validation-20261016.tar.gz": "b433b499cea969438709a3ee32cf0ecfdfc0f55c29685ed771b2e6d5b9f5ed5c",
+    "data/nema17-training-20261016.tar.gz": "ead37be1ac170fae74220472284b0a7150124446e4afc79e6edb9f44e89b7300",
+    "data/trials.csv": "4035d7771ab1bc371b2a8eb4d9851fda49edb987d2f6514de82402df7777ee8c",
+    "results/excluded-batch-manifest.json": "07c7ac1c4457df0431d0b925b48ad4e77c57629102e9ca3c74b09f81b7732d9c",
+    "results/fresh-stall-validation-summary.json": "514327ab17bac103f275568a831908b985884aa5db6b7e3224771af0f8ee9508",
+    "results/shared-model-update-e66568714f117e21.json": "83e67c2dcc0a39391e5a9953e744178670c7963310de1641339b5bbffb3aa313",
+    "results/shared-model-update-e66568714f538921.json": "74c0813b50bc44b262391f5f5e8da8f0a6fa105469f8af7cf1f5204f617a8fa5",
+    "results/trained-stall-model-validation.json": "10530062ab79afebc73c5bf9b6ad52422995b005098d6970eb50dc70d4bffb56",
+    "evidence/fresh-stall-validation.png": "803aa2498897ca6fbd37d95d1ce118b873c7545ab9638caf1a38db9f619fe916",
+    "evidence/stall-study-complete.png": "5db0fbc27a19cf47cacc4b6df921dee74253cc961b2ea9148ca1e3aa947bef51",
+    "evidence/xy-homing-first-attempt.png": "b576dd88b593f33391354f06635f8d309d3f3474c19fe9275150727baa5637f9",
+    "evidence/xy-homing-stopped.png": "ddb7db29f0176c305a96b4c3845ae9974ae542b4c73a14e8772b622c4c33891b"
+  }
+}

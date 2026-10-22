@@ -1,6 +1,6 @@
 """Train the observational NEMA17 model; validate by complete nested trial folds.
 Usage: python tools/train_stall_model.py DATA_DIRECTORY [OUTPUT_JSON]
-Requires NumPy. Raw private recordings are not bundled in the repository.
+Requires NumPy. Archived recordings and extraction instructions: stall-testing/README.md.
 """
 import sys,pathlib,json,hashlib,numpy as np,time
 FEATURE_NAMES=['radial_mean','radial_cv','ripple_ratio','ripple_cv','raw_ripple_ratio','radial_step']

@@ -1,0 +1,237 @@
+{
+  "plan": [
+    {
+      "speed": 12.5,
+      "initial": "free",
+      "direction": 1,
+      "resolution": "full",
+      "repetition": 0,
+      "split": "training"
+    },
+    {
+      "speed": 12.5,
+      "initial": "stalled",
+      "direction": 1,
+      "resolution": "full",
+      "repetition": 0,
+      "split": "training"
+    },
+    {
+      "speed": 12.5,
+      "initial": "free",
+      "direction": -1,
+      "resolution": "half",
+      "repetition": 1,
+      "split": "training"
+    },
+    {
+      "speed": 12.5,
+      "initial": "stalled",
+      "direction": -1,
+      "resolution": "half",
+      "repetition": 1,
+      "split": "training"
+    },
+    {
+      "speed": 12.5,
+      "initial": "free",
+      "direction": 1,
+      "resolution": "sixteenth",
+      "repetition": 2,
+      "split": "held_out"
+    },
+    {
+      "speed": 12.5,
+      "initial": "stalled",
+      "direction": 1,
+      "resolution": "sixteenth",
+      "repetition": 2,
+      "split": "held_out"
+    },
+    {
+      "speed": 25,
+      "initial": "free",
+      "direction": 1,
+      "resolution": "full",
+      "repetition": 0,
+      "split": "training"
+    },
+    {
+      "speed": 25,
+      "initial": "stalled",
+      "direction": 1,
+      "resolution": "full",
+      "repetition": 0,
+      "split": "training"
+    },
+    {
+      "speed": 25,
+      "initial": "free",
+      "direction": -1,
+      "resolution": "half",
+      "repetition": 1,
+      "split": "training"
+    },
+    {
+      "speed": 25,
+      "initial": "stalled",
+      "direction": -1,
+      "resolution": "half",
+      "repetition": 1,
+      "split": "training"
+    },
+    {
+      "speed": 25,
+      "initial": "free",
+      "direction": 1,
+      "resolution": "sixteenth",
+      "repetition": 2,
+      "split": "held_out"
+    },
+    {
+      "speed": 25,
+      "initial": "stalled",
+      "direction": 1,
+      "resolution": "sixteenth",
+      "repetition": 2,
+      "split": "held_out"
+    },
+    {
+      "speed": 60,
+      "initial": "free",
+      "direction": 1,
+      "resolution": "full",
+      "repetition": 0,
+      "split": "training"
+    },
+    {
+      "speed": 60,
+      "initial": "stalled",
+      "direction": 1,
+      "resolution": "full",
+      "repetition": 0,
+      "split": "training"
+    },
+    {
+      "speed": 60,
+      "initial": "free",
+      "direction": -1,
+      "resolution": "half",
+      "repetition": 1,
+      "split": "training"
+    },
+    {
+      "speed": 60,
+      "initial": "stalled",
+      "direction": -1,
+      "resolution": "half",
+      "repetition": 1,
+      "split": "training"
+    },
+    {
+      "speed": 60,
+      "initial": "free",
+      "direction": 1,
+      "resolution": "sixteenth",
+      "repetition": 2,
+      "split": "held_out"
+    },
+    {
+      "speed": 60,
+      "initial": "stalled",
+      "direction": 1,
+      "resolution": "sixteenth",
+      "repetition": 2,
+      "split": "held_out"
+    },
+    {
+      "speed": 100,
+      "initial": "free",
+      "direction": 1,
+      "resolution": "full",
+      "repetition": 0,
+      "split": "training"
+    },
+    {
+      "speed": 100,
+      "initial": "stalled",
+      "direction": 1,
+      "resolution": "full",
+      "repetition": 0,
+      "split": "training"
+    },
+    {
+      "speed": 100,
+      "initial": "free",
+      "direction": -1,
+      "resolution": "half",
+      "repetition": 1,
+      "split": "training"
+    },
+    {
+      "speed": 100,
+      "initial": "stalled",
+      "direction": -1,
+      "resolution": "half",
+      "repetition": 1,
+      "split": "training"
+    },
+    {
+      "speed": 100,
+      "initial": "free",
+      "direction": 1,
+      "resolution": "sixteenth",
+      "repetition": 2,
+      "split": "held_out"
+    },
+    {
+      "speed": 100,
+      "initial": "stalled",
+      "direction": 1,
+      "resolution": "sixteenth",
+      "repetition": 2,
+      "split": "held_out"
+    }
+  ],
+  "results": [
+    {
+      "file": "batch-20261016-144621-cd72/trial-01.json",
+      "bins": 4096,
+      "speed": 12.5,
+      "initial": "free",
+      "direction": 1,
+      "split": "training",
+      "dropped": 0
+    },
+    {
+      "file": "batch-20261016-144621-cd72/trial-02.json",
+      "bins": 4096,
+      "speed": 12.5,
+      "initial": "stalled",
+      "direction": 1,
+      "split": "training",
+      "dropped": 0
+    },
+    {
+      "file": "batch-20261016-144621-cd72/trial-03.json",
+      "bins": 4096,
+      "speed": 12.5,
+      "initial": "free",
+      "direction": -1,
+      "split": "training",
+      "dropped": 0
+    },
+    {
+      "file": "batch-20261016-144621-cd72/trial-04.json",
+      "bins": 4096,
+      "speed": 12.5,
+      "initial": "stalled",
+      "direction": -1,
+      "split": "training",
+      "dropped": 0
+    }
+  ],
+  "status": "error",
+  "label_status": "INVALID: fixture not locked; exclude entire batch",
+  "exclude_from_training": true
+}
