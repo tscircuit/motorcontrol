@@ -1,11 +1,18 @@
 'use strict';
 const keys={ArrowLeft:['X',-1],ArrowRight:['X',1],ArrowDown:['Y',-1],ArrowUp:['Y',1]};
 class Jogger {
- constructor(axes,report,clock=()=>Date.now(),keyMap=keys){this.keys=keyMap;this.axes=axes;this.report=report;this.clock=clock;this.held=new Set();this.states=Object.fromEntries(Object.keys(axes).map(k=>[k,{sent:null,busy:false,braking:false}]));this.stopsPending=0;this.returning=false;this.generation=0;this.update=()=>{};}
- get key(){return this.held.values().next().value||null;}
+ constructor(axes,report,clock=()=>Date.now(),keyMap=keys){this.keys=keyMap;this.axes=axes;this.report=report;this.clock=clock;this.held=new Set();this.analog={};this.resetInput=()=>{};this.states=Object.fromEntries(Object.keys(axes).map(k=>[k,{sent:null,busy:false,braking:false}]));this.stopsPending=0;this.returning=false;this.generation=0;this.update=()=>{};}
+ get key(){return this.held.values().next().value||(Object.values(this.analog).some(v=>v)?'joystick':null);}
  get active(){return Object.keys(this.states).find(k=>this.states[k].sent||this.states[k].braking)||null;}
  get phase(){return Object.values(this.states).some(s=>s.sent)?'running':this.active?'braking':'idle';}
- direction(axis){let direction=0;for(const key of this.held)if(this.keys[key][0]===axis)direction+=this.keys[key][1];return Math.sign(direction);}
+ direction(axis){let direction=0;for(const key of this.held)if(this.keys[key][0]===axis)direction+=this.keys[key][1];return Math.sign([...this.held].some(key=>this.keys[key][0]===axis)?direction:this.analog[axis]||0);}
+ magnitude(axis){return [...this.held].some(key=>this.keys[key][0]===axis)?1:Math.abs(this.analog[axis]||0);}
+ setAnalog(x,y){
+  if(this.returning||this.stopsPending||!this.ready())return false;
+  const values={X:x,Y:y};
+  for(const [axis,a] of Object.entries(this.axes))if(values[axis]&&!a.last.motor_enabled&&a.last.temperature_c>=(a.last.capabilities?.start_below_c??60))return false;
+  this.analog=values;return true;
+ }
  unavailableReason(){
   for(const [label,a] of Object.entries(this.axes)){
    if(!a.port||!a.last)return `${label}: connect the board first.`;
@@ -30,7 +37,7 @@ class Jogger {
   this.held.add(key);this.update();return true;
  }
  async stop(reason=''){
-  this.held.clear();this.returning=false;this.generation++;this.stopsPending++;
+  this.held.clear();this.analog={};this.resetInput();this.returning=false;this.generation++;this.stopsPending++;
   for(const state of Object.values(this.states)){state.sent=null;state.braking=false;}
   if(reason)this.report(reason);
   try{await Promise.all(Object.values(this.axes).map(a=>a.port?a.send('stop').then(()=>a.send('status')).catch(e=>this.report('Stop not acknowledged: '+e.message)):null));}
@@ -45,7 +52,7 @@ class Jogger {
   await Promise.all(Object.entries(this.axes).map(async([axis,a])=>{
    const state=this.states[axis];if(state.busy)return;
    const direction=this.direction(axis)*(invert[axis]?-1:1);
-   const fields={resolution,direction,speed_sps:speed,ramp_ms:400};
+   const fields={resolution,direction,speed_sps:speed*this.magnitude(axis),ramp_ms:400};
    const desired=direction?JSON.stringify(fields):null;
    if(desired===state.sent){if(!desired&&!a.last.motor_enabled)state.braking=false;return;}
    state.busy=true;const generation=this.generation;
@@ -89,6 +96,7 @@ class PositionSlots {
    if(!this.valid(index))throw Error('Board coordinates changed. Save the position again.');
    const plan=Object.entries(this.axes).map(([axis,a])=>{
     const c=a.last.capabilities,[resolution,factor]=Object.entries(c.resolutions).reduce((best,item)=>item[1]>best[1]?item:best,['half',2]),delta=(this.slots[index][axis].position-a.last.position_full_steps)*factor;
+    if(a.last.soft_limits_enabled&&(this.slots[index][axis].position<a.last.soft_limit_min_full_steps||this.slots[index][axis].position>a.last.soft_limit_max_full_steps))throw Error(axis+': saved position is outside soft limits.');
     if(!Number.isSafeInteger(delta)||Math.abs(delta)>(c.max_steps??100000))throw Error('Saved position is outside the board’s supported step count.');
     if(!Number.isFinite(speed)||speed<=0)throw Error('Choose a positive target speed.');
     const selectedFactor=selectedResolution===null?null:c.resolutions[selectedResolution];
@@ -156,6 +164,7 @@ if(typeof document!=='undefined'){
  const inputKeys=single?{ArrowLeft:['X',-1],ArrowRight:['X',1],ArrowDown:['X',-1],ArrowUp:['X',1]}:keys;
  const labels=single?['X']:['X','Y'];
  const axes=Object.fromEntries(labels.map(label=>[label,new Axis(label)]));const jog=new Jogger(axes,report,()=>Date.now(),inputKeys);let storage;try{storage=window.localStorage;}catch{}const positions=new PositionSlots(axes,jog,report,storage,undefined,single?'single-motor-position-slots-v1':'gantry-position-slots-v1');
+ if(!single&&typeof GantryControls!=='undefined')GantryControls.mount(axes,jog,report);
  if(typeof HomingControls!=='undefined')HomingControls.mount(axes,jog,report,document.querySelector('main'));
  for(let i=0;i<3;i++){$('savePosition'+i).onclick=()=>positions.save(i);$('gotoPosition'+i).onclick=()=>void positions.goto(i,Number($('jogSpeed').value),single?$('jogResolution').value:null);}
  for(const label of labels){

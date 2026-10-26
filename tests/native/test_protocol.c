@@ -53,6 +53,20 @@ int main(void) {
     assert(!current_stream_enabled);
     check("{\"cmd\":\"set_current_stream_enabled\",\"enabled\":1}",false);
     check("{\"cmd\":\"set_current_stream_enabled\",\"enabled\":true}",true);
+    check("{\"cmd\":\"set_soft_limits\",\"enabled\":true,\"min_full_steps\":-10,\"max_full_steps\":20}",true);
+    assert(soft_limits_enabled && fake_limits_enabled && fake_limit_min==-160 && fake_limit_max==320);
+    check("{\"cmd\":\"set_soft_limits\",\"enabled\":true,\"min_full_steps\":1,\"max_full_steps\":20}",false);
+    check("{\"cmd\":\"set_soft_limits\",\"enabled\":true,\"min_full_steps\":20,\"max_full_steps\":10}",false);
+    check("{\"cmd\":\"set_soft_limits\",\"enabled\":true,\"min_full_steps\":0.01,\"max_full_steps\":20}",false);
+    check("{\"cmd\":\"set_soft_limits\",\"enabled\":1}",false);
+    settings.bounds_saved=true; settings.travel_max=160;
+    check("{\"cmd\":\"set_soft_limits\",\"enabled\":true,\"min_full_steps\":-10,\"max_full_steps\":20}",true);
+    assert(fake_limit_min==0 && fake_limit_max==160);
+    check("{\"cmd\":\"set_soft_limits\",\"enabled\":false}",true);
+    assert(!soft_limits_enabled && fake_limits_enabled && fake_limit_max==160);
+    settings.bounds_saved=false;
+    check("{\"cmd\":\"set_soft_limits\",\"enabled\":false}",true);
+    assert(!fake_limits_enabled);
     check(START, false); /* No heartbeat. */
     command("{\"cmd\":\"heartbeat\"}");
     check(START, false); /* Safe 5 V startup. */
@@ -71,6 +85,7 @@ int main(void) {
     check(START, false); /* Driver fault. */
     fake_pins[23] = 1;
     check(START, true);
+    check("{\"cmd\":\"set_soft_limits\",\"enabled\":false}",false);
     check("{\"cmd\":\"set_stall_response\",\"beeping_on\":true,\"stop_ms\":1000}", false);
     output_length = 0;
     status(true);

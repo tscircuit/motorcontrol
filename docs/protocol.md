@@ -186,3 +186,35 @@ on every motor. `current_stall_model_scope` is `shared-default`. Per-controller
 sensitivity remains saved locally. The default homing operating points remain
 9 V at 25, 60 or 100 full steps/sec. Hardware profiles without this current
 estimator do not gain it merely by sharing a USB name.
+
+### Gantry soft limits
+
+C firmware on DRV8825 and DRV8452 boards advertises
+`capabilities.soft_limits_supported`. While stopped, send
+`{"cmd":"set_soft_limits","enabled":true,"min_full_steps":-100,"max_full_steps":100}`.
+Bounds must be finite, ordered multiples of 1/16 full step, within ±1 billion
+full steps, and contain the current commanded position. Homed bounds intersect
+this range and cannot be widened or disabled by this command. Disable custom
+limits with `{"cmd":"set_soft_limits","enabled":false}`.
+
+Telemetry reports `soft_limits_enabled`, `soft_limit_min_full_steps`, and
+`soft_limit_max_full_steps`. The pulse generator enforces the effective bounds
+for jogging, braking, and finite moves, including already queued pulses. Finite
+moves outside the range are rejected. These session-only limits reset on reboot
+or a new homing operation; reconnecting alone does not clear them. DRV8847 and
+MicroPython firmware do not support this command. Position remains commanded
+steps, not measured shaft position.
+
+The gantry page discovers browser Gamepad API devices before motion is enabled.
+Click Detect joystick and press a physical button if the browser has not exposed
+the device yet. Select the device, X/Y axes and hold-to-move button; live values
+show which inputs are changing. Defaults use axes 0/1 (left stick) and button 0
+(A/Cross). Center the stick while holding the button before moving, including
+after focus loss, stopping, or reconnection. Browser permission/API errors are
+shown separately from a connected device waiting for motion to be enabled.
+Release decelerates; Space/Escape or Stop stops immediately.
+
+On the gantry page, Set minimum here / Set maximum here immediately apply the
+current axis position. Setting the first end leaves the opposite custom end
+open; setting the second end preserves the first. Existing homed bounds still
+apply. Stop both axes before capturing either position.
