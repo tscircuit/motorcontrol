@@ -26,19 +26,31 @@ jog.resetInput=()=>input.reset();
 // Exercise mounted pointer/gamepad events without physical controllers.
 {
  const vm=require('node:vm'),fs=require('node:fs'),nodes={},timers=[];
- const node=id=>nodes[id]??=( {value:'0',checked:false,style:{},events:{},addEventListener(k,f){this.events[k]=f;},setPointerCapture(){},getBoundingClientRect(){return {left:0,top:0,width:180,height:180};}} );
+ const node=id=>nodes[id]??=( {value:'0',checked:false,style:{},events:{},addEventListener(k,f){this.events[k]=f;},blur(){doc.activeElement={tagName:'BODY'};},replaceChildren(...children){this.children=children;},setPointerCapture(){},getBoundingClientRect(){return {left:0,top:0,width:180,height:180};}} );
  let pad=null,stops=0;
  const mountedJog={analog:{},ready:()=>true,states:{},setAnalog(x,y){this.analog={X:x,Y:y};return true;},stop(){stops++;this.analog={};this.resetInput();return Promise.resolve();}};
- const doc={getElementById:node,hasFocus:()=>true,hidden:false,activeElement:{tagName:'BODY'}};
- const sandbox={document:doc,navigator:{getGamepads:()=>pad?[pad]:[]},setInterval:f=>timers.push(f),Date,console};
+ const doc={getElementById:node,createElement:()=>({}),hasFocus:()=>true,hidden:false,activeElement:{tagName:'BODY'}};
+ const sandbox={document:doc,navigator:{getGamepads:()=>pad?[pad]:[]},setInterval:f=>timers.push(f),addEventListener(){},Date,console};
  vm.runInNewContext(fs.readFileSync(require.resolve('../dist/gantry-controls.js'),'utf8'),sandbox);
  sandbox.GantryControls.mount(axes,mountedJog,()=>{});
  node('joystick').events.pointerdown({pointerId:1,clientX:180,clientY:90,preventDefault(){}});timers[0]();assert.equal(mountedJog.analog.X,1);
  node('joystick').events.pointerup({pointerId:1});assert.equal(mountedJog.analog.X,undefined);
- node('useGamepad').checked=true;pad={index:0,connected:true,id:'test',axes:[1,0],buttons:[{pressed:true}]};timers[0]();assert.equal(mountedJog.analog.X,undefined);
+ pad={index:0,connected:true,id:'test',axes:[1,0],buttons:[{pressed:true}]};timers[0]();assert.match(node('gamepadStatus').textContent,/test detected/);assert.equal(node('gamepadDevice').value,'0');assert.equal(mountedJog.analog.X,undefined);
+ node('useGamepad').checked=true;doc.activeElement={tagName:'INPUT',type:'checkbox'};timers[0]();assert.equal(mountedJog.analog.X,undefined);
  pad.axes=[0,0];timers[0]();pad.axes=[1,0];timers[0]();assert.equal(mountedJog.analog.X,1);
  pad.buttons[0].pressed=false;timers[0]();assert.equal(mountedJog.analog.X,undefined);
  pad.buttons[0].pressed=true;pad.axes=[0,0];timers[0]();pad.axes=[0,-1];timers[0]();assert.equal(mountedJog.analog.Y,1);
  pad=null;timers[0]();assert.equal(stops,1);assert.equal(mountedJog.analog.Y,undefined);
- console.log('PASS mounted pointer release, gamepad activation/hold button/release and disconnect stop');
+ // Nonstandard joystick axes/buttons and sparse gamepad slots are selectable.
+ pad={index:3,connected:true,id:'flight stick',axes:[0,0,0,0],buttons:[{pressed:false},{pressed:false},{pressed:true}]};timers[0]();
+ assert.equal(node('gamepadDevice').value,'3');node('gamepadXAxis').value='2';node('gamepadYAxis').value='3';node('gamepadButton').value='2';
+ timers[0]();pad.axes=[0,0,.8,-.9];timers[0]();assert.ok(mountedJog.analog.X>0);assert.ok(mountedJog.analog.Y>0);
+ assert.match(node('gamepadValues').textContent,/Pressed buttons: 3/);
+ // Editing a numeric field pauses input, but checkbox focus does not.
+ doc.activeElement={tagName:'INPUT',type:'number'};timers[0]();assert.equal(mountedJog.analog.X,undefined);
+ doc.activeElement={tagName:'INPUT',type:'checkbox'};pad.axes=[0,0,0,0];timers[0]();pad.axes[2]=1;timers[0]();assert.equal(mountedJog.analog.X,1);
+ // Explain browser permission failures instead of silently swallowing them.
+ sandbox.navigator.getGamepads=()=>{throw Error('Permissions policy');};timers[0]();assert.match(node('gamepadStatus').textContent,/blocked.*Permissions policy/);
+ delete sandbox.navigator.getGamepads;timers[0]();assert.match(node('gamepadStatus').textContent,/does not expose the Gamepad API/);
+ console.log('PASS automatic discovery before enabling, checkbox focus, input mapping, pointer/gamepad lifecycle and browser errors');
 }

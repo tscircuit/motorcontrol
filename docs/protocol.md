@@ -205,7 +205,16 @@ or a new homing operation; reconnecting alone does not clear them. DRV8847 and
 MicroPython firmware do not support this command. Position remains commanded
 steps, not measured shaft position.
 
-The gantry page supports a touch/mouse joystick and gamepads using axes 0/1
-(left stick), with button 0 (A/Cross) held to jog. Center the stick while holding
-the button before moving, including after focus loss, stopping, or reconnection.
+The gantry page discovers browser Gamepad API devices before motion is enabled.
+Click Detect joystick and press a physical button if the browser has not exposed
+the device yet. Select the device, X/Y axes and hold-to-move button; live values
+show which inputs are changing. Defaults use axes 0/1 (left stick) and button 0
+(A/Cross). Center the stick while holding the button before moving, including
+after focus loss, stopping, or reconnection. Browser permission/API errors are
+shown separately from a connected device waiting for motion to be enabled.
 Release decelerates; Space/Escape or Stop stops immediately.
+
+On the gantry page, Set minimum here / Set maximum here immediately apply the
+current axis position. Setting the first end leaves the opposite custom end
+open; setting the second end preserves the first. Existing homed bounds still
+apply. Stop both axes before capturing either position.
