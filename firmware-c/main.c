@@ -69,6 +69,8 @@ static uint32_t diagnostic_pulses, diagnostic_elapsed;
 static motor_mode_t previous_mode = STOPPED;
 static stall_response_t stall_response, stall_beep_response;
 static bool homed, needs_homing;
+static bool soft_limits_enabled;
+static int64_t soft_limit_min, soft_limit_max;
 static struct {
     bool active, clear_seen;
     unsigned phase;
@@ -319,9 +321,11 @@ static void stream_current(void) {
 static cJSON *capabilities(void) {
     cJSON *c = cJSON_CreateObject(), *r = cJSON_CreateObject();
 #ifdef MOTOR_BOARD_DRV8847
+    add_bool(c, "soft_limits_supported", false);
     add_bool(c, "stall_homing_supported", false);
     add_bool(c, "stall_response_supported", false);
 #else
+    add_bool(c, "soft_limits_supported", true);
     add_bool(c, "stall_homing_supported", true);
     add_bool(c, "stall_response_supported", true);
 #ifdef MOTOR_BOARD_DRV8452
@@ -443,6 +447,9 @@ static void status(bool compact) {
     add_string(o, "homing_message", home.message ? home.message : "Not homed");
     add_bool(o, "homed", homed);
     add_bool(o, "homing_required", needs_homing);
+    add_bool(o, "soft_limits_enabled", soft_limits_enabled);
+    add_number(o, "soft_limit_min_full_steps", soft_limit_min/16.0);
+    add_number(o, "soft_limit_max_full_steps", soft_limit_max/16.0);
     add_bool(o, "bounds_saved", settings.bounds_saved);
     add_number(o, "bounds_min_full_steps", 0);
     if(settings.bounds_saved) add_number(o, "bounds_max_full_steps", settings.travel_max/16.0);
@@ -743,6 +750,7 @@ static const char *homing_start(cJSON *c) {
     const char *err=nema23_prepare_motion(); if(err) return err;
 #endif
     if(!motor_set_travel_limits(false,0,0)) return "Could not suspend bounds for homing";
+    soft_limits_enabled=false; /* Homing creates a new coordinate session. */
     home.active=true; home.speed=speed; home.max_travel=(uint32_t)travel; home.backoff=(uint32_t)backoff;
     home.message="Seeking minimum stop"; homed=false; needs_homing=true;
     snprintf(session,sizeof(session),"%s-%08lx",device_id,(unsigned long)get_rand_32());
@@ -866,6 +874,32 @@ static void command(const char *line) {
         status(false);
     else if (matches(cmd, "start") || matches(cmd, "jog"))
         error = motion_command(c, matches(cmd, "jog"));
+    else if (matches(cmd, "set_soft_limits")) {
+#ifdef MOTOR_BOARD_DRV8847
+        error = "Soft limits are unsupported on this board";
+#else
+        cJSON *enabled = cJSON_GetObjectItemCaseSensitive(c, "enabled");
+        double min = 0, max = 0;
+        bool on = cJSON_IsTrue(enabled);
+        if (s.mode != STOPPED || home.active || needs_homing)
+            error = "Stop and finish homing before changing soft limits";
+        else if (!cJSON_IsBool(enabled)) error = "Provide enabled as a boolean";
+        else if (on && (!number(c,"min_full_steps",&min) || !number(c,"max_full_steps",&max) ||
+                       !isfinite(min) || !isfinite(max) || fabs(min)>1000000000 || fabs(max)>1000000000 ||
+                       min>=max || floor(min*16)!=min*16 || floor(max*16)!=max*16))
+            error = "Provide ordered limits in multiples of 1/16 full step";
+        else {
+            int64_t lower = (int64_t)(min*16), upper = (int64_t)(max*16);
+            if (settings.bounds_saved) {
+                if (!on) { lower=0; upper=settings.travel_max; }
+                else { if(lower<0)lower=0; if(upper>settings.travel_max)upper=settings.travel_max; }
+            }
+            if (!motor_set_travel_limits(on || settings.bounds_saved, lower, upper))
+                error = "Limits must contain the current position and overlap homed bounds";
+            else { soft_limits_enabled=on; soft_limit_min=lower; soft_limit_max=upper; }
+        }
+#endif
+    }
     else if (matches(cmd, "run_move")) {
         if(home.active || needs_homing) { error="Home axis before running a prepared move"; ack(id,error); cJSON_Delete(c); return; }
         sample();

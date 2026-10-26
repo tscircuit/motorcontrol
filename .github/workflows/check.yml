@@ -28,6 +28,8 @@ jobs:
       - run: node --check dist/gantry.js
       - run: node tests/test_single_motor.cjs
       - run: node tests/test_gantry.cjs
+      - run: node --check dist/gantry-controls.js
+      - run: node tests/test_gantry_joystick.cjs
       - run: node tests/test_positions.cjs
       - run: python scripts/build_firmware.py
       - run: python scripts/build_firmware.py --board rp2040_drv8825 --output build/drv8825

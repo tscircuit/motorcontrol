@@ -97,9 +97,10 @@ bool settings_save(const settings_t *next) {
 }
 #ifndef MOTOR_BOARD_DRV8847
 static bool fake_limits_enabled;
-static int64_t fake_limit_max;
+static int64_t fake_limit_min, fake_limit_max;
 bool motor_set_travel_limits(bool enabled, int64_t min, int64_t max) {
-    (void)min; fake_limits_enabled=enabled; fake_limit_max=max; return true;
+    if(fake_motor.mode!=STOPPED || (enabled && (min>=max || fake_motor.position_microsteps<min || fake_motor.position_microsteps>max)))return false;
+    fake_limits_enabled=enabled; fake_limit_min=min; fake_limit_max=max; return true;
 }
 bool motor_set_position(int64_t p) { fake_motor.position_microsteps=p; return true; }
 #endif
