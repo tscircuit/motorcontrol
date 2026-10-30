@@ -514,6 +514,10 @@ static void status(bool compact) {
     );
 #ifdef MOTOR_BOARD_A4988
     add_bool(o, "driver_fault_asserted", false);
+    add_number(o, "driver_enable_n_level", gpio_get(ARM_PIN));
+    add_number(o, "driver_sleep_level", gpio_get(WAKE_PIN));
+    add_number(o, "driver_direction_level", gpio_get(DIR_PIN));
+    add_number(o, "driver_step_level", gpio_get(STEP_PIN));
 #else
     add_bool(o, "driver_fault_asserted", !gpio_get(23));
 #endif

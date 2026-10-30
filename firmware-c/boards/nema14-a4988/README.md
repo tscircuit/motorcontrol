@@ -1,6 +1,6 @@
 # NEMA14 RP2040 / A4988 (PCB 1.13.2)
 
-Target: `nema14_a4988`; protocol board ID: `rp2040_a4988_nema14`; firmware version: 1.0.18.
+Target: `nema14_a4988`; protocol board ID: `rp2040_a4988_nema14`; firmware version: 1.0.19.
 
 This is the dedicated target for [AnasSarkiz/NEMA14_RP2040](https://tscircuit.com/AnasSarkiz/NEMA14_RP2040), checked against published 1.13.2 circuit JSON and the [firmware contract](https://github.com/AnasSarkiz/NEMA14_RP2040/blob/main/docs/firmware-interface.md). Do not use the DRV8825/DRV8847/DRV8452 images on this PCB.
 
@@ -40,3 +40,9 @@ Run `scripts/test_native.sh` for regression coverage, including NEMA14 disabled 
 Built with Pico SDK 2.3.1 and flashed through the ROM USB protocol with readback verification after the macOS mass-storage copy stalled. Device `3038513237047dfe` enumerated as `NEMA14 A4988`; protocol telemetry verified version 1.0.18 and build `9df1e5bfa44d49f1`. Idle readings were approximately 25.4°C, 14.9 V motor supply and 4.9 V DATA USB, with PG asserted.
 
 A 1,600-pulse diagnostic at 1,000 Hz completed in 1,601,289 µs, with 1,600 independently counted PIO edges, zero queue underruns, and the driver disabled. The live production single-motor page connected, recognized all five step sizes and 400 full steps/revolution, and showed current sensing as unavailable. Physical rotation, loaded accuracy, phase current, supply transients, thermal shutdown and scope waveforms were not independently validated.
+
+## Motor-output investigation, 2026-10-30
+
+The user reported no shaft rotation after initial bring-up. Firmware 1.0.19 adds readback telemetry for the MCU enable, sleep, direction and STEP levels; it adds no motion guards. With the driver enabled, an 80-full-step move and a 400-full-step move completed, counting 1,280 and 6,400 STEP pulses respectively without underruns. Throughout the slow move the MCU readback was ENABLE_N=0, SLEEP=1, DIR=1; supply remained about 14.9 V and temperature was below the start/stop thresholds. No firmware protection interrupted either move.
+
+These observations verify MCU-side command execution, not voltage at the A4988 package or shaft rotation. The reported failure remains unresolved pending a physical observation and, if needed, winding continuity / driver-pin measurements. No software change should be represented as fixing motor rotation based on pulse counts alone.

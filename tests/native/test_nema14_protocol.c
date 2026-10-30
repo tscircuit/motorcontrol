@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     sample(); output_length=0; status(false);
     cJSON *s=cJSON_Parse(output); assert(s);
     assert(!strcmp(cJSON_GetObjectItem(s,"board_id")->valuestring,"rp2040_a4988_nema14"));
-    assert(!strcmp(cJSON_GetObjectItem(s,"firmware_version")->valuestring,"1.0.18"));
+    assert(!strcmp(cJSON_GetObjectItem(s,"firmware_version")->valuestring,"1.0.19"));
     assert(cJSON_GetObjectItem(s,"steps_per_revolution")->valueint==400);
     assert(cJSON_IsNull(cJSON_GetObjectItem(s,"current_a")));
     assert(cJSON_IsFalse(cJSON_GetObjectItem(s,"current_available")));
