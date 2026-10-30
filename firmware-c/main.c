@@ -24,7 +24,7 @@
 #ifdef MOTOR_BOARD_DRV8452
 #include "nema23.h"
 #endif
-#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847)
+#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
 #include "stall_estimator.h"
 static bool current_stream_enabled=false;
 #endif
@@ -49,13 +49,19 @@ static const char *resolutions[] = {"full", "half", "quarter", "eighth", "sixtee
 static const char *modes[] = {"stopped", "prepared", "steps", "continuous", "braking", "test"};
 static char device_id[17], session[33], stop_reason[96] = "Boot: motor disabled";
 static uint64_t boot_us, heartbeat_us, last_sample, last_emit, test_until, restart_at;
-#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847)
+#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
 static uint64_t power_at;
 #endif
 static bool heartbeat_seen, temperature_valid, alarm, sensor_initialized;
 static double temperature;
 #ifndef MOTOR_BOARD_DRV8847
+#ifdef MOTOR_BOARD_A4988
+static int pd_voltage = 15, led_selection = -1;
+static double motor_voltage, data_voltage;
+static bool supply_sampled;
+#else
 static int pd_voltage = 5, led_selection = -1;
+#endif
 #endif
 static int led_bits, buzzer_frequency;
 static uint16_t song_hz[48], song_ms[48];
@@ -104,14 +110,17 @@ static void respond_to_stall(uint64_t now, motor_status_t s, bool detected, bool
                           home.active ? 0 : settings.stall_stop_ms);
     if (stall_response.timed_out) stop("Stall auto-stop timeout");
 }
-#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847)
+#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
 static bool current_stall_warning(stall_result_t estimate, uint64_t now) {
     return estimate.valid && now >= estimate.window_end_us &&
            now - estimate.window_end_us < 250000 && estimate.score >= 100-settings.stall_sensitivity;
 }
 #endif
 static bool power_ready(void) {
-#ifdef MOTOR_BOARD_DRV8847
+#ifdef MOTOR_BOARD_A4988
+    return supply_sampled && !gpio_get(PD_GOOD_PIN) &&
+           motor_voltage >= VM_MIN_V && motor_voltage <= VM_MAX_V;
+#elif defined(MOTOR_BOARD_DRV8847)
     return true; /* This PCB has no software motor-power selector or readback. */
 #elif defined(MOTOR_BOARD_DRV8452)
     return nema23_ready();
@@ -120,7 +129,9 @@ static bool power_ready(void) {
 #endif
 }
 static bool driver_fault(void) {
-#ifdef MOTOR_BOARD_DRV8452
+#ifdef MOTOR_BOARD_A4988
+    return false; /* A4988 exposes no nFAULT pin. */
+#elif defined(MOTOR_BOARD_DRV8452)
     return nema23_driver_fault();
 #else
     return !gpio_get(23);
@@ -145,6 +156,16 @@ static bool sensor_verify(void) {
            high == (SHUTDOWN_C * 256);
 }
 static void sample(void) {
+#ifdef MOTOR_BOARD_A4988
+    /* The ADC is dedicated to rail sensing; this PCB has no current amplifiers. */
+    adc_select_input(2);
+    (void)adc_read();
+    motor_voltage = adc_read() * (3.3 * 11.0 / 4095.0);
+    adc_select_input(3);
+    (void)adc_read();
+    data_voltage = adc_read() * (3.3 * 2.0 / 4095.0);
+    supply_sampled = true;
+#endif
     uint16_t raw;
     temperature_valid = sensor_initialized && sensor_verify() && read_reg(0, &raw) && !(raw & 15);
     if (temperature_valid) {
@@ -252,7 +273,7 @@ static bool emit(cJSON *o) {
     return ok;
 }
 static void currents(cJSON *o) {
-#ifdef MOTOR_BOARD_DRV8847
+#if defined(MOTOR_BOARD_DRV8847) || defined(MOTOR_BOARD_A4988)
     null(o, "winding_current_a");
     null(o, "current_a");
     add_bool(o, "current_available", false);
@@ -277,7 +298,7 @@ static void currents(cJSON *o) {
 #endif
 }
 static void stream_current(void) {
-#ifndef MOTOR_BOARD_DRV8847
+#if !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
     static current_frame_t frame;
     current_capture_read(&frame, tud_cdc_connected());
 #ifdef MOTOR_BOARD_DRV8452
@@ -320,7 +341,7 @@ static void stream_current(void) {
 }
 static cJSON *capabilities(void) {
     cJSON *c = cJSON_CreateObject(), *r = cJSON_CreateObject();
-#ifdef MOTOR_BOARD_DRV8847
+#if defined(MOTOR_BOARD_DRV8847) || defined(MOTOR_BOARD_A4988)
     add_bool(c, "soft_limits_supported", false);
     add_bool(c, "stall_homing_supported", false);
     add_bool(c, "stall_response_supported", false);
@@ -338,7 +359,7 @@ static cJSON *capabilities(void) {
     add_bool(c, "torque_count_supported", true);
 #else
     add_bool(c, "torque_count_supported", false);
-#ifndef MOTOR_BOARD_DRV8847
+#if !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
     add_bool(c, "current_stall_firmware_supported", true);
     add_number(c, "current_stall_raw_sample_hz", CURRENT_SAMPLE_HZ);
     add_number(c, "current_stall_feature_hz", STALL_FEATURE_HZ);
@@ -373,14 +394,25 @@ static cJSON *capabilities(void) {
         "Voltage requests and rearming have no fixed discharge or settling delay. The raw PD input defaults to 28 V; it is isolated at boot. "
         "PD power-good is ignored by default; PD communication and driver/eFuse checks remain "
         "active.");
-#else
+#elif !defined(MOTOR_BOARD_A4988)
     int volts[] = {5, 9, 12, 15, 20};
 #endif
+#ifdef MOTOR_BOARD_A4988
+    cJSON_AddItemToObject(c, "pd_voltages", cJSON_CreateArray());
+    add_bool(c, "fixed_motor_supply", true);
+    add_bool(c, "motor_power_check_required", true);
+    add_bool(c, "driver_fault_supported", false);
+    add_bool(c, "current_limit_supported", false);
+    add_number(c, "fixed_motor_voltage", 15);
+    add_number(c, "nominal_current_limit_peak_a", 3.3 * 10.0 / 49.0 / (8 * 0.24));
+    add_string(c, "power_note", "CH224A requests fixed 15 V. Connect a 15 V-capable PD supply to PWR. Motion requires PG low and measured 13.5-16.5 V. Current limit is resistor-set, nominally 0.35 A peak.");
+#else
     cJSON_AddItemToObject(c, "pd_voltages",
                           cJSON_CreateIntArray(volts, sizeof(volts) / sizeof(volts[0])));
     add_number(c, "current_volts_per_amp", CURRENT_VOLTS_PER_AMP);
 #endif
-    add_number(c, "full_steps_per_revolution", 200);
+#endif
+    add_number(c, "full_steps_per_revolution", FULL_STEPS_PER_REVOLUTION);
     add_number(c, "min_speed_sps", MIN_SPEED_SPS);
 #ifndef MOTOR_BOARD_DRV8847
     null(c, "max_speed_sps");
@@ -416,6 +448,11 @@ static cJSON *capabilities(void) {
     add_string(c, "step_note", "PIO drives the four bridge inputs directly. Full and half steps only; "
                "half stepping alternates one/two coils without current normalization.");
     add_string(c, "current_note", "No current measurement connection to the MCU on this PCB.");
+#elif defined(MOTOR_BOARD_A4988)
+    add_bool(c, "current_stream_supported", false);
+    add_bool(c, "pulse_test_supported", true);
+    add_string(c, "step_note", "Fixed 1/16 hardware microsteps; selected increments group PIO pulses. Positions are commanded, not measured.");
+    add_string(c, "current_note", "No winding-current measurement on this PCB. ADC inputs measure supply voltages.");
 #else
     add_number(c, "current_sample_hz", CURRENT_SAMPLE_HZ);
     add_bool(c, "current_stream_supported", true);
@@ -475,10 +512,18 @@ static void status(bool compact) {
              false
 #endif
     );
+#ifdef MOTOR_BOARD_A4988
+    add_bool(o, "driver_fault_asserted", false);
+    add_number(o, "driver_enable_n_level", gpio_get(ARM_PIN));
+    add_number(o, "driver_sleep_level", gpio_get(WAKE_PIN));
+    add_number(o, "driver_direction_level", gpio_get(DIR_PIN));
+    add_number(o, "driver_step_level", gpio_get(STEP_PIN));
+#else
     add_bool(o, "driver_fault_asserted", !gpio_get(23));
+#endif
     add_number(o, "pulse_queue_underruns", s.queue_underruns);
     add_string(o, "step_resolution", resolution_name(s.factor));
-    add_number(o, "steps_per_revolution", 200 * s.factor);
+    add_number(o, "steps_per_revolution", FULL_STEPS_PER_REVOLUTION * s.factor);
     add_number(o, "direction", s.direction);
     add_number(o, "speed_sps", s.speed);
     add_number(o, "acceleration_sps2", s.acceleration);
@@ -495,7 +540,17 @@ static void status(bool compact) {
 #else
     add_number(o, "pd_voltage_requested", pd_voltage);
 #endif
+#ifdef MOTOR_BOARD_A4988
+    if (supply_sampled) add_number(o, "pd_voltage_measured", motor_voltage);
+    else null(o, "pd_voltage_measured");
+    add_number(o, "data_voltage_measured", data_voltage);
+    add_bool(o, "pd_power_good", !gpio_get(PD_GOOD_PIN));
+    add_bool(o, "pd_request_sent", true); /* Resistor-configured request, not a software write. */
+    add_string(o, "power_state", power_ready() ? "Fixed 15 V supply ready" : "Waiting for 15 V PD supply");
+    add_string(o, "power_error", power_ready() ? "" : "Connect a 15 V-capable PD supply to PWR; PG and measured voltage must be valid");
+#else
     null(o, "pd_voltage_measured");
+#endif
     add_bool(o, "motor_power_ready", power_ready());
 #ifdef MOTOR_BOARD_DRV8452
     nema23_status_t board = nema23_status();
@@ -534,7 +589,7 @@ static void status(bool compact) {
     add_bool(o, "driver_spi_verified", board.spi_valid && gpio_get(WAKE_PIN));
 #endif
 #ifndef MOTOR_BOARD_DRV8452
-#ifndef MOTOR_BOARD_DRV8847
+#if !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
     stall_result_t estimate=stall_estimator_result();
     estimate.valid=estimate.valid&&s.enabled&&(s.mode==FINITE||s.mode==CONTINUOUS);
     add_bool(o,"current_stall_valid",estimate.valid);
@@ -562,7 +617,7 @@ static void status(bool compact) {
     add_string(o, "led_color", color_name());
     if (!compact) {
         add_string(o, "firmware", "native-c-pio");
-        add_string(o, "firmware_version", "1.0.17");
+        add_string(o, "firmware_version", BOARD_FIRMWARE_VERSION);
         add_string(o, "firmware_build", FIRMWARE_BUILD_ID);
         add_number(o, "uptime_ms", (time_us_64() - boot_us) / 1000);
         add_string(o, "device_name", settings.name);
@@ -693,9 +748,13 @@ static const char *motion_command(cJSON *c, bool jog) {
 #endif
     if (!recent_heartbeat())
         return "Waiting for browser heartbeat";
-    if (!power_ready())
-        return "Select motor power and wait two seconds";
     sample();
+    if (!power_ready())
+#ifdef MOTOR_BOARD_A4988
+        return "Connect a 15 V-capable PD supply to PWR; require PG low and measured 13.5-16.5 V";
+#else
+        return "Select motor power and wait two seconds";
+#endif
     if (!temperature_valid || temperature >= START_BELOW_C)
         return "Temperature must be valid and below the board start limit";
     if (driver_fault())
@@ -722,7 +781,7 @@ static const char *motion_command(cJSON *c, bool jog) {
     previous_mode = defer ? PREPARED : finite ? FINITE : CONTINUOUS;
     return NULL;
 }
-#ifndef MOTOR_BOARD_DRV8847
+#if !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
 static bool homing_move(int direction, uint32_t full_steps, unsigned phase) {
     home.phase=phase; home.candidate_at=0; home.clear_seen=false;
     home.deadline=time_us_64()+(uint64_t)((full_steps/home.speed+3)*1000000);
@@ -875,7 +934,7 @@ static void command(const char *line) {
     else if (matches(cmd, "start") || matches(cmd, "jog"))
         error = motion_command(c, matches(cmd, "jog"));
     else if (matches(cmd, "set_soft_limits")) {
-#ifdef MOTOR_BOARD_DRV8847
+#if defined(MOTOR_BOARD_DRV8847) || defined(MOTOR_BOARD_A4988)
         error = "Soft limits are unsupported on this board";
 #else
         cJSON *enabled = cJSON_GetObjectItemCaseSensitive(c, "enabled");
@@ -922,7 +981,7 @@ static void command(const char *line) {
         } else if (s.mode != STOPPED && s.mode != BRAKING)
             error = "Deceleration requires continuous motion";
     } else if(matches(cmd,"begin_stall_trace") || matches(cmd,"get_stall_trace")) {
-#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847)
+#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
         if(s.mode!=STOPPED)error="Stop motor before accessing stall trace";
         else if(matches(cmd,"begin_stall_trace")) {
             if(!stall_estimator_trace_begin())error="Stop motor before accessing stall trace";
@@ -954,7 +1013,7 @@ static void command(const char *line) {
         error="Board does not support this command";
 #endif
     } else if(matches(cmd,"set_current_stream_enabled")) {
-#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847)
+#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
         cJSON *enabled=cJSON_GetObjectItemCaseSensitive(c,"enabled");
         if(!cJSON_IsBool(enabled))error="enabled must be a boolean";
         else current_stream_enabled=cJSON_IsTrue(enabled);
@@ -1020,7 +1079,7 @@ static void command(const char *line) {
         error = "Board does not support this command";
 #endif
     } else if (matches(cmd, "set_pd_voltage")) {
-#ifdef MOTOR_BOARD_DRV8847
+#if defined(MOTOR_BOARD_DRV8847) || defined(MOTOR_BOARD_A4988)
         error = "Board does not support software voltage selection";
 #elif defined(MOTOR_BOARD_DRV8452)
         double voltage;
@@ -1074,7 +1133,7 @@ static void command(const char *line) {
             led_selection = next;
 #endif
     } else if (matches(cmd, "run_stall_homing")) {
-#ifdef MOTOR_BOARD_DRV8847
+#if defined(MOTOR_BOARD_DRV8847) || defined(MOTOR_BOARD_A4988)
         error="Stall homing is unsupported on this board";
 #else
         error=homing_start(c);
@@ -1092,7 +1151,7 @@ static void command(const char *line) {
             if(!error && !settings_save(&next)) error="Settings flash write failed";
         }
     } else if (matches(cmd, "set_stall_response")) {
-#ifdef MOTOR_BOARD_DRV8847
+#if defined(MOTOR_BOARD_DRV8847) || defined(MOTOR_BOARD_A4988)
         error = "Stall detection is not supported by this board";
 #else
         double delay;
@@ -1225,6 +1284,12 @@ static void protect(uint64_t now, motor_status_t s) {
         nema23_disarm();
 #endif
     if (s.mode != STOPPED) {
+#ifdef MOTOR_BOARD_A4988
+        if (s.enabled && !power_ready()) {
+            stop("Motor supply lost or outside 13.5-16.5 V");
+            return;
+        }
+#endif
         if (!temperature_valid)
             stop("Temperature sensor error");
         else if (temperature >= SHUTDOWN_C)
@@ -1242,7 +1307,10 @@ static void protect(uint64_t now, motor_status_t s) {
     }
 }
 static void safe_gpio(void) {
-#ifdef MOTOR_BOARD_DRV8847
+#ifdef MOTOR_BOARD_A4988
+    const int pins[] = {ARM_PIN, WAKE_PIN, STEP_PIN, DIR_PIN, LED_RED_PIN, LED_GREEN_PIN, LED_BLUE_PIN, BUZZER_PIN};
+    const int inputs[] = {PD_GOOD_PIN};
+#elif defined(MOTOR_BOARD_DRV8847)
     const int pins[] = {22, 18, 19, 20, 21, 25, 16};
     const int inputs[] = {23, 24};
 #elif defined(MOTOR_BOARD_DRV8452)
@@ -1255,7 +1323,9 @@ static void safe_gpio(void) {
     for (size_t i = 0; i < sizeof(pins) / sizeof(pins[0]); ++i) {
         gpio_init(pins[i]);
         gpio_put(pins[i],
-#ifdef MOTOR_BOARD_DRV8847
+#ifdef MOTOR_BOARD_A4988
+                 pins[i] == ARM_PIN
+#elif defined(MOTOR_BOARD_DRV8847)
                  0
 #elif defined(MOTOR_BOARD_DRV8452)
                  pins[i] == 17
@@ -1290,7 +1360,7 @@ int main(void) {
     motor_init();
     if (!settings_has_saved())
         settings_save(&settings);
-#ifndef MOTOR_BOARD_DRV8847
+#if !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
     current_capture_init();
 #endif
     i2c_init(i2c1, 100000);
@@ -1301,10 +1371,15 @@ int main(void) {
     sensor_initialized = write_reg(1, SENSOR_CONFIG) && write_reg(2, SENSOR_LOW_C * 256) &&
                          write_reg(3, SHUTDOWN_C * 256) && sensor_verify();
     sleep_ms(300);
+#ifdef MOTOR_BOARD_A4988
+    adc_init();
+    adc_gpio_init(VM_SENSE_PIN);
+    adc_gpio_init(DATA_PRESENT_PIN);
+#endif
     sample();
     gpio_set_function(BUZZER_PIN, GPIO_FUNC_PWM);
     tusb_init();
-#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847)
+#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
     stall_estimator_init();
 #endif
     watchdog_enable(2000, true);
@@ -1329,7 +1404,7 @@ int main(void) {
             sample();
         motor_status_t s = motor_status();
         protect(now, s);
-#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847)
+#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
         stall_context_t context={.moving=s.enabled&&(s.mode==FINITE||s.mode==CONTINUOUS),.healthy=temperature_valid&&power_ready()&&gpio_get(23),.voltage=pd_voltage,.direction=s.direction,.factor=s.factor,.speed=s.speed,.profile_speed=s.profile_speed,.temperature=temperature};
         stall_estimator_context(context,now);
         uint64_t analysis_started=time_us_64();
@@ -1344,7 +1419,7 @@ int main(void) {
         nema23_status_t stall_board = nema23_status();
         detected = stall_board.stall_valid && stall_board.stall_suspected;
         stall_like = detected;
-#elif !defined(MOTOR_BOARD_DRV8847)
+#elif !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
         stall_result_t stall_estimate = stall_estimator_result();
         /* An explicit audible warning is not gated by model confidence. */
         stall_like = current_stall_warning(stall_estimate, response_now);
@@ -1352,7 +1427,7 @@ int main(void) {
 #endif
         s = motor_status();
         respond_to_stall(response_now, s, detected, stall_like);
-#ifndef MOTOR_BOARD_DRV8847
+#if !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
 #ifdef MOTOR_BOARD_DRV8452
         homing_tick(response_now,stall_like,nema23_status().stall_valid,100);
 #else
@@ -1404,7 +1479,7 @@ int main(void) {
         }
         previous_mode = s.mode;
         indicators(now, s);
-        #if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847)
+        #if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
         const uint64_t telemetry_interval=(s.mode==FINITE || s.mode==CONTINUOUS)?100000:250000;
 #else
         const uint64_t telemetry_interval=250000;
@@ -1414,7 +1489,7 @@ int main(void) {
             last_emit = now;
         }
         if (now - last_current_emit >= 20000) {
-#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847)
+#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
             if(current_stream_enabled)stream_current();
 #else
             stream_current();

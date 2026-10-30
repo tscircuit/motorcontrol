@@ -47,8 +47,15 @@ int i2c_read_timeout_us(int bus, uint8_t address, uint8_t *data, size_t n, bool 
 void i2c_init(int bus, uint32_t rate) {}
 void adc_init(void) {}
 void adc_gpio_init(uint pin) {}
+#ifdef MOTOR_BOARD_A4988
+static uint fake_adc_channel;
+static uint16_t fake_adc_values[4] = {[2] = 1692, [3] = 3102};
+void adc_select_input(uint channel) { fake_adc_channel = channel; }
+uint16_t adc_read(void) { return fake_adc_values[fake_adc_channel]; }
+#else
 void adc_select_input(uint channel) {}
 uint16_t adc_read(void) { return 2048; }
+#endif
 uint gpio_get_function(uint pin) { return GPIO_FUNC_PWM; }
 void pwm_set_counter(uint slice, uint16_t value) {}
 uint16_t pwm_get_counter(uint slice) { return 0; }
