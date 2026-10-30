@@ -4,8 +4,10 @@
 #define BOARD_NAME "RP2040 / NEMA14 / A4988"
 #define BOARD_ID "rp2040_a4988_nema14"
 #define DRIVER_NAME "A4988"
-#define BOARD_FIRMWARE_VERSION "1.0.19"
+#define BOARD_FIRMWARE_VERSION "1.0.20"
+#ifndef FULL_STEPS_PER_REVOLUTION
 #define FULL_STEPS_PER_REVOLUTION 400
+#endif
 #define STEP_PIN 6
 #define DIR_PIN 7
 #define ARM_PIN 8 /* Active-low ENABLE_N */

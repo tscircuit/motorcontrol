@@ -64,13 +64,13 @@ int main(int argc, char **argv) {
     sample(); output_length=0; status(false);
     cJSON *s=cJSON_Parse(output); assert(s);
     assert(!strcmp(cJSON_GetObjectItem(s,"board_id")->valuestring,"rp2040_a4988_nema14"));
-    assert(!strcmp(cJSON_GetObjectItem(s,"firmware_version")->valuestring,"1.0.19"));
-    assert(cJSON_GetObjectItem(s,"steps_per_revolution")->valueint==400);
+    assert(!strcmp(cJSON_GetObjectItem(s,"firmware_version")->valuestring,"1.0.20"));
+    assert(cJSON_GetObjectItem(s,"steps_per_revolution")->valueint==FULL_STEPS_PER_REVOLUTION);
     assert(cJSON_IsNull(cJSON_GetObjectItem(s,"current_a")));
     assert(cJSON_IsFalse(cJSON_GetObjectItem(s,"current_available")));
     assert(cJSON_IsFalse(cJSON_GetObjectItem(s,"driver_fault_asserted")));
     cJSON *caps=cJSON_GetObjectItem(s,"capabilities");
-    assert(cJSON_GetObjectItem(caps,"full_steps_per_revolution")->valueint==400);
+    assert(cJSON_GetObjectItem(caps,"full_steps_per_revolution")->valueint==FULL_STEPS_PER_REVOLUTION);
     assert(cJSON_GetArraySize(cJSON_GetObjectItem(caps,"pd_voltages"))==0);
     assert(cJSON_IsFalse(cJSON_GetObjectItem(caps,"current_stream_supported")));
     assert(cJSON_IsFalse(cJSON_GetObjectItem(caps,"stall_homing_supported")));

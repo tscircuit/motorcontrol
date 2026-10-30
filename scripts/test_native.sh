@@ -44,3 +44,8 @@ build/native-tests/test-homing
 "$compiler" -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -DCJSON_NESTING_LIMIT=8 -DMOTOR_BOARD_A4988=1 -fsanitize="$sanitize" \
   -Ifirmware-c -Itests/native tests/native/test_nema14_protocol.c firmware-c/profile.c firmware-c/vendor/cJSON.c -lm -o build/native-tests/test-nema14-protocol
 build/native-tests/test-nema14-protocol build/native-tests/nema14-telemetry.json
+
+# A 1.8-degree motor must report 200 full steps per revolution on the same PCB.
+"$compiler" -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -DCJSON_NESTING_LIMIT=8 -DMOTOR_BOARD_A4988=1 -DFULL_STEPS_PER_REVOLUTION=200 -fsanitize="$sanitize" \
+  -Ifirmware-c -Itests/native tests/native/test_nema14_protocol.c firmware-c/profile.c firmware-c/vendor/cJSON.c -lm -o build/native-tests/test-nema14-200
+build/native-tests/test-nema14-200

@@ -12,8 +12,12 @@ if(NOT MOTOR_BOARD STREQUAL "drv8825" AND NOT MOTOR_BOARD STREQUAL "nema23_drv84
     message(FATAL_ERROR "Unsupported MOTOR_BOARD")
 endif()
 set(MOTOR_INITIAL_NAME "Motor bench" CACHE STRING "Name used when native settings are empty")
+set(MOTOR_FULL_STEPS_PER_REVOLUTION "" CACHE STRING "Override motor full steps per revolution (e.g. 200 for 1.8 degrees)")
 set(MOTOR_INITIAL_THRESHOLD 65 CACHE STRING "Alarm threshold used when native settings are empty")
 add_executable(motorcontrol main.c profile.c settings.c usb_descriptors.c vendor/cJSON.c)
+if(MOTOR_FULL_STEPS_PER_REVOLUTION)
+    target_compile_definitions(motorcontrol PRIVATE FULL_STEPS_PER_REVOLUTION=${MOTOR_FULL_STEPS_PER_REVOLUTION})
+endif()
 if(MOTOR_BOARD STREQUAL "nema17_drv8847")
     target_sources(motorcontrol PRIVATE boards/nema17-drv8847/motor.c)
     target_compile_definitions(motorcontrol PRIVATE MOTOR_BOARD_DRV8847=1)
@@ -46,7 +50,7 @@ set(BUILD_INPUTS boards/nema14-a4988/board.h travel_limits.h stall_response.h st
     boards/nema17-drv8847/motor.c boards/nema17-drv8847/bridge.pio
     boards/nema17-drv8825-1.0.42/board.h boards/nema23-drv8452-1.3.2/board.h
     vendor/cJSON.c vendor/cJSON.h)
-set(BUILD_FINGERPRINT "${MOTOR_BOARD}:${PICO_SDK_VERSION_STRING}:${MOTOR_INITIAL_NAME}:${MOTOR_INITIAL_THRESHOLD}")
+set(BUILD_FINGERPRINT "${MOTOR_BOARD}:${PICO_SDK_VERSION_STRING}:${MOTOR_INITIAL_NAME}:${MOTOR_INITIAL_THRESHOLD}:${MOTOR_FULL_STEPS_PER_REVOLUTION}")
 foreach(INPUT IN LISTS BUILD_INPUTS)
     file(SHA256 "${CMAKE_CURRENT_LIST_DIR}/${INPUT}" INPUT_HASH)
     string(APPEND BUILD_FINGERPRINT ":${INPUT_HASH}")
