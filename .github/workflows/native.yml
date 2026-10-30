@@ -12,10 +12,11 @@ jobs:
         with:
           node-version: '22'
       - run: node tests/test_drv8847_dashboard.cjs
+      - run: node tests/test_nema14_dashboard.cjs
   rp2040-build:
     strategy:
       matrix:
-        board: [drv8825, nema17_drv8847, nema23_drv8452]
+        board: [drv8825, nema17_drv8847, nema23_drv8452, nema14_a4988]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

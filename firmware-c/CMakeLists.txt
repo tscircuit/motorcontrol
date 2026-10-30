@@ -6,9 +6,9 @@ include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 project(motorcontrol C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 pico_sdk_init()
-set(MOTOR_BOARD "drv8825" CACHE STRING "Target PCB: drv8825, nema17_drv8847 or nema23_drv8452")
-set_property(CACHE MOTOR_BOARD PROPERTY STRINGS drv8825 nema17_drv8847 nema23_drv8452)
-if(NOT MOTOR_BOARD STREQUAL "drv8825" AND NOT MOTOR_BOARD STREQUAL "nema23_drv8452" AND NOT MOTOR_BOARD STREQUAL "nema17_drv8847")
+set(MOTOR_BOARD "drv8825" CACHE STRING "Target PCB: drv8825, nema17_drv8847, nema23_drv8452 or nema14_a4988")
+set_property(CACHE MOTOR_BOARD PROPERTY STRINGS drv8825 nema17_drv8847 nema23_drv8452 nema14_a4988)
+if(NOT MOTOR_BOARD STREQUAL "drv8825" AND NOT MOTOR_BOARD STREQUAL "nema23_drv8452" AND NOT MOTOR_BOARD STREQUAL "nema17_drv8847" AND NOT MOTOR_BOARD STREQUAL "nema14_a4988")
     message(FATAL_ERROR "Unsupported MOTOR_BOARD")
 endif()
 set(MOTOR_INITIAL_NAME "Motor bench" CACHE STRING "Name used when native settings are empty")
@@ -19,7 +19,15 @@ if(MOTOR_BOARD STREQUAL "nema17_drv8847")
     target_compile_definitions(motorcontrol PRIVATE MOTOR_BOARD_DRV8847=1)
     pico_generate_pio_header(motorcontrol ${CMAKE_CURRENT_LIST_DIR}/boards/nema17-drv8847/bridge.pio)
 else()
-    target_sources(motorcontrol PRIVATE motor.c current_capture.c current_stats.c)
+    target_sources(motorcontrol PRIVATE motor.c)
+    if(MOTOR_BOARD STREQUAL "nema14_a4988")
+        target_compile_definitions(motorcontrol PRIVATE MOTOR_BOARD_A4988=1)
+        # GD25Q16E: use JEDEC 03h reads without a vendor-specific quad-enable sequence.
+        pico_define_boot_stage2(nema14_boot2 ${PICO_SDK_PATH}/src/rp2040/boot_stage2/boot2_generic_03h.S)
+        pico_set_boot_stage2(motorcontrol nema14_boot2)
+    else()
+        target_sources(motorcontrol PRIVATE current_capture.c current_stats.c)
+    endif()
     pico_generate_pio_header(motorcontrol ${CMAKE_CURRENT_LIST_DIR}/stepper.pio)
 endif()
 if(MOTOR_BOARD STREQUAL "nema23_drv8452")
@@ -32,7 +40,7 @@ if(MOTOR_BOARD STREQUAL "drv8825")
 endif()
 # Fingerprint the source and build configuration so live boards can be checked
 # against the actual image, without relying only on a fixed version label.
-set(BUILD_INPUTS travel_limits.h stall_response.h stall_estimator.c stall_estimator.h stall_model.h board.h nema23.c nema23.h current_capture.c current_capture.h current_stats.c CMakeLists.txt main.c motor.c motor.h profile.c profile.h settings.c
+set(BUILD_INPUTS boards/nema14-a4988/board.h travel_limits.h stall_response.h stall_estimator.c stall_estimator.h stall_model.h board.h nema23.c nema23.h current_capture.c current_capture.h current_stats.c CMakeLists.txt main.c motor.c motor.h profile.c profile.h settings.c
     settings.h usb_descriptors.c tusb_config.h stepper.pio memory_guard.ld
     boards/nema17-drv8847/board.h boards/nema17-drv8847/sequence.h
     boards/nema17-drv8847/motor.c boards/nema17-drv8847/bridge.pio

@@ -1,6 +1,8 @@
 # Native RP2040 motor firmware
 
-Native firmware runs directly on the RP2040 using the Raspberry Pi Pico SDK. No MicroPython runtime or filesystem is needed. There are [three distinct hardware targets](boards/README.md): older NEMA17/DRV8847 (`nema17_drv8847`), latest NEMA17/DRV8825 (`drv8825`, PCB 1.0.42), and NEMA23/DRV8452 (`nema23_drv8452`, PCB 1.3.2). The default remains **DRV8825 / RGB**; the build command below produces that image. Never flash it onto a different PCB. The [DRV8847 guide](boards/nema17-drv8847/README.md) covers its separate four-input coil backend; the STEP/ADC/RGB/PD details below describe DRV8825.
+Native firmware runs directly on the RP2040 using the Raspberry Pi Pico SDK. No MicroPython runtime or filesystem is needed. There are [four distinct hardware targets](boards/README.md): NEMA14/A4988 (`nema14_a4988`, PCB 1.13.2), older NEMA17/DRV8847 (`nema17_drv8847`), latest NEMA17/DRV8825 (`drv8825`, PCB 1.0.42), and NEMA23/DRV8452 (`nema23_drv8452`, PCB 1.3.2). The default remains **DRV8825 / RGB**; the build command below produces that image. Never flash it onto a different PCB. The [DRV8847 guide](boards/nema17-drv8847/README.md) covers its separate four-input coil backend; the STEP/ADC/RGB/PD details below describe DRV8825.
+
+For NEMA14, use the [dedicated A4988 guide](boards/nema14-a4988/README.md); its fixed supply, pins, 400-step motor and lack of current sensing differ from the defaults below.
 
 ## Build and install
 

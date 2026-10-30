@@ -111,7 +111,7 @@ static void begin_locked(double initial, uint32_t target, bool fixed, bool defer
                (!test && !fixed && !jogging ? 100000 : 0);
     gpio_put(DIR_PIN, state.direction > 0);
     if (!test) {
-#ifndef MOTOR_BOARD_DRV8452
+#if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_A4988)
         gpio_put(20, 1);
 #endif
         gpio_put(WAKE_PIN, 1);

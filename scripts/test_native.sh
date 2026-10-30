@@ -40,3 +40,7 @@ build/native-tests/test-stall-response
 build/native-tests/test-travel-limits
 "$compiler" -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -DCJSON_NESTING_LIMIT=8 -fsanitize="$sanitize" -Ifirmware-c -Itests/native tests/native/test_homing.c firmware-c/profile.c firmware-c/vendor/cJSON.c firmware-c/stall_estimator.c -lm -o build/native-tests/test-homing
 build/native-tests/test-homing
+
+"$compiler" -std=c11 -Wall -Wextra -Werror -Wno-unused-parameter -DCJSON_NESTING_LIMIT=8 -DMOTOR_BOARD_A4988=1 -fsanitize="$sanitize" \
+  -Ifirmware-c -Itests/native tests/native/test_nema14_protocol.c firmware-c/profile.c firmware-c/vendor/cJSON.c -lm -o build/native-tests/test-nema14-protocol
+build/native-tests/test-nema14-protocol build/native-tests/nema14-telemetry.json
