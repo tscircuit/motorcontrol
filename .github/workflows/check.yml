@@ -23,6 +23,8 @@ jobs:
       - run: node tests/test_stall_controls.cjs
       - run: node --check dist/homing-controls.js
       - run: node tests/test_homing.cjs
+      - run: node --check dist/bldc.js
+      - run: node tests/test_bldc.cjs
       - run: node tests/test_dashboard.cjs
       - run: node tests/test_song.cjs
       - run: node --check dist/gantry.js

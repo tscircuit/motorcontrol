@@ -1,0 +1,26 @@
+const assert=require('node:assert/strict');
+const {BldcClient,validTelemetry,controlState}=require('../dist/bldc.js');
+const telemetry={type:'telemetry',protocol:'bldc-1',firmware:'native-bldc',power_ready:true,armed:false,motor_enabled:false,vbus_v:9,vmotor_v:9,feed_current_a:.05,electrical_hz:0,max_percent:8,max_run_ms:1500};
+assert.equal(validTelemetry(telemetry),true);
+assert.equal(validTelemetry({...telemetry,protocol:3}),false);
+assert.equal(validTelemetry({...telemetry,vmotor_v:null}),false);
+assert.equal(controlState(telemetry,true,false).arm,true);
+assert.equal(controlState(telemetry,false,false).arm,false);
+assert.equal(controlState({...telemetry,armed:true},true,false).start,true);
+assert.equal(controlState({...telemetry,motor_enabled:true},true,false).arm,false);
+assert.equal(controlState({...telemetry,vmotor_v:0,power_ready:false},true,false).power,true);
+assert.equal(controlState({...telemetry,armed:true,vmotor_v:0},true,false).power,false);
+(async()=>{
+ let clock=100,seen=[];
+ const c=new BldcClient({clock:()=>clock,onTelemetry:d=>seen.push(d),timeout:100});
+ const line=JSON.stringify(telemetry)+'\n';c.feed(line.slice(0,20));c.feed(line.slice(20));assert.equal(seen.length,1);assert.equal(c.fresh(),true);clock=2000;assert.equal(c.fresh(),false);
+ c.feed('x'.repeat(5000)+line);assert.equal(seen.length,1);c.feed(line);assert.equal(seen.length,2);
+ c.feed('{bad}\n'+JSON.stringify({...telemetry,protocol:3})+'\n');assert.equal(seen.length,2);
+ let writes=[];c.port={writable:{getWriter:()=>({write:async bytes=>writes.push(JSON.parse(new TextDecoder().decode(bytes))),releaseLock(){}})}};
+ const a=c.send('arm');await new Promise(r=>setImmediate(r));c.receive(JSON.stringify({type:'ack',protocol:'bldc-1',id:writes.at(-1).id,ok:true}));await a;
+ const bad=c.send('start');await new Promise(r=>setImmediate(r));c.receive(JSON.stringify({type:'ack',protocol:'bldc-1',id:writes.at(-1).id,ok:false,error:'Not armed'}));await assert.rejects(bad,/Not armed/);
+ let unblock;c.chain=new Promise(r=>unblock=r);
+ const start=c.send('start').catch(e=>e);const stop=c.send('stop');unblock();await new Promise(r=>setImmediate(r));assert.equal(writes.at(-1).cmd,'stop');assert.match((await start).message,/cancelled/);c.receive(JSON.stringify({type:'ack',protocol:'bldc-1',id:writes.at(-1).id,ok:true}));await stop;
+ await assert.rejects(c.send('status'),/did not acknowledge/);
+ console.log('PASS BLDC telemetry framing, wrong-board rejection, stale gating, ACK errors, timeout, queued-start cancellation on Stop');
+})().catch(e=>{console.error(e);process.exitCode=1});
