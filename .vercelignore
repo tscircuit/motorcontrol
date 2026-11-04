@@ -1,4 +1,4 @@
-firmware/
+/firmware/
 tests/
 scripts/
 docs/
@@ -7,3 +7,6 @@ __pycache__/
 firmware-c/
 work/
 stall-testing/
+
+!dist/firmware/
+!dist/firmware/**
