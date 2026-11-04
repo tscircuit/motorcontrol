@@ -10,6 +10,9 @@ assert.equal(controlState({...telemetry,armed:true},true,false).start,true);
 assert.equal(controlState({...telemetry,motor_enabled:true},true,false).arm,false);
 assert.equal(controlState({...telemetry,vmotor_v:0,power_ready:false},true,false).power,true);
 assert.equal(controlState({...telemetry,armed:true,vmotor_v:0},true,false).power,false);
+assert.equal(controlState({...telemetry,pd_change_while_powered:true,armed:true},true,false).power,true);
+assert.equal(controlState({...telemetry,pd_change_while_powered:true,motor_enabled:true},true,false).power,true);
+assert.equal(controlState({...telemetry,pd_change_while_powered:true},false,false).power,false);
 (async()=>{
  let clock=100,seen=[];
  const c=new BldcClient({clock:()=>clock,onTelemetry:d=>seen.push(d),timeout:100});
@@ -38,4 +41,15 @@ assert.equal(controlState({...telemetry,armed:true,vmotor_v:0},true,false).power
  arrows.press('ArrowRight');assert.equal(calls.at(-1).cmd,'stop');arrows.release('ArrowRight');await flush();assert.equal(calls.filter(x=>x.cmd==='start').length,1);arrows.release('ArrowDown');
  calls=[];arrows.press('ArrowRight');await flush();arrows.receive({motor_enabled:false});arrows.press('ArrowRight');await flush();assert.equal(calls.filter(x=>x.cmd==='start').length,1);arrows.release('ArrowRight');arrows.press('ArrowRight');await flush();assert.equal(calls.filter(x=>x.cmd==='start').length,2);arrows.reset('blur');assert.equal(arrows.held.size,0);assert.equal(calls.at(-1).cmd,'stop');
  console.log('PASS BLDC arrow direction, repeat suppression, release-during-arm race, opposite cancellation, timed-out hold lockout and focus reset');
+})().catch(e=>{console.error(e);process.exitCode=1});
+
+(async()=>{
+ const {BldcArrows}=require('../dist/bldc.js');const flush=()=>new Promise(r=>setImmediate(r));
+ let ready=true,calls=[];const client={port:{},send:async(cmd,fields)=>{calls.push({cmd,fields});}};
+ const a=new BldcArrows({client,canRun:()=>ready,settings:()=>({percent:8,duration_ms:0})});
+ a.press('ArrowRight');await flush();a.suspend();ready=false;a.resume();await flush();assert.equal(calls.filter(c=>c.cmd==='start').length,1);
+ ready=true;a.receive({motor_enabled:false});await flush();assert.equal(calls.filter(c=>c.cmd==='start').length,2);assert.equal(calls.at(-1).fields.direction,1);
+ a.suspend();ready=false;a.release('ArrowRight');ready=true;a.resume();await flush();assert.equal(calls.filter(c=>c.cmd==='start').length,2);
+ a.press('ArrowLeft');await flush();assert.equal(calls.at(-1).fields.direction,-1);a.reset('finished');
+ console.log('PASS voltage-change hold resume and release-during-change cancellation');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -110,7 +110,7 @@ static bool pd_value(unsigned reg,unsigned len,uint32_t *value) {
 }
 static bool select_voltage(unsigned voltage) {
     off(); led_error=false; led_show("NEGOTIATING",false,false,true);
-    if(!bldc_voltage_valid(voltage) || sample(1)*3.3f/4095*235/15>=1.0f) return false;
+    if(!bldc_voltage_valid(voltage)) return false;
     uint32_t old;
     if(!pd_value(0x70,1,&old)) {led_fault();return false;}
     uint32_t motor_pdo=((voltage*20u)<<10)|200u;
@@ -125,8 +125,7 @@ static bool select_voltage(unsigned voltage) {
     absolute_time_t end=make_timeout_time_ms(5000);unsigned good=0;
     while(!time_reached(end)) {
         watchdog_update();off();uint32_t pe,rdo;
-        float vin=sample(0)*3.3f/4095*235/15,vm=sample(1)*3.3f/4095*235/15;
-        if(vm>=1) {led_fault();return false;}
+        float vin=sample(0)*3.3f/4095*235/15;
         bool ready=pd_value(0x29,1,&pe)&&pd_value(0x91,4,&rdo)&&pe==0x18&&
             !gpio_get(6)&&bldc_voltage_ready(vin,voltage,false)&&!(rdo&0x0c000000u)&&
             ((rdo>>10)&1023)==200&&(rdo&1023)>=200;
@@ -163,6 +162,8 @@ static void prepare(void) {
 }
 
 static bool running=false, armed=false, heartbeat_seen=false, browser_session=false;
+static bool voltage_rearm_pending=false;
+static uint32_t voltage_rearm_at;
 static uint32_t heartbeat_at, arm_at, run_at, run_duration=BLDC_MAX_RUN_MS;
 static unsigned baseline, edges;
 static bool previous_fg;
@@ -180,7 +181,7 @@ static bool power_ready(void) {
     return bldc_voltage_ready(v,selected_voltage,false) && !gpio_get(6);
 }
 static void disarm(const char *why,bool fault) {
-    off(); running=false; armed=false; profile_ready=false; percent=8;
+    off(); running=false; armed=false; profile_ready=false; voltage_rearm_pending=false; percent=8;
     reason=why; electrical_hz=0;
     // Only issue a zero command when the driver is powered. ARM is already low.
     if(sample(1)*3.3f/4095*235/15>4.5f) (void)motor_write(0xe8,0x8000);
@@ -190,6 +191,7 @@ static const char *state_name(void) {
     if(led_error) return "fault";
     if(running) return driver_state==2 && electrical_hz>0 && edges>0?"running":"starting";
     if(armed) return "armed";
+    if(voltage_rearm_pending) return "settling";
     if(sample(1)*3.3f/4095*235/15<1) return "power_off";
     return power_ready()?"idle":"power_not_ready";
 }
@@ -197,7 +199,7 @@ static void telemetry(void) {
     float vin=sample(0)*3.3f/4095*235/15,vm=sample(1)*3.3f/4095*235/15;
     float current=sample(2)*3.3f/4095/0.4f;
     uint32_t elapsed=running?(uint32_t)(now_ms()-run_at):0;
-    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.3.0\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":1,\"heartbeat_timeout_ms\":1000}\n",
+    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.4.1\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"pd_change_while_powered\":true,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":1,\"heartbeat_timeout_ms\":1000}\n",
         FIRMWARE_BUILD,device_id,state_name(),reason,armed?"true":"false",running?"true":"false",power_ready()?"true":"false",selected_voltage,vin,vm,current,feed_delta,electrical_hz,edges,percent,direction,(unsigned long)(running&&elapsed<run_duration?run_duration-elapsed:0),led_name,(unsigned long)gate_fault,(unsigned long)controller_fault);
 }
 static void ack(int id,const char *cmd,bool ok,const char *error) {
@@ -227,6 +229,11 @@ static bool begin_run(double speed,unsigned duration,int requested_direction) {
 static void motion_tick(void) {
     if(!running) {
         off();
+        if(voltage_rearm_pending && (uint32_t)(now_ms()-voltage_rearm_at)>=BLDC_ARM_MS) {voltage_rearm_pending=false;reason="Voltage re-arm expired";}
+        if(voltage_rearm_pending && power_ready() && live()) {
+            voltage_rearm_pending=false;prepare();armed=profile_ready;arm_at=now_ms();
+            reason=armed?"Voltage ready; armed":"Profile verification failed";
+        }
         if(armed && (!live() || !power_ready() || (uint32_t)(now_ms()-arm_at)>=BLDC_ARM_MS)) disarm("Arming expired or connection/power lost",false);
         if(armed) led_wait(); else led_idle();
         return;
@@ -259,12 +266,12 @@ static void json_command(const char *line) {
     else if(!strcmp(name,"stop")) {disarm("Stopped from browser",false);led_error=false;}
     else if(!strcmp(name,"set_pd_voltage")) {
         const cJSON *v=cJSON_GetObjectItemCaseSensitive(root,"voltage");
-        if(running||armed||!cJSON_IsNumber(v)||v->valuedouble<0||v->valuedouble>20||v->valuedouble!=(unsigned)v->valuedouble||!bldc_voltage_valid((unsigned)v->valuedouble)||sample(1)*3.3f/4095*235/15>=1) {ok=false;error="Set SW4 OFF; choose 5, 9, 15 or 20 V";}
-        else {profile_ready=false;ok=select_voltage((unsigned)v->valuedouble);reason=ok?"Voltage selected; turn SW4 ON":"PD negotiation failed";if(!ok)error="Requested PD contract unavailable";}
+        if(!cJSON_IsNumber(v)||v->valuedouble<0||v->valuedouble>20||v->valuedouble!=(unsigned)v->valuedouble||!bldc_voltage_valid((unsigned)v->valuedouble)) {ok=false;error="Choose 5, 9, 15 or 20 V";}
+        else {disarm("Changing voltage",false);ok=select_voltage((unsigned)v->valuedouble);reason=ok?"Voltage selected; waiting to re-arm":"PD negotiation failed";voltage_rearm_pending=ok;voltage_rearm_at=now_ms();if(!ok)error="Requested PD contract unavailable";}
     }
     else if(!strcmp(name,"arm")) {
         if(running||!live()||!power_ready()) {ok=false;error="Need a live browser and matching motor voltage";}
-        else {prepare();ok=profile_ready;armed=ok;arm_at=now_ms();reason=ok?"Armed: waiting for browser Start":"Profile verification failed";if(!ok)error=reason;}
+        else {voltage_rearm_pending=false;prepare();ok=profile_ready;armed=ok;arm_at=now_ms();reason=ok?"Armed: waiting for browser Start":"Profile verification failed";if(!ok)error=reason;}
     }
     else if(!strcmp(name,"start") || !strcmp(name,"set_speed")) {
         const cJSON *sp=cJSON_GetObjectItemCaseSensitive(root,"percent"),*ms=cJSON_GetObjectItemCaseSensitive(root,"duration_ms"),*dir=cJSON_GetObjectItemCaseSensitive(root,"direction");
