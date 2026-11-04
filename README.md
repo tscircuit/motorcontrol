@@ -10,7 +10,7 @@ MicroPython motor-control firmware with a Web Serial dashboard. Motion and safet
 
 ## Single BLDC control
 
-The [Single BLDC page](https://motorcontrol.tscircuit.com/bldc.html) controls the RP2040/MCT8329A D4215 bench setup with a separate native firmware target. It includes verified 9 V requests, explicit Arm/Start, bounded speed and duration, live telemetry and automatic stopping on lost heartbeats. See the [BLDC installation and protocol guide](firmware-c/bldc/README.md). Existing stepper controls are unchanged.
+The [Single BLDC page](https://motorcontrol.tscircuit.com/bldc.html) controls the RP2040/MCT8329A D4215 bench setup with a separate native firmware target. It includes verified 5/9/15/20 V requests, explicit Arm/Start, bounded speed and duration, live telemetry and automatic stopping on lost heartbeats. See the [BLDC installation and protocol guide](firmware-c/bldc/README.md). Existing stepper controls are unchanged.
 
 ## Supported hardware
 

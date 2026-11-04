@@ -12,6 +12,7 @@
 #include "build_id.h"
 #include <math.h>
 
+static unsigned selected_voltage=9;
 static bool led_error=false;
 static const char *led_name="BOOT";
 static void led_show(const char *name,bool red,bool green,bool blue) {
@@ -86,7 +87,7 @@ static void led_idle(void) {
     if(led_error) { led_show("FAULT",true,false,false); return; }
     float vm=sample(1)*3.3f/4095*235/15;
     if(vm<1.0f) led_show("LOGIC_ON_MOTOR_POWER_OFF",false,false,true);
-    else if(vm>=8.55f && vm<=9.45f && !gpio_get(6)) led_show("POWER_ON_DISARMED",true,true,false);
+    else if(bldc_voltage_ready(vm,selected_voltage,false) && !gpio_get(6)) led_show("POWER_ON_DISARMED",true,true,false);
     else led_show("POWER_NOT_READY",true,false,false);
 }
 static void led_wait(void) {
@@ -107,38 +108,39 @@ static bool pd_value(unsigned reg,unsigned len,uint32_t *value) {
     uint8_t b[4]={0}; if(!pd_read(reg,b,len)) return false;
     *value=0; for(unsigned i=0;i<len;i++) *value|=(uint32_t)b[i]<<(8*i); return true;
 }
-static void voltage9(void) {
+static bool select_voltage(unsigned voltage) {
     off(); led_error=false; led_show("NEGOTIATING",false,false,true);
-    if(sample(1)*3.3/4095*235/15 >= 1.0) { puts("Rejected: SW4 must be OFF, VMOTOR below 1 V"); return; }
+    if(!bldc_voltage_valid(voltage) || sample(1)*3.3f/4095*235/15>=1.0f) return false;
     uint32_t old;
-    if(!pd_value(0x70,1,&old)) { led_fault(); puts("PD read failed"); return; }
-    uint32_t pdo[3]={(100u<<10)|50u,(180u<<10)|200u,(180u<<10)|200u};
+    if(!pd_value(0x70,1,&old)) {led_fault();return false;}
+    uint32_t motor_pdo=((voltage*20u)<<10)|200u;
+    uint32_t pdo[3]={(100u<<10)|50u,motor_pdo,motor_pdo};
     bool ok=pd_write(0x70,(old&~7u)|1u,1);
-    for(unsigned i=0;ok && i<3;i++) {
+    for(unsigned i=0;ok&&i<3;i++) {
         uint32_t check;
-        ok=pd_write(0x85+4*i,pdo[i],4) && pd_value(0x85+4*i,4,&check) && check==pdo[i];
+        ok=pd_write(0x85+4*i,pdo[i],4)&&pd_value(0x85+4*i,4,&check)&&check==pdo[i];
     }
-    ok=ok && pd_write(0x70,(old&~7u)|2u,1) && pd_write(0x51,0x0d,1) && pd_write(0x1a,0x26,1);
-    if(!ok) { led_fault(); puts("PD RAM update failed; drive remains OFF"); return; }
-    absolute_time_t end=make_timeout_time_ms(5000); unsigned good=0;
+    ok=ok&&pd_write(0x70,(old&~7u)|2u,1)&&pd_write(0x51,0x0d,1)&&pd_write(0x1a,0x26,1);
+    if(!ok) {led_fault();return false;}
+    absolute_time_t end=make_timeout_time_ms(5000);unsigned good=0;
     while(!time_reached(end)) {
-        watchdog_update(); off(); uint32_t pe,rdo;
+        watchdog_update();off();uint32_t pe,rdo;
         float vin=sample(0)*3.3f/4095*235/15,vm=sample(1)*3.3f/4095*235/15;
-        if(vm>=1) { puts("Rejected: keep SW4 OFF during negotiation"); return; }
-        bool ready=pd_value(0x29,1,&pe) && pd_value(0x91,4,&rdo) && pe==0x18 &&
-            !gpio_get(6) && vin>=8.55f && vin<=9.45f && !(rdo&0x0c000000u) &&
-            ((rdo>>10)&1023)==200 && (rdo&1023)>=200;
+        if(vm>=1) {led_fault();return false;}
+        bool ready=pd_value(0x29,1,&pe)&&pd_value(0x91,4,&rdo)&&pe==0x18&&
+            !gpio_get(6)&&bldc_voltage_ready(vin,voltage,false)&&!(rdo&0x0c000000u)&&
+            ((rdo>>10)&1023)==200&&(rdo&1023)>=200;
         good=ready?good+1:0;
-        if(good>=10) { printf("9 V / 2 A runtime contract verified; ADC %.3f V. No NVM changes. Drive OFF.\n",vin); return; }
+        if(good>=10) {selected_voltage=voltage;return true;}
         sleep_ms(25);
     }
-    led_fault(); puts("9 V verification timed out; drive OFF");
+    led_fault();return false;
 }
 static bool profile_ready=false;
 static void prepare(void) {
     off(); profile_ready=false; led_error=false;
     float vm=sample(1)*3.3f/4095*235/15;
-    if(vm<8.55f || vm>9.45f || gpio_get(6)) { puts("Need powered 9 V motor bus and PD_OK2"); return; }
+    if(!bldc_voltage_ready(vm,selected_voltage,false) || gpio_get(6)) { puts("Motor voltage or PD contract is not ready"); return; }
     bool ok=motor_write(0xe8,0x8000); // Zero digital command, override pin.
     ok=ok && patch(0xa6,0x7e,0x44); // I2C speed, hardware direction, brake disabled.
     ok=ok && patch(0xac,3,3); // Existing bidirectional CSA, now 40 V/V.
@@ -175,7 +177,7 @@ static uint32_t now_ms(void) { return to_ms_since_boot(get_absolute_time()); }
 static bool live(void) { return stdio_usb_connected() && bldc_live(now_ms(),heartbeat_at,heartbeat_seen); }
 static bool power_ready(void) {
     float v=sample(1)*3.3f/4095*235/15;
-    return v>=8.55f && v<=9.45f && !gpio_get(6);
+    return bldc_voltage_ready(v,selected_voltage,false) && !gpio_get(6);
 }
 static void disarm(const char *why,bool fault) {
     off(); running=false; armed=false; profile_ready=false; percent=8;
@@ -195,8 +197,8 @@ static void telemetry(void) {
     float vin=sample(0)*3.3f/4095*235/15,vm=sample(1)*3.3f/4095*235/15;
     float current=sample(2)*3.3f/4095/0.4f;
     uint32_t elapsed=running?(uint32_t)(now_ms()-run_at):0;
-    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.2.0\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":1,\"heartbeat_timeout_ms\":1000}\n",
-        FIRMWARE_BUILD,device_id,state_name(),reason,armed?"true":"false",running?"true":"false",power_ready()?"true":"false",vin,vm,current,feed_delta,electrical_hz,edges,percent,direction,(unsigned long)(running&&elapsed<run_duration?run_duration-elapsed:0),led_name,(unsigned long)gate_fault,(unsigned long)controller_fault);
+    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.3.0\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":1,\"heartbeat_timeout_ms\":1000}\n",
+        FIRMWARE_BUILD,device_id,state_name(),reason,armed?"true":"false",running?"true":"false",power_ready()?"true":"false",selected_voltage,vin,vm,current,feed_delta,electrical_hz,edges,percent,direction,(unsigned long)(running&&elapsed<run_duration?run_duration-elapsed:0),led_name,(unsigned long)gate_fault,(unsigned long)controller_fault);
 }
 static void ack(int id,const char *cmd,bool ok,const char *error) {
     (void)cmd;
@@ -233,7 +235,7 @@ static void motion_tick(void) {
     if(run_duration && (uint32_t)(now_ms()-run_at)>=run_duration) {disarm("Timed run complete",false);return;}
     float v=sample(1)*3.3f/4095*235/15;
     feed_delta=((int)sample(2)-(int)baseline)*3.3f/4095/0.4f;
-    if(v<8 || v>9.45f || gpio_get(6) || !gpio_get(4) || feed_delta>0.9f) {disarm("Power, current or driver fault",true);return;}
+    if(!bldc_voltage_ready(v,selected_voltage,true) || gpio_get(6) || !gpio_get(4) || feed_delta>0.9f) {disarm("Power, current or driver fault",true);return;}
     bool fg=gpio_get(5);if(fg!=previous_fg){edges++;previous_fg=fg;}
     static uint32_t last_driver_read;
     if((uint32_t)(now_ms()-last_driver_read)>=50) {
@@ -257,11 +259,11 @@ static void json_command(const char *line) {
     else if(!strcmp(name,"stop")) {disarm("Stopped from browser",false);led_error=false;}
     else if(!strcmp(name,"set_pd_voltage")) {
         const cJSON *v=cJSON_GetObjectItemCaseSensitive(root,"voltage");
-        if(running||armed||!cJSON_IsNumber(v)||v->valuedouble!=9||sample(1)*3.3f/4095*235/15>=1) {ok=false;error="Set SW4 OFF; only a 9 V request is supported";}
-        else {voltage9();ok=!led_error;reason=ok?"9 V requested; turn SW4 ON":"PD negotiation failed";}
+        if(running||armed||!cJSON_IsNumber(v)||v->valuedouble<0||v->valuedouble>20||v->valuedouble!=(unsigned)v->valuedouble||!bldc_voltage_valid((unsigned)v->valuedouble)||sample(1)*3.3f/4095*235/15>=1) {ok=false;error="Set SW4 OFF; choose 5, 9, 15 or 20 V";}
+        else {profile_ready=false;ok=select_voltage((unsigned)v->valuedouble);reason=ok?"Voltage selected; turn SW4 ON":"PD negotiation failed";if(!ok)error="Requested PD contract unavailable";}
     }
     else if(!strcmp(name,"arm")) {
-        if(running||!live()||!power_ready()) {ok=false;error="Need a live browser and powered 9 V motor bus";}
+        if(running||!live()||!power_ready()) {ok=false;error="Need a live browser and matching motor voltage";}
         else {prepare();ok=profile_ready;armed=ok;arm_at=now_ms();reason=ok?"Armed: waiting for browser Start":"Profile verification failed";if(!ok)error=reason;}
     }
     else if(!strcmp(name,"start") || !strcmp(name,"set_speed")) {
@@ -287,6 +289,12 @@ int main(void) {
     for(unsigned i=0;i<sizeof(inputs)/sizeof(inputs[0]);i++){gpio_init(inputs[i]);gpio_set_dir(inputs[i],GPIO_IN);}
     adc_init();for(unsigned p=26;p<=29;p++)adc_gpio_init(p);
     i2c_init(i2c1,100000);gpio_set_function(22,GPIO_FUNC_I2C);gpio_set_function(23,GPIO_FUNC_I2C);
+    // Recover an existing verified two-PDO RAM selection across MCU-only resets.
+    uint32_t count,pdo;
+    if(pd_value(0x70,1,&count)&&((count&7)==2)&&pd_value(0x89,4,&pdo)) {
+        unsigned units=(pdo>>10)&1023,voltage=units/20;
+        if((pdo>>30)==0&&units==voltage*20&&bldc_voltage_valid(voltage)&&(pdo&1023)==200) selected_voltage=voltage;
+    }
     pico_get_unique_board_id_string(device_id,sizeof(device_id));stdio_init_all();
     watchdog_enable(250,true);
     char line[256];unsigned used=0;bool discard=false,connected=false;uint32_t last_telemetry=0;

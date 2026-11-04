@@ -7,10 +7,10 @@ The native `motorcontrol_bldc.uf2` target powers the dedicated [Single BLDC dash
 1. Secure the D4215-650KV motor with no propeller. Set SW4 OFF for firmware changes. Connect the computer to J1 DATA; J19 is the separate PD power input. Connect motor leads to J10/J11/J12 only with motor power removed.
 2. Hold BOOTSEL while connecting J1, then copy the [BLDC UF2](https://motorcontrol.tscircuit.com/firmware/motorcontrol-bldc.uf2) onto RPI-RP2.
 3. Open the BLDC page in desktop Chrome or Edge and choose **Connect motor**. Only this page understands the `bldc-1` protocol; the stepper pages do not control this firmware.
-4. With SW4 OFF and the motor rail discharged below 1 V, choose **Request 9 V**. Once the requested contract is verified, turn SW4 ON. The connected charger must support 9 V at 2 A.
+4. With SW4 OFF and the motor rail discharged below 1 V, select **5, 9, 15 or 20 V** and choose **Apply**. Once the requested contract is verified, turn SW4 ON. The connected charger must support the selected voltage at 2 A.
 5. Choose **Arm motor**, then **Start timed run** within 30 seconds. The slider supports0–100%. Continuous mode runs until Stop; timed modes stop at their deadline. Arrow control performs its own fresh arming for each hold. Stop disarms immediately; hiding the page, losing focus, disconnecting USB, or missing heartbeats also stops the motor.
 
-No PD NVM or MCT EEPROM writes occur. The PD chip's original settings return after removing all PD power, so reselect 9 V with SW4 OFF after reconnecting it. No automatic motor start, power negotiation, or arming occurs on connection or reboot.
+No PD NVM or MCT EEPROM writes occur. The PD chip's original settings return after removing all PD power, so select the desired voltage with SW4 OFF after reconnecting it. No automatic motor start, power negotiation, or arming occurs on connection or reboot.
 
 ## Electrical scope
 
@@ -50,8 +50,8 @@ Commands with an integer `id` receive `{ "type": "ack", "protocol": "bldc-1", "i
 - `hello`: stop/disarm, open a new browser session, invalidate the old heartbeat.
 - `heartbeat`: maintain that session, recommended every 300 ms; timeout 1000 ms.
 - `status`: request live telemetry without altering motion.
-- `set_pd_voltage`, `voltage: 9`: request/verify RAM-only 9 V/2 A; rejected while armed/running or rail >=1 V.
-- `arm`: verify/apply the RAM profile at 9 V with live heartbeats. It expires in 30 seconds or on power/connection loss.
+- `set_pd_voltage`, `voltage: 5|9|15|20`: request/verify the selected RAM-only 2 A contract; rejected while armed/running or rail >=1 V.
+- `arm`: verify/apply the RAM profile at the selected voltage with live heartbeats. It expires in 30 seconds or on power/connection loss.
 - `start`, `percent: 0..100`, `duration_ms: 0 or 100..60000`, optional `direction: 1|-1`: explicit timed run; requires prior fresh arming. Duration is a whole number of milliseconds.
 - `set_speed`, `percent: 0..100`: adjust the reference while running without extending its deadline.
 - `stop`: stop/disarm and clear the software LED fault latch.
@@ -61,3 +61,7 @@ Telemetry includes `direction`, `direction_supported: true`, and `continuous_sup
 Telemetry is sent every 250 ms and after commands: device identity/build, state/reason, armed/running/power flags, VBUS/VMOTOR, nominal feed current, feed-current delta, electrical Hz, FG edge count, reference, remaining time, LED state and cached fault words. A telemetry state of `running` requires driver RUN state, positive frequency and FG activity; `starting` only indicates drive has been enabled.
 
 Sources: [TI MCT8329A](https://www.ti.com/lit/ds/symlink/mct8329a.pdf), board source above.
+
+## Selectable voltage (v1.3.0)
+
+The voltage selector requests5,9,15 or20V at2A through STUSB4500 RAM PDOs, with readback and250ms of stable contract validation. The switched motor rail must be below1V, and the device must be disarmed. Unsupported chargers return an error rather than silently accepting a fallback. A MCU-only reset recovers an existing valid two-PDO configuration; no NVM is written. Power/arming thresholds follow the selected voltage; the driver supply is never accepted below4.65V. The delivered target is native C, built with the Raspberry Pi Pico SDK.
