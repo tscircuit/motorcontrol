@@ -16,7 +16,7 @@ No PD NVM or MCT EEPROM writes occur. The PD chip's original settings return aft
 
 The D4215 completed a short unloaded 9 V test using this RAM configuration before web integration: driver RUN state near 49 electrical Hz, 131 FG edges and physical rotation confirmed by the operator. This does not establish loaded/thermal performance or a phase-current certification.
 
-The configuration uses the authored 0.01-ohm shunt, bidirectional current-sense gain 40, and a 0.4 V threshold for nominal 1 A alignment, open-loop and run current limiting. It retains the short tested startup settings, caps initial duty, and disables startup braking/resynchronization. The MCU additionally checks nominal feed-current increase above 0.9 A, supply bounds, PD_OK2 and nFAULT. ADC scaling remains uncalibrated. A 250 ms watchdog resets to disabled outputs if the MCU stalls. DRVOFF must clear with zero digital command before any speed command is issued.
+The configuration uses the authored 0.01-ohm shunt, bidirectional current-sense gain 40, and a 0.4 V threshold for nominal 1 A alignment and a 0.8 V threshold for nominal 2 A open-loop/run current limiting. It retains the short tested startup settings, caps initial duty, and disables startup braking/resynchronization. The MCU additionally checks nominal feed-current increase above 0.9 A, supply bounds, PD_OK2 and nFAULT. ADC scaling remains uncalibrated. A 250 ms watchdog resets to disabled outputs if the MCU stalls. DRVOFF must clear with zero digital command before any speed command is issued.
 
 There is no motor/MOSFET temperature probe, phase-current telemetry, calibrated RPM, position control, or sustained-operation qualification. Electrical Hz is read from the driver; it is not mechanical RPM. The speed slider is a digital reference, not a closed-loop RPM target.
 
@@ -24,7 +24,7 @@ There is no motor/MOSFET temperature probe, phase-current telemetry, calibrated 
 
 Hold Up/Right for forward or Down/Left for reverse. A fresh key/pointer press arms and starts a run; release stops and disarms. Key repeat cannot restart a stopped run. Opposing directions cancel, and all arrows must be released before restarting. Arrow keys inside editable fields do not control motion. Direction changes through verified MCT DIR_INPUT bits before drive is enabled.
 
-The power slider covers0–100% of the digital voltage reference; it does not request a motor power in watts. Zero stops the motor. Continuous mode runs until release/Stop, a fault, power loss, or heartbeat timeout. Timed operation remains available. The input-feed cutoff is nominally0.9A above the pre-run baseline; the phase-current threshold remains nominally1A. The artificial0.5-second reverse wait has been removed; the hardware enable/zero-command checks remain. No temperature signal is displayed or sampled.
+The power slider covers0–100% of the digital voltage reference; it does not request a motor power in watts. Zero stops the motor. Continuous mode runs until release/Stop, a fault, power loss, or heartbeat timeout. Timed operation remains available. The input-feed cutoff is nominally0.9A above the pre-run baseline; the phase-current threshold is nominally2A in open-loop/run and1A during alignment. The artificial0.5-second reverse wait has been removed; the hardware enable/zero-command checks remain. No temperature signal is displayed or sampled.
 
 ## LED
 
@@ -69,3 +69,12 @@ The voltage selector requests5,9,15 or20V at2A through STUSB4500 RAM PDOs, with 
 Version1.4.0 removes the SW4-off voltage-change requirement. The MCU disables ARM and sends a zero command before renegotiation. It checks the new PD contract; motor arming remains unavailable until the measured switched rail matches the selected voltage. Voltage completion automatically re-arms once the motor rail matches and live heartbeats resume. The page resumes an arrow-driven run only if the arrow is still held; releasing during the change cancels resumption.
 
 Version1.4.1 keeps arrow intent through voltage changes, cancels it on release/Stop/disconnect, and automatically re-arms after a successful voltage change.
+
+
+## Direct USB diagnostic tests — firmware1.4.3
+
+At15V, two6-stage8–100% sweeps with the1A run threshold completed without spontaneous stops. A2A comparison increased the speed plateau from about83electricalHz to196electricalHz. Nominal sampled input current stayed below0.23A. With2A selected, a20-second100%command hold and eight alternating-direction restarts also completed without spontaneous stops. These are short unloaded tests; phase current was not externally measured.
+
+The driver accepted the8–100% commands: INPUT_DUTY and CURRENT_DUTY readbacks followed the requested values. Those are internal driver values, not an oscilloscope measurement of bridge pulses. Raising the current threshold changed achieved speed, showing the configuration was limiting performance despite low input current.
+
+The old unused-potentiometer zero gate was removed from browser startup. The knob is ignored by I2C speed control. Genuine nFAULT is still acted on immediately; no speculative fault debounce was introduced. Generic fault reporting was split into voltage, PD, nFAULT and input-current causes. Fault snapshots preserve voltage/current/GPIO/register data. `last_stop_reason` survives a new browser hello and separates focus loss, hidden page, arrow release, Stop, USB/heartbeat and driver errors. A deliberate heartbeat-loss test and explicit focus/arrow stop commands verified reporting.

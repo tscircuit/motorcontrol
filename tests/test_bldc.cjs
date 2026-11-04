@@ -35,7 +35,7 @@ assert.equal(controlState({...telemetry,pd_change_while_powered:true},false,fals
  const arrows=new BldcArrows({client,canRun:()=>true,settings:()=>({percent:8,duration_ms:1500})});
  arrows.press('ArrowUp');await flush();assert.deepEqual(calls.map(x=>x.cmd),['arm','start']);assert.equal(calls.at(-1).fields.direction,1);
  arrows.press('ArrowUp');await flush();assert.equal(calls.length,2); // ignore repeat
- arrows.release('ArrowUp');assert.equal(calls.at(-1).cmd,'stop');
+ arrows.release('ArrowUp');assert.equal(calls.at(-1).cmd,'stop');assert.equal(calls.at(-1).fields.source,'arrow_release');
  calls=[];heldArm=true;arrows.press('ArrowLeft');await flush();arrows.release('ArrowLeft');gate();await flush();assert.equal(calls.filter(x=>x.cmd==='start').length,0);heldArm=false;
  calls=[];arrows.press('ArrowDown');await flush();assert.equal(calls.at(-1).fields.direction,-1);
  arrows.press('ArrowRight');assert.equal(calls.at(-1).cmd,'stop');arrows.release('ArrowRight');await flush();assert.equal(calls.filter(x=>x.cmd==='start').length,1);arrows.release('ArrowDown');
