@@ -165,6 +165,8 @@ static uint32_t heartbeat_at, arm_at, run_at, run_duration=BLDC_MAX_RUN_MS;
 static unsigned baseline, edges;
 static bool previous_fg;
 static double percent=8;
+static int direction=1;
+
 static uint32_t driver_state, gate_fault, controller_fault;
 static float electrical_hz, feed_delta;
 static const char *reason="Power-up: disarmed";
@@ -193,16 +195,19 @@ static void telemetry(void) {
     float vin=sample(0)*3.3f/4095*235/15,vm=sample(1)*3.3f/4095*235/15;
     float current=sample(2)*3.3f/4095/0.4f;
     uint32_t elapsed=running?(uint32_t)(now_ms()-run_at):0;
-    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.0.0\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":8,\"max_run_ms\":1500,\"phase_limit_a\":1,\"heartbeat_timeout_ms\":1000}\n",
-        FIRMWARE_BUILD,device_id,state_name(),reason,armed?"true":"false",running?"true":"false",power_ready()?"true":"false",vin,vm,current,feed_delta,electrical_hz,edges,percent,(unsigned long)(running&&elapsed<run_duration?run_duration-elapsed:0),led_name,(unsigned long)gate_fault,(unsigned long)controller_fault);
+    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.2.0\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":1,\"heartbeat_timeout_ms\":1000}\n",
+        FIRMWARE_BUILD,device_id,state_name(),reason,armed?"true":"false",running?"true":"false",power_ready()?"true":"false",vin,vm,current,feed_delta,electrical_hz,edges,percent,direction,(unsigned long)(running&&elapsed<run_duration?run_duration-elapsed:0),led_name,(unsigned long)gate_fault,(unsigned long)controller_fault);
 }
 static void ack(int id,const char *cmd,bool ok,const char *error) {
     (void)cmd;
     printf("{\"type\":\"ack\",\"protocol\":\"bldc-1\",\"id\":%d,\"ok\":%s,\"error\":\"%s\"}\n",id,ok?"true":"false",error?error:"");
 }
-static bool begin_run(double speed,unsigned duration) {
+static bool begin_run(double speed,unsigned duration,int requested_direction) {
+    if(speed==0) {disarm("Power zero",false);return true;}
     if(!armed || !profile_ready || !live() || !power_ready() || (uint32_t)(now_ms()-arm_at)>=BLDC_ARM_MS || sample(3)>=200) return false;
     armed=false; baseline=sample(2); edges=0; previous_fg=gpio_get(5); electrical_hz=0; driver_state=0;
+    if(!patch(0xa6,0x18,requested_direction==1?0x08:0x10)) {disarm("Direction verification failed",true);return false;}
+    direction=requested_direction;
     uint32_t zero,gd;
     if(!motor_read(0xe4,&zero) || (zero&0xfffe) || !motor_read(0xac,&gd) || (gd&0x40003)!=0x40003) {disarm("Zero-command or current-limit verification failed",true);return false;}
     led_show("STARTING",false,true,true); gpio_put(3,1);
@@ -215,7 +220,7 @@ static bool begin_run(double speed,unsigned duration) {
     }
     if(!released || !live()) {disarm("Driver enable did not clear",true);return false;}
     if(!motor_write(0xe8,((uint32_t)(speed*32767/100)<<16)|0x8000u)) {disarm("Speed command failed",true);return false;}
-    running=true;percent=speed;run_duration=duration;run_at=now_ms();reason="Timed browser run";return true;
+    running=true;percent=speed;run_duration=duration;run_at=now_ms();reason=duration?"Timed run":"Running";return true;
 }
 static void motion_tick(void) {
     if(!running) {
@@ -225,10 +230,10 @@ static void motion_tick(void) {
         return;
     }
     if(!live()) {disarm("Heartbeat or USB connection lost",true);return;}
-    if((uint32_t)(now_ms()-run_at)>=run_duration) {disarm("Timed run complete",false);return;}
+    if(run_duration && (uint32_t)(now_ms()-run_at)>=run_duration) {disarm("Timed run complete",false);return;}
     float v=sample(1)*3.3f/4095*235/15;
     feed_delta=((int)sample(2)-(int)baseline)*3.3f/4095/0.4f;
-    if(v<8 || v>9.45f || gpio_get(6) || !gpio_get(4) || feed_delta>0.5f) {disarm("Power, current or driver fault",true);return;}
+    if(v<8 || v>9.45f || gpio_get(6) || !gpio_get(4) || feed_delta>0.9f) {disarm("Power, current or driver fault",true);return;}
     bool fg=gpio_get(5);if(fg!=previous_fg){edges++;previous_fg=fg;}
     static uint32_t last_driver_read;
     if((uint32_t)(now_ms()-last_driver_read)>=50) {
@@ -260,13 +265,14 @@ static void json_command(const char *line) {
         else {prepare();ok=profile_ready;armed=ok;arm_at=now_ms();reason=ok?"Armed: waiting for browser Start":"Profile verification failed";if(!ok)error=reason;}
     }
     else if(!strcmp(name,"start") || !strcmp(name,"set_speed")) {
-        const cJSON *sp=cJSON_GetObjectItemCaseSensitive(root,"percent"),*ms=cJSON_GetObjectItemCaseSensitive(root,"duration_ms");
-        double speed=cJSON_IsNumber(sp)?sp->valuedouble:NAN,duration=cJSON_IsNumber(ms)?ms->valuedouble:BLDC_MAX_RUN_MS;
-        if(!bldc_settings(speed,duration)) {ok=false;error="Use 1-8 percent and 100-1500 ms";}
+        const cJSON *sp=cJSON_GetObjectItemCaseSensitive(root,"percent"),*ms=cJSON_GetObjectItemCaseSensitive(root,"duration_ms"),*dir=cJSON_GetObjectItemCaseSensitive(root,"direction");
+        double speed=cJSON_IsNumber(sp)?sp->valuedouble:NAN,duration=cJSON_IsNumber(ms)?ms->valuedouble:0;
+        if(!bldc_settings(speed,duration) || (dir && (!cJSON_IsNumber(dir) || (dir->valuedouble!=1 && dir->valuedouble!=-1)))) {ok=false;error="Use 0-100 percent, duration 0 or 100-60000 ms, direction 1 or -1";}
         else if(!strcmp(name,"set_speed")) {
             if(!running||!live()) {ok=false;error="Motor is not running";}
+            else if(speed==0) disarm("Power zero",false);
             else {ok=motor_write(0xe8,((uint32_t)(speed*32767/100)<<16)|0x8000u);if(ok)percent=speed;else disarm("Speed update failed",true);}
-        } else {ok=begin_run(speed,(unsigned)duration);if(!ok)error="Arm first; verify power, zero knob and driver status";}
+        } else {ok=begin_run(speed,(unsigned)duration,dir?dir->valueint:1);if(!ok)error="Arm first; verify power, zero knob and driver status";}
     }
     else {ok=false;error="Unsupported BLDC command";}
     if(strcmp(name,"heartbeat")) ack(id,name,ok,error);

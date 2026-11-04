@@ -24,3 +24,18 @@ assert.equal(controlState({...telemetry,armed:true,vmotor_v:0},true,false).power
  await assert.rejects(c.send('status'),/did not acknowledge/);
  console.log('PASS BLDC telemetry framing, wrong-board rejection, stale gating, ACK errors, timeout, queued-start cancellation on Stop');
 })().catch(e=>{console.error(e);process.exitCode=1});
+
+(async()=>{
+ const {BldcArrows}=require('../dist/bldc.js');
+ const flush=()=>new Promise(r=>setImmediate(r));let calls=[];let gate;let heldArm=false;
+ const client={port:{},send:async(cmd,fields)=>{calls.push({cmd,fields});if(cmd==='arm'&&heldArm)await new Promise(r=>gate=r);}};
+ const arrows=new BldcArrows({client,canRun:()=>true,settings:()=>({percent:8,duration_ms:1500})});
+ arrows.press('ArrowUp');await flush();assert.deepEqual(calls.map(x=>x.cmd),['arm','start']);assert.equal(calls.at(-1).fields.direction,1);
+ arrows.press('ArrowUp');await flush();assert.equal(calls.length,2); // ignore repeat
+ arrows.release('ArrowUp');assert.equal(calls.at(-1).cmd,'stop');
+ calls=[];heldArm=true;arrows.press('ArrowLeft');await flush();arrows.release('ArrowLeft');gate();await flush();assert.equal(calls.filter(x=>x.cmd==='start').length,0);heldArm=false;
+ calls=[];arrows.press('ArrowDown');await flush();assert.equal(calls.at(-1).fields.direction,-1);
+ arrows.press('ArrowRight');assert.equal(calls.at(-1).cmd,'stop');arrows.release('ArrowRight');await flush();assert.equal(calls.filter(x=>x.cmd==='start').length,1);arrows.release('ArrowDown');
+ calls=[];arrows.press('ArrowRight');await flush();arrows.receive({motor_enabled:false});arrows.press('ArrowRight');await flush();assert.equal(calls.filter(x=>x.cmd==='start').length,1);arrows.release('ArrowRight');arrows.press('ArrowRight');await flush();assert.equal(calls.filter(x=>x.cmd==='start').length,2);arrows.reset('blur');assert.equal(arrows.held.size,0);assert.equal(calls.at(-1).cmd,'stop');
+ console.log('PASS BLDC arrow direction, repeat suppression, release-during-arm race, opposite cancellation, timed-out hold lockout and focus reset');
+})().catch(e=>{console.error(e);process.exitCode=1});

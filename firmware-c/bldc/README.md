@@ -8,7 +8,7 @@ The native `motorcontrol_bldc.uf2` target powers the dedicated [Single BLDC dash
 2. Hold BOOTSEL while connecting J1, then copy the [BLDC UF2](https://motorcontrol.tscircuit.com/firmware/motorcontrol-bldc.uf2) onto RPI-RP2.
 3. Open the BLDC page in desktop Chrome or Edge and choose **Connect motor**. Only this page understands the `bldc-1` protocol; the stepper pages do not control this firmware.
 4. With SW4 OFF and the motor rail discharged below 1 V, choose **Request 9 V**. Once the requested contract is verified, turn SW4 ON. The connected charger must support 9 V at 2 A.
-5. Choose **Arm motor**, then **Start timed run** within 30 seconds. The initial maximum is an 8% digital voltage reference and 1.5 seconds per run. Speed changes cannot extend the run timer. A fresh Arm is required for each run. Stop disarms immediately; hiding the page, losing focus, disconnecting USB, or missing heartbeats also stops the motor.
+5. Choose **Arm motor**, then **Start timed run** within 30 seconds. The slider supports0–100%. Continuous mode runs until Stop; timed modes stop at their deadline. Arrow control performs its own fresh arming for each hold. Stop disarms immediately; hiding the page, losing focus, disconnecting USB, or missing heartbeats also stops the motor.
 
 No PD NVM or MCT EEPROM writes occur. The PD chip's original settings return after removing all PD power, so reselect 9 V with SW4 OFF after reconnecting it. No automatic motor start, power negotiation, or arming occurs on connection or reboot.
 
@@ -16,9 +16,15 @@ No PD NVM or MCT EEPROM writes occur. The PD chip's original settings return aft
 
 The D4215 completed a short unloaded 9 V test using this RAM configuration before web integration: driver RUN state near 49 electrical Hz, 131 FG edges and physical rotation confirmed by the operator. This does not establish loaded/thermal performance or a phase-current certification.
 
-The configuration uses the authored 0.01-ohm shunt, bidirectional current-sense gain 40, and a 0.4 V threshold for nominal 1 A alignment, open-loop and run current limiting. It retains the short tested startup settings, caps initial duty, and disables startup braking/resynchronization. The MCU additionally checks nominal feed-current increase above 0.5 A, supply bounds, PD_OK2 and nFAULT. ADC scaling remains uncalibrated. A 250 ms watchdog resets to disabled outputs if the MCU stalls. DRVOFF must clear with zero digital command before any speed command is issued.
+The configuration uses the authored 0.01-ohm shunt, bidirectional current-sense gain 40, and a 0.4 V threshold for nominal 1 A alignment, open-loop and run current limiting. It retains the short tested startup settings, caps initial duty, and disables startup braking/resynchronization. The MCU additionally checks nominal feed-current increase above 0.9 A, supply bounds, PD_OK2 and nFAULT. ADC scaling remains uncalibrated. A 250 ms watchdog resets to disabled outputs if the MCU stalls. DRVOFF must clear with zero digital command before any speed command is issued.
 
-There is no temperature sensor integration, phase-current telemetry, reverse-direction UI, calibrated RPM, position control, or sustained-operation qualification. Electrical Hz is read from the driver; it is not mechanical RPM. The speed slider is a digital reference, not a closed-loop RPM target.
+There is no motor/MOSFET temperature probe, phase-current telemetry, calibrated RPM, position control, or sustained-operation qualification. Electrical Hz is read from the driver; it is not mechanical RPM. The speed slider is a digital reference, not a closed-loop RPM target.
+
+## Hold-to-run arrows (v1.2.0)
+
+Hold Up/Right for forward or Down/Left for reverse. A fresh key/pointer press arms and starts a run; release stops and disarms. Key repeat cannot restart a stopped run. Opposing directions cancel, and all arrows must be released before restarting. Arrow keys inside editable fields do not control motion. Direction changes through verified MCT DIR_INPUT bits before drive is enabled.
+
+The power slider covers0–100% of the digital voltage reference; it does not request a motor power in watts. Zero stops the motor. Continuous mode runs until release/Stop, a fault, power loss, or heartbeat timeout. Timed operation remains available. The input-feed cutoff is nominally0.9A above the pre-run baseline; the phase-current threshold remains nominally1A. The artificial0.5-second reverse wait has been removed; the hardware enable/zero-command checks remain. No temperature signal is displayed or sampled.
 
 ## LED
 
@@ -46,9 +52,11 @@ Commands with an integer `id` receive `{ "type": "ack", "protocol": "bldc-1", "i
 - `status`: request live telemetry without altering motion.
 - `set_pd_voltage`, `voltage: 9`: request/verify RAM-only 9 V/2 A; rejected while armed/running or rail >=1 V.
 - `arm`: verify/apply the RAM profile at 9 V with live heartbeats. It expires in 30 seconds or on power/connection loss.
-- `start`, `percent: 1..8`, `duration_ms: 100..1500`: explicit timed run; requires prior fresh arming. Duration is a whole number of milliseconds.
-- `set_speed`, `percent: 1..8`: adjust the reference while running without extending its deadline.
+- `start`, `percent: 0..100`, `duration_ms: 0 or 100..60000`, optional `direction: 1|-1`: explicit timed run; requires prior fresh arming. Duration is a whole number of milliseconds.
+- `set_speed`, `percent: 0..100`: adjust the reference while running without extending its deadline.
 - `stop`: stop/disarm and clear the software LED fault latch.
+
+Telemetry includes `direction`, `direction_supported: true`, and `continuous_supported: true`. Older firmware does not enable the arrow controls.
 
 Telemetry is sent every 250 ms and after commands: device identity/build, state/reason, armed/running/power flags, VBUS/VMOTOR, nominal feed current, feed-current delta, electrical Hz, FG edge count, reference, remaining time, LED state and cached fault words. A telemetry state of `running` requires driver RUN state, positive frequency and FG activity; `starting` only indicates drive has been enabled.
 
