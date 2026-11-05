@@ -78,3 +78,7 @@ At15V, two6-stage8–100% sweeps with the1A run threshold completed without spon
 The driver accepted the8–100% commands: INPUT_DUTY and CURRENT_DUTY readbacks followed the requested values. Those are internal driver values, not an oscilloscope measurement of bridge pulses. Raising the current threshold changed achieved speed, showing the configuration was limiting performance despite low input current.
 
 The old unused-potentiometer zero gate was removed from browser startup. The knob is ignored by I2C speed control. Genuine nFAULT is still acted on immediately; no speculative fault debounce was introduced. Generic fault reporting was split into voltage, PD, nFAULT and input-current causes. Fault snapshots preserve voltage/current/GPIO/register data. `last_stop_reason` survives a new browser hello and separates focus loss, hidden page, arrow release, Stop, USB/heartbeat and driver errors. A deliberate heartbeat-loss test and explicit focus/arrow stop commands verified reporting.
+
+## Estimated RPM display
+
+The webpage calculates mechanicalRPM as electricalHz×60÷polePairs using the existing C-firmware frequency telemetry. A compact selector chooses12poles(6pairs) or14poles(7pairs) and is saved locally in the browser. Default12poles follows the supplied D4215 PDF, which lists14N12P; other listings disagree. Confirm the actual rotor magnet count for an accurate estimate. No new sensor or firmware upload is needed.

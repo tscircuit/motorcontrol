@@ -1,5 +1,6 @@
 const assert=require('node:assert/strict');
-const {BldcClient,validTelemetry,controlState}=require('../dist/bldc.js');
+const {BldcClient,validTelemetry,controlState,estimateRpm}=require('../dist/bldc.js');
+assert.equal(estimateRpm(196,6),1960);assert.equal(estimateRpm(196,7),1680);assert.equal(estimateRpm(0,6),0);assert.equal(estimateRpm(NaN,6),null);assert.equal(estimateRpm(100,0),null);
 const telemetry={type:'telemetry',protocol:'bldc-1',firmware:'native-bldc',power_ready:true,armed:false,motor_enabled:false,vbus_v:9,vmotor_v:9,feed_current_a:.05,electrical_hz:0,max_percent:8,max_run_ms:1500};
 assert.equal(validTelemetry(telemetry),true);
 assert.equal(validTelemetry({...telemetry,protocol:3}),false);
