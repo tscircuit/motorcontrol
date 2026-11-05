@@ -180,6 +180,12 @@ static const char *last_stop="None";
 static float trip_voltage,trip_current,peak_current,min_voltage;
 static unsigned trip_knob,trip_fault_n,trip_pd_n;
 static uint32_t trip_gate,trip_controller;
+static uint32_t fault_event_id,fault_event_at,fault_event_gate,fault_event_controller;
+static const char *fault_event_reason="None";
+static bool fault_event_stopped,fault_event_pending;
+static float fault_event_voltage,fault_event_current;
+static BldcCurrentLimits fault_event_limits=BLDC_CURRENT_DEFAULTS;
+static uint32_t previous_limit_bits;
 static bool boot_was_watchdog;
 static const char *reason="Power-up: disarmed";
 static char device_id[2*PICO_UNIQUE_BOARD_ID_SIZE_BYTES+1];
@@ -188,6 +194,11 @@ static bool live(void) { return stdio_usb_connected() && bldc_live(now_ms(),hear
 static bool power_ready(void) {
     float v=sample(1)*3.3f/4095*235/15;
     return bldc_voltage_ready(v,selected_voltage,false) && !gpio_get(6);
+}
+static void record_fault_event(const char *why,bool stopped,uint32_t gate,uint32_t controller,float voltage,float current) {
+    fault_event_pending=true;fault_event_id++;fault_event_at=now_ms();fault_event_reason=why;fault_event_stopped=stopped;
+    fault_event_gate=gate;fault_event_controller=controller;fault_event_voltage=voltage;fault_event_current=current;
+    fault_event_limits=current_limits;
 }
 static void disarm(const char *why,bool fault) {
     if(running||fault)last_stop=why;
@@ -199,6 +210,7 @@ static void disarm(const char *why,bool fault) {
     if(fault) {
         if(!motor_read(0xe0,&trip_gate))trip_gate=0xffffffffu;
         if(!motor_read(0xe2,&trip_controller))trip_controller=0xffffffffu;
+        record_fault_event(why,true,trip_gate,trip_controller,trip_voltage,trip_current);
     }
     reason=why; electrical_hz=0;
     // Only issue a zero command when the driver is powered. ARM is already low.
@@ -214,11 +226,15 @@ static const char *state_name(void) {
     return power_ready()?"idle":"power_not_ready";
 }
 static void telemetry(void) {
+    fault_event_pending=false;
     float vin=sample(0)*3.3f/4095*235/15,vm=sample(1)*3.3f/4095*235/15;
     float current=sample(2)*3.3f/4095/0.4f;
     uint32_t elapsed=running?(uint32_t)(now_ms()-run_at):0;
-    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.5.1\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"pd_change_while_powered\":true,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":%.2f,\"heartbeat_timeout_ms\":1000,\"decoded_command_percent\":%.2f,\"applied_duty_percent\":%.2f,\"set_duty_percent\":%.2f,\"knob_raw\":%u,\"watchdog_reset\":%s,\"peak_feed_delta_a\":%.3f,\"min_run_voltage_v\":%.3f,\"last_stop_reason\":\"%s\",\"last_trip\":\"%s\",\"trip_voltage_v\":%.3f,\"trip_feed_delta_a\":%.3f,\"trip_fault_n\":%u,\"trip_pd_n\":%u,\"trip_knob_raw\":%u,\"trip_gate_fault\":%lu,\"trip_controller_fault\":%lu,\"current_limits_supported\":true,\"limits_verified\":%s,\"hardware_input_limit_a\":1.233,\"current_limits\":{\"input_a\":%.3f,\"input_enabled\":%s,\"align_a\":%.2f,\"phase_a\":%.2f,\"phase_enabled\":%s,\"lock_a\":%.2f,\"lock_enabled\":%s,\"sense_ocp_enabled\":%s,\"vds_ocp_enabled\":%s,\"vds_v\":%.2f}}\n",
+    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.5.2\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"pd_change_while_powered\":true,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":%.2f,\"heartbeat_timeout_ms\":1000,\"decoded_command_percent\":%.2f,\"applied_duty_percent\":%.2f,\"set_duty_percent\":%.2f,\"knob_raw\":%u,\"watchdog_reset\":%s,\"peak_feed_delta_a\":%.3f,\"min_run_voltage_v\":%.3f,\"last_stop_reason\":\"%s\",\"last_trip\":\"%s\",\"trip_voltage_v\":%.3f,\"trip_feed_delta_a\":%.3f,\"trip_fault_n\":%u,\"trip_pd_n\":%u,\"trip_knob_raw\":%u,\"trip_gate_fault\":%lu,\"trip_controller_fault\":%lu,\"current_limits_supported\":true,\"limits_verified\":%s,\"hardware_input_limit_a\":1.233,\"current_limits\":{\"input_a\":%.3f,\"input_enabled\":%s,\"align_a\":%.2f,\"phase_a\":%.2f,\"phase_enabled\":%s,\"lock_a\":%.2f,\"lock_enabled\":%s,\"sense_ocp_enabled\":%s,\"vds_ocp_enabled\":%s,\"vds_v\":%.2f}",
         FIRMWARE_BUILD,device_id,state_name(),reason,armed?"true":"false",running?"true":"false",power_ready()?"true":"false",selected_voltage,vin,vm,current,feed_delta,electrical_hz,edges,percent,direction,(unsigned long)(running&&elapsed<run_duration?run_duration-elapsed:0),led_name,(unsigned long)gate_fault,(unsigned long)controller_fault,current_limits.phase_code*.25,decoded_command,applied_duty,set_duty,sample(3),boot_was_watchdog?"true":"false",peak_current,min_voltage,last_stop,last_trip,trip_voltage,trip_current,trip_fault_n,trip_pd_n,trip_knob,(unsigned long)trip_gate,(unsigned long)trip_controller,limits_verified?"true":"false",current_limits.input_a,current_limits.input_enabled?"true":"false",current_limits.align_code*.25,current_limits.phase_code*.25,current_limits.phase_enabled?"true":"false",current_limits.lock_code*.25,current_limits.lock_enabled?"true":"false",current_limits.sense_ocp_enabled?"true":"false",current_limits.vds_ocp_enabled?"true":"false",bldc_vds_voltage(current_limits.vds_code));
+    printf(",\"uptime_ms\":%lu,\"fault_event\":{\"id\":%lu,\"at_ms\":%lu,\"reason\":\"%s\",\"stopped\":%s,\"gate\":%lu,\"controller\":%lu,\"voltage_v\":%.3f,\"current_a\":%.3f,\"input_a\":%.3f,\"align_a\":%.2f,\"phase_a\":%.2f,\"lock_a\":%.2f,\"vds_v\":%.2f}}\n",
+        (unsigned long)now_ms(),(unsigned long)fault_event_id,(unsigned long)fault_event_at,fault_event_reason,fault_event_stopped?"true":"false",(unsigned long)fault_event_gate,(unsigned long)fault_event_controller,fault_event_voltage,fault_event_current,fault_event_limits.input_a,fault_event_limits.align_code*.25,fault_event_limits.phase_code*.25,fault_event_limits.lock_code*.25,bldc_vds_voltage(fault_event_limits.vds_code));
+
 }
 static void ack(int id,const char *cmd,bool ok,const char *error) {
     (void)cmd;
@@ -245,7 +261,7 @@ static bool begin_run(double speed,unsigned duration,int requested_direction) {
     }
     if(!released || !live()) {disarm("Driver enable did not clear",true);return false;}
     if(!motor_write(0xe8,((uint32_t)(speed*32767/100)<<16)|0x8000u)) {disarm("Speed command failed",true);return false;}
-    running=true;percent=speed;run_duration=duration;run_at=now_ms();reason=duration?"Timed run":"Running";return true;
+    previous_limit_bits=0;running=true;percent=speed;run_duration=duration;run_at=now_ms();reason=duration?"Timed run":"Running";return true;
 }
 static void motion_tick(void) {
     if(!running) {
@@ -275,6 +291,16 @@ static void motion_tick(void) {
         last_driver_read=now_ms();uint32_t status_word;
         if(!motor_read(0xea,&status_word)) {disarm("Driver telemetry failed",true);return;}
         driver_state=status_word>>28;electrical_hz=(status_word&65535)/10.0f;
+        uint32_t live_gate,live_controller;
+        bool gate_ok=motor_read(0xe0,&live_gate),controller_ok=motor_read(0xe2,&live_controller);
+        if(gate_ok)gate_fault=live_gate;
+        if(controller_ok) {
+            controller_fault=live_controller;
+            uint32_t bits=live_controller&0x000c0000u;
+            if(bits&~previous_limit_bits)record_fault_event("Driver current limiting",false,gate_ok?live_gate:0xffffffffu,live_controller,v,feed_delta);
+            previous_limit_bits=bits;
+        }
+
         uint32_t input_duty,current_duty,target_duty;
         if(motor_read(0x40c,&input_duty))decoded_command=input_duty*(100.0f/1073741824.0f);
         if(motor_read(0x512,&current_duty))applied_duty=current_duty*(100.0f/1073741824.0f);
@@ -375,7 +401,7 @@ int main(void) {
                 used=0;discard=false;
             } else if(c>=32&&c<127) {if(used<sizeof(line)-1&&!discard)line[used++]=(char)c;else discard=true;}
         }
-        if(usb && (uint32_t)(now_ms()-last_telemetry)>=250){last_telemetry=now_ms();telemetry();}
+        if(usb && (fault_event_pending||(uint32_t)(now_ms()-last_telemetry)>=250)){last_telemetry=now_ms();telemetry();}
         sleep_us(500);
     }
 }
