@@ -257,7 +257,8 @@ static void indicators(uint64_t now, motor_status_t s) {
     bool fault = alarm || driver_fault();
 #ifdef MOTOR_BOARD_PD_SENSE
     bool pd_fault = pd_fault_active();
-    if (pd_fault && !pd_alarm_since) {
+    if (power_ready()) pd_alarm_since = 0;
+    if (pd_fault && (!pd_alarm_since || pd_alarm_missing != pd_input_missing())) {
         pd_alarm_since = now;
         pd_alarm_missing = pd_input_missing();
     }

@@ -29,7 +29,7 @@ int main(void) {
     assert(frame);
     assert(cJSON_IsTrue(cJSON_GetObjectItem(frame, "pd_power_good")));
     assert(cJSON_GetObjectItem(frame, "pd_voltage_measured")->valuedouble == 9.0);
-    assert(strcmp(string(frame, "firmware_version"), "1.0.22") == 0);
+    assert(strcmp(string(frame, "firmware_version"), "1.0.23") == 0);
     cJSON_Delete(frame);
     heartbeat_seen = true;
     heartbeat_us = fake_us;
@@ -98,12 +98,15 @@ int main(void) {
     fake_pd_registers[2] = 7200;
     sample_stable();
     assert(power_ready());
+    indicators(fake_us, fake_motor);
+    assert(pd_alarm_since == 0);
     fake_pd_registers[2] = 0;
     fake_pins[PD_GOOD_PIN] = 0;
     sample();
     indicators(fake_us, fake_motor);
-    assert(pd_fault_active() && !pd_alarm_active() && buzzer_frequency == 0);
-    /* Only a different requested voltage gives a new notification budget. */
+    assert(pd_fault_active() && pd_alarm_active() && buzzer_frequency == 220);
+    assert(pd_alarm_since > started);
+    /* A changed voltage also gives a new notification budget. */
     command("{\"cmd\":\"set_pd_voltage\",\"voltage\":12}");
     fake_us = power_at + 500000;
     sample();
@@ -129,7 +132,34 @@ int main(void) {
     indicators(fake_us, fake_motor);
     assert(buzzer_frequency == 0 && !pd_alarm_active());
     assert(pd_input_missing());
-    puts("PASS distinct missing-input and negotiation tones, two repetitions, same-request latch and changed-request reset");
+    /* Reconnect and disconnect again at the same requested voltage. */
+    fake_pins[PD_GOOD_PIN] = 1;
+    fake_pd_registers[2] = 9600;
+    sample_stable();
+    indicators(fake_us, fake_motor);
+    assert(power_ready() && pd_alarm_since == 0 && buzzer_frequency == 0);
+    fake_pins[PD_GOOD_PIN] = 0;
+    fake_pd_registers[2] = 0;
+    sample();
+    indicators(fake_us, fake_motor);
+    assert(pd_alarm_active() && pd_alarm_missing && buzzer_frequency == 220);
+    started = pd_alarm_since;
+    fake_us += 4000000;
+    sample();
+    indicators(fake_us, fake_motor);
+    assert(!pd_alarm_active() && buzzer_frequency == 0);
+    /* A connected 5 V supply failing the 12 V request is a different fault. */
+    fake_pins[PD_GOOD_PIN] = 1;
+    fake_pd_registers[2] = 4000;
+    sample();
+    indicators(fake_us, fake_motor);
+    assert(pd_alarm_active() && !pd_alarm_missing && buzzer_frequency == 440);
+    assert(pd_alarm_since > started);
+    fake_us += 4000000;
+    sample();
+    indicators(fake_us, fake_motor);
+    assert(!pd_alarm_active() && buzzer_frequency == 0);
+    puts("PASS two repetitions per fault, same-request latch, recovery/re-unplug rearming and fault-kind changes");
     puts("PASS PD sensing, scaling, settling, POWER_GOOD loss, wrong voltage, missing sensor, reset and freshness");
 }
 

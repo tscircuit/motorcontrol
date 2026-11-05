@@ -1,6 +1,6 @@
 # NEMA17 DRV8825 with PD sensing
 
-Build with `-DMOTOR_BOARD=drv8825_pd`. Firmware 1.0.22 targets PCB 1.0.48
+Build with `-DMOTOR_BOARD=drv8825_pd`. Firmware 1.0.23 targets PCB 1.0.48
 (and 1.0.47 with the same populated sensing circuits). Board ID is
 `rp2040_drv8825_pd`. The existing `drv8825` target supports PCB 1.0.42.
 
@@ -28,9 +28,12 @@ interval, the buzzer plays an error pattern twice, two seconds apart.
 A valid measurement below 1 V with POWER_GOOD low selects the three-note
 “buh buh duh” disconnected pattern (220 / 220 / 330 Hz). Other power faults
 select the descending “ehh arr” negotiation pattern (440 / 294 Hz).
-Both use a four-second notification window, then remain silent until the
-requested voltage changes. Reissuing the same voltage or reconnecting power
-does not restart the notification window. Recovery silences any active tone.
+Both use a four-second notification window, then stay quiet while the same
+fault persists. A recovered supply rearms the notification, so another unplug
+plays the disconnected pattern again. A change between disconnected input
+and negotiation failure also starts a fresh notification. Changing the requested
+voltage rearms it; reissuing the same voltage while the same fault persists
+keeps it quiet. Recovery silences any active tone.
 Temperature alarms have priority. `pd_alarm_active` reports the notification
 window and `pd_fault_kind` reports `none`, `disconnected`, or `negotiation`.
 At the default 5 V setting the PD alarms remain silent.
