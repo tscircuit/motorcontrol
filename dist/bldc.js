@@ -2,7 +2,15 @@
 'use strict';
 const PROTOCOL='bldc-1';
 const currentDefaults=Object.freeze({input_a:.9,input_enabled:true,align_a:1,phase_a:2,phase_enabled:true,lock_a:2.5,lock_enabled:true,sense_ocp_enabled:true,vds_ocp_enabled:true,vds_v:2});
-function validCurrentSettings(c){return !!c&&Number.isFinite(c.input_a)&&c.input_a>=.05&&c.input_a<=8&&['align_a','phase_a','lock_a'].every(k=>Number.isFinite(c[k])&&c[k]>=.25&&c[k]<=3.75&&Math.abs(c[k]*4-Math.round(c[k]*4))<.00001)&&['input_enabled','phase_enabled','lock_enabled','sense_ocp_enabled','vds_ocp_enabled'].every(k=>typeof c[k]==='boolean')&&[.06,.12,.18,.24,.3,.36,.42,.48,.6,.8,1,1.2,1.4,1.6,1.8,2].includes(c.vds_v);}
+function currentSettingsError(c){
+ if(!c)return 'Current settings are missing.';
+ if(!Number.isFinite(c.input_a)||c.input_a<0||c.input_a>3.4028234663852886e38)return 'Input cutoff must be a finite, nonnegative number representable by the firmware.';
+ for(const [key,label] of [['align_a','Alignment current'],['phase_a','Run phase current'],['lock_a','Lock current']])if(!Number.isFinite(c[key])||c[key]<.25||c[key]>3.75||Math.abs(c[key]*4-Math.round(c[key]*4))>.00001)return `${label}: the driver supports 0.25–3.75 A in 0.25 A steps. Use Ignore to disable this limit.`;
+ for(const key of ['input_enabled','phase_enabled','lock_enabled','sense_ocp_enabled','vds_ocp_enabled'])if(typeof c[key]!=='boolean')return `${key} must be true or false.`;
+ if(![.06,.12,.18,.24,.3,.36,.42,.48,.6,.8,1,1.2,1.4,1.6,1.8,2].includes(c.vds_v))return 'VDS threshold must be one of the driver values in the dropdown.';
+ return '';
+}
+function validCurrentSettings(c){return !currentSettingsError(c);}
 
 function estimateRpm(electricalHz,polePairs){return Number.isFinite(electricalHz)&&electricalHz>=0&&Number.isInteger(polePairs)&&polePairs>=1&&polePairs<=32?electricalHz*60/polePairs:null;}
 function validTelemetry(d){return d?.type==='telemetry'&&d.protocol===PROTOCOL&&d.firmware==='native-bldc'&&typeof d.power_ready==='boolean'&&typeof d.armed==='boolean'&&typeof d.motor_enabled==='boolean'&&['vbus_v','vmotor_v','feed_current_a','electrical_hz','max_percent','max_run_ms'].every(k=>Number.isFinite(d[k]));}
@@ -32,9 +40,9 @@ class BldcArrows {
  resume(){if(!this.suspended)return;const d=this.intended();if(!d){if(this.held.size===0)this.suspended=false;return;}if(!this.canRun())return;this.suspended=false;this.direction=d;this.started=false;const generation=++this.generation;this.onChange();void this.begin(generation,d);}
  receive(d){if(this.suspended)this.resume();if(this.started&&!d.motor_enabled){this.generation++;this.direction=0;this.started=false;this.blocked=this.held.size>0;this.onHint(this.blocked?'Run ended. Release arrows to restart.':'Run ended.');this.onChange();}}
 }
-const api={PROTOCOL,currentDefaults,validCurrentSettings,estimateRpm,validTelemetry,controlState,BldcClient,BldcArrows};if(typeof module!=='undefined')module.exports=api;
+const api={PROTOCOL,currentDefaults,currentSettingsError,validCurrentSettings,estimateRpm,validTelemetry,controlState,BldcClient,BldcArrows};if(typeof module!=='undefined')module.exports=api;
 if(!root.document)return;
-const $=id=>document.getElementById(id);let busy=false,connecting=false,pdDirty=false,limitsDirty=false,points=[];
+const $=id=>document.getElementById(id);let busy=false,connecting=false,pdDirty=false,limitsDirty=false,limitsError='',points=[];
 const message=text=>{$('message').textContent=text;};
 const client=new BldcClient({onTelemetry:render,onError:async e=>{arrows.reset('USB disconnected.');message(e.message);await client.close();update();}});
 const arrows=new BldcArrows({client,canRun:()=>client.fresh()&&client.last?.power_ready&&client.last?.direction_supported===true&&!client.last?.motor_enabled&&!busy,settings:()=>({percent:Number($('speed').value),duration_ms:Number($('duration').value)}),onHint:t=>{$('arrowHint').textContent=t;},onChange:()=>{document.querySelectorAll('[data-arrow]').forEach(b=>b.classList.toggle('engaged',arrows.held.has(b.dataset.arrow)&&!!arrows.direction));}});
@@ -55,14 +63,14 @@ $('pdVoltage').onchange=()=>{pdDirty=true;};$('request9').onclick=async()=>{
 };
 const limitNumbers={input_a:'limitInput',align_a:'limitAlign',phase_a:'limitPhase',lock_a:'limitLock',vds_v:'limitVds'};
 const limitIgnores={input_enabled:'ignoreInput',phase_enabled:'ignorePhase',lock_enabled:'ignoreLock',sense_ocp_enabled:'ignoreSense',vds_ocp_enabled:'ignoreVds'};
-function readLimits(){const c={};for(const [key,id]of Object.entries(limitNumbers))c[key]=Number($(id).value);for(const [key,id]of Object.entries(limitIgnores))c[key]=!$(id).checked;return c;}
+function readLimits(){const c={};for(const [key,id]of Object.entries(limitNumbers))c[key]=$(id).value.trim()===''?NaN:Number($(id).value);for(const [key,id]of Object.entries(limitIgnores))c[key]=!$(id).checked;return c;}
 function fillLimits(c){for(const [key,id]of Object.entries(limitNumbers))$(id).value=String(c[key]);for(const [key,id]of Object.entries(limitIgnores))$(id).checked=!c[key];syncIgnoreAll();}
 function syncIgnoreAll(){const ignored=Object.values(limitIgnores).map(id=>$(id).checked);$('ignoreAllLimits').checked=ignored.every(Boolean);$('ignoreAllLimits').indeterminate=ignored.some(Boolean)&&!ignored.every(Boolean);}
-function updateLimitControls(d){const enabled=client.fresh()&&d?.current_limits_supported&&!busy;for(const id of [...Object.values(limitNumbers),...Object.values(limitIgnores),'ignoreAllLimits','applyLimits','resetLimits'])$(id).disabled=!enabled;for(const [key,id]of Object.entries(limitNumbers)){const ignore=key==='input_a'?'ignoreInput':key==='lock_a'?'ignoreLock':key==='vds_v'?'ignoreVds':'ignorePhase';if($(ignore).checked)$(id).disabled=true;}$('limitsStatus').textContent=!d?.current_limits_supported?'Connect firmware 1.5.0+':limitsDirty?'Unsaved changes':d.limits_verified?'Driver settings verified · RAM only':'Saved · verified on next Arm';}
-for(const id of [...Object.values(limitNumbers),...Object.values(limitIgnores)])$(id).addEventListener('input',()=>{limitsDirty=true;syncIgnoreAll();update();});
-$('ignoreAllLimits').onchange=()=>{for(const id of Object.values(limitIgnores))$(id).checked=$('ignoreAllLimits').checked;limitsDirty=true;syncIgnoreAll();update();};
-$('resetLimits').onclick=()=>{fillLimits(currentDefaults);limitsDirty=true;update();};
-$('applyLimits').onclick=async()=>{const config=readLimits();if(!validCurrentSettings(config)){message('Use input 0.05–8 A; phase settings 0.25–3.75 A in 0.25 A steps.');return;}arrows.reset('Current settings changed');busy=true;update();try{await client.send('set_current_limits',config);limitsDirty=false;message('Current settings applied.');if(validCurrentSettings(client.last?.current_limits))fillLimits(client.last.current_limits);}catch(e){limitsDirty=false;message(e.message);}finally{busy=false;update();}};
+function updateLimitControls(d){const enabled=client.fresh()&&d?.current_limits_supported&&!busy;for(const id of [...Object.values(limitNumbers),...Object.values(limitIgnores),'ignoreAllLimits','applyLimits','resetLimits'])$(id).disabled=!enabled;for(const [key,id]of Object.entries(limitNumbers)){const ignore=key==='input_a'?'ignoreInput':key==='lock_a'?'ignoreLock':key==='vds_v'?'ignoreVds':'ignorePhase';if($(ignore).checked)$(id).disabled=true;}$('limitsStatus').style.color=limitsError?'#ff6c78':'';$('limitsStatus').textContent=limitsError||(!client.fresh()?'Connect motor to apply settings.':!d?.current_limits_supported?'Connect firmware 1.5.0+':limitsDirty?'Unsaved changes':d.limits_verified?'Driver settings verified · RAM only':'Saved · verified on next Arm');}
+for(const id of [...Object.values(limitNumbers),...Object.values(limitIgnores)])$(id).addEventListener('input',()=>{limitsError='';limitsDirty=true;syncIgnoreAll();update();});
+$('ignoreAllLimits').onchange=()=>{for(const id of Object.values(limitIgnores))$(id).checked=$('ignoreAllLimits').checked;limitsError='';limitsDirty=true;syncIgnoreAll();update();};
+$('resetLimits').onclick=()=>{fillLimits(currentDefaults);limitsError='';limitsDirty=true;update();};
+$('applyLimits').onclick=async()=>{const config=readLimits();const error=currentSettingsError(config);if(error){limitsError=error;update();message(error);return;}limitsError='';arrows.reset('Current settings changed');busy=true;update();try{await client.send('set_current_limits',config);limitsDirty=false;message('Current settings applied.');if(validCurrentSettings(client.last?.current_limits))fillLimits(client.last.current_limits);}catch(e){limitsDirty=true;limitsError=e.message;message(e.message);}finally{busy=false;update();}};
 fillLimits(currentDefaults);
 $('speed').oninput=()=>{$('speedValue').textContent=$('speed').value+'%';};
 $('speed').onchange=()=>{if(client.last?.motor_enabled)void action('set_speed',{percent:Number($('speed').value)},'Speed command updated.');};

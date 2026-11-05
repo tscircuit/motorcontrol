@@ -5,10 +5,10 @@ static const char *json="{\"input_a\":0.9,\"input_enabled\":true,\"align_a\":1,\
 int main(void){
  BldcCurrentLimits c=BLDC_CURRENT_DEFAULTS;assert(bldc_gd_current_bits(&c)==0x7b);assert(bldc_fault_current_bits(&c)==0x01500000);
  cJSON *r=cJSON_Parse(json);assert(r&&bldc_parse_current_limits(r,&c));assert(c.phase_code==8&&c.align_code==4&&c.lock_code==10&&c.input_enabled);
- cJSON_ReplaceItemInObjectCaseSensitive(r,"phase_a",cJSON_CreateNumber(2.3));assert(!bldc_parse_current_limits(r,&c));
+ cJSON_ReplaceItemInObjectCaseSensitive(r,"phase_a",cJSON_CreateNumber(2.3));assert(!bldc_parse_current_limits(r,&c));assert(strstr(bldc_current_limits_error(r,&c),"Run phase"));
  cJSON_ReplaceItemInObjectCaseSensitive(r,"phase_a",cJSON_CreateNumber(3.75));assert(bldc_parse_current_limits(r,&c)&&c.phase_code==15);
- cJSON_ReplaceItemInObjectCaseSensitive(r,"input_a",cJSON_CreateNumber(0));assert(!bldc_parse_current_limits(r,&c));
- cJSON_ReplaceItemInObjectCaseSensitive(r,"input_a",cJSON_CreateNumber(8));assert(bldc_parse_current_limits(r,&c));
+ cJSON_ReplaceItemInObjectCaseSensitive(r,"input_a",cJSON_CreateNumber(0));assert(bldc_parse_current_limits(r,&c));
+ cJSON_ReplaceItemInObjectCaseSensitive(r,"input_a",cJSON_CreateNumber(800));assert(bldc_parse_current_limits(r,&c));
  cJSON_ReplaceItemInObjectCaseSensitive(r,"input_enabled",cJSON_CreateString("false"));assert(!bldc_parse_current_limits(r,&c));
  cJSON_ReplaceItemInObjectCaseSensitive(r,"input_enabled",cJSON_CreateBool(false));assert(bldc_parse_current_limits(r,&c)&&!c.input_enabled);
  cJSON_ReplaceItemInObjectCaseSensitive(r,"vds_v",cJSON_CreateNumber(.07));assert(!bldc_parse_current_limits(r,&c));cJSON_Delete(r);

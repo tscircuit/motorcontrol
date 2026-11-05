@@ -84,13 +84,13 @@ The old unused-potentiometer zero gate was removed from browser startup. The kno
 The webpage calculates mechanicalRPM as electricalHz×60÷polePairs using the existing C-firmware frequency telemetry. A compact selector chooses12poles(6pairs) or14poles(7pairs) and is saved locally in the browser. Default12poles follows the supplied D4215 PDF, which lists14N12P; other listings disagree. Confirm the actual rotor magnet count for an accurate estimate. No new sensor or firmware upload is needed.
 
 
-## Configurable current protection (v1.5.0)
+## Configurable current protection (v1.5.1)
 
 The webpage's compact Current limits panel sends `set_current_limits`. Its values are kept in MCU RAM across browser reconnects, and revert to protected defaults on MCU reset. Applying a complete settings packet first disarms, applies and reads back driver registers when powered, then arms if the browser session is live. If the motor supply is off, settings are saved and verified on the next Arm. Failed readback rolls back the configuration and leaves drive disabled.
 
 Fields (all required):
 
-- `input_a`:0.05–8A; `input_enabled`:false bypasses the software input-feed cutoff.
+- `input_a`:any finite nonnegative firmware-representable value (no policy cap); `input_enabled`:false bypasses the software input-feed cutoff.
 - `align_a`, `phase_a`:0.25–3.75A, in0.25A increments, using the authored10mΩ shunt and bidirectional CSA gain40. `phase_enabled`:false selects MCT CBC mode7, disabling alignment/open-loop/run cycle-by-cycle limiting.
 - `lock_a`:0.25–3.75A, in0.25A increments; `lock_enabled`:false selects lock-current mode9, disabling lock-current detection.
 - `sense_ocp_enabled`:false sets GD_CONFIG1.DIS_SNS_FLT.

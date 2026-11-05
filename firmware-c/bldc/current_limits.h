@@ -8,6 +8,7 @@ typedef struct {
     uint8_t align_code,phase_code,lock_code,vds_code;
 } BldcCurrentLimits;
 #define BLDC_CURRENT_DEFAULTS { .input_a=0.9f,.input_enabled=true,.phase_enabled=true,.lock_enabled=true,.sense_ocp_enabled=true,.vds_ocp_enabled=true,.align_code=4,.phase_code=8,.lock_code=10,.vds_code=15 }
+const char *bldc_current_limits_error(const cJSON *root,BldcCurrentLimits *out);
 bool bldc_parse_current_limits(const cJSON *root,BldcCurrentLimits *out);
 float bldc_vds_voltage(uint8_t code);
 static inline uint32_t bldc_gd_current_bits(const BldcCurrentLimits *c) {
