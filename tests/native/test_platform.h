@@ -26,6 +26,7 @@ void gpio_init(uint pin);
 void gpio_set_dir(uint pin, bool value);
 void gpio_set_function(uint pin, uint function);
 void gpio_pull_up(uint pin);
+void gpio_disable_pulls(uint pin);
 int i2c_write_timeout_us(int bus, uint8_t address, const uint8_t *data, size_t n, bool nostop,
                          uint32_t timeout);
 int i2c_read_timeout_us(int bus, uint8_t address, uint8_t *data, size_t n, bool nostop,

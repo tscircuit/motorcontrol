@@ -52,6 +52,13 @@ static uint64_t boot_us, heartbeat_us, last_sample, last_emit, test_until, resta
 #if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
 static uint64_t power_at;
 #endif
+#ifdef MOTOR_BOARD_PD_SENSE
+static double pd_measured;
+static bool pd_sensor_valid;
+static unsigned pd_good_samples;
+static uint64_t pd_alarm_since;
+static bool pd_alarm_missing;
+#endif
 static bool heartbeat_seen, temperature_valid, alarm, sensor_initialized;
 static double temperature;
 #ifndef MOTOR_BOARD_DRV8847
@@ -125,9 +132,26 @@ static bool power_ready(void) {
 #elif defined(MOTOR_BOARD_DRV8452)
     return nema23_ready();
 #else
-    return pd_voltage >= 9 && time_us_64() >= power_at;
+    return pd_voltage >= 9 && time_us_64() >= power_at
+#ifdef MOTOR_BOARD_PD_SENSE
+           && gpio_get(PD_GOOD_PIN) && pd_sensor_valid && pd_good_samples >= 3
+           && time_us_64() - last_sample < 300000
+#endif
+           ;
 #endif
 }
+#ifdef MOTOR_BOARD_PD_SENSE
+static bool pd_fault_active(void) {
+    return pd_voltage >= 9 && time_us_64() >= power_at + 500000 && !power_ready();
+}
+static bool pd_input_missing(void) {
+    return pd_sensor_valid && pd_measured < 1.0 && !gpio_get(PD_GOOD_PIN);
+}
+static bool pd_alarm_active(void) {
+    return pd_fault_active() &&
+           (!pd_alarm_since || time_us_64() - pd_alarm_since < 4000000);
+}
+#endif
 static bool driver_fault(void) {
 #ifdef MOTOR_BOARD_A4988
     return false; /* A4988 exposes no nFAULT pin. */
@@ -155,7 +179,39 @@ static bool sensor_verify(void) {
            read_reg(2, &low) && low == (SENSOR_LOW_C * 256) && read_reg(3, &high) &&
            high == (SHUTDOWN_C * 256);
 }
+#ifdef MOTOR_BOARD_PD_SENSE
+static bool pd_read_reg(uint8_t reg, uint16_t *value) {
+    uint8_t bytes[2];
+    if (i2c_write_timeout_us(i2c1, 0x40, &reg, 1, true, 2000) != 1 ||
+        i2c_read_timeout_us(i2c1, 0x40, bytes, 2, false, 2000) != 2)
+        return false;
+    *value = ((uint16_t)bytes[0] << 8) | bytes[1];
+    return true;
+}
+static void sample_pd(void) {
+    /* 16 averages, 1.1 ms conversions, continuous bus-voltage-only mode. */
+    const uint16_t config = 0x4526;
+    uint16_t actual, raw;
+    uint8_t bytes[] = {0, config >> 8, config & 0xff};
+    pd_sensor_valid = pd_read_reg(0, &actual);
+    if (pd_sensor_valid && actual != config) {
+        /* Wait for a new conversion after initialization or a sensor reset. */
+        (void)i2c_write_timeout_us(i2c1, 0x40, bytes, 3, false, 2000);
+        pd_sensor_valid = false;
+    }
+    if (pd_sensor_valid)
+        pd_sensor_valid = pd_read_reg(2, &raw) && raw <= 28800;
+    if (pd_sensor_valid) pd_measured = raw * 0.00125;
+    bool good = pd_sensor_valid && gpio_get(PD_GOOD_PIN) && pd_voltage >= 9 &&
+                time_us_64() >= power_at && fabs(pd_measured - pd_voltage) <= pd_voltage * 0.05;
+    if (!good) pd_good_samples = 0;
+    else if (pd_good_samples < 3) ++pd_good_samples;
+}
+#endif
 static void sample(void) {
+#ifdef MOTOR_BOARD_PD_SENSE
+    sample_pd();
+#endif
 #ifdef MOTOR_BOARD_A4988
     /* The ADC is dedicated to rail sensing; this PCB has no current amplifiers. */
     adc_select_input(2);
@@ -199,6 +255,15 @@ static void buzzer(int hz) {
 }
 static void indicators(uint64_t now, motor_status_t s) {
     bool fault = alarm || driver_fault();
+#ifdef MOTOR_BOARD_PD_SENSE
+    bool pd_fault = pd_fault_active();
+    if (power_ready()) pd_alarm_since = 0;
+    if (pd_fault && (!pd_alarm_since || pd_alarm_missing != pd_input_missing())) {
+        pd_alarm_since = now;
+        pd_alarm_missing = pd_input_missing();
+    }
+    fault = fault || pd_fault;
+#endif
 #ifdef MOTOR_BOARD_DRV8847
     led_bits = fault ? ((now / 125000) % 2) : s.mode == STOPPED ? 0 : ((now / 500000) % 2);
     gpio_put(LED_PIN, led_bits != 0);
@@ -216,6 +281,22 @@ static void indicators(uint64_t now, motor_status_t s) {
         buzzer((now / 1000) % 1000 < 180 ? 2731 : 0);
         return;
     }
+#ifdef MOTOR_BOARD_PD_SENSE
+    if (pd_alarm_active()) {
+        song_length = 0;
+        uint64_t phase = (now - pd_alarm_since) % 2000000;
+        int tone = 0;
+        if (pd_alarm_missing) {
+            if (phase < 150000 || (phase >= 230000 && phase < 380000)) tone = 220;
+            else if (phase >= 460000 && phase < 710000) tone = 330;
+        } else {
+            if (phase < 220000) tone = 440;
+            else if (phase >= 280000 && phase < 600000) tone = 294;
+        }
+        buzzer(tone);
+        return;
+    }
+#endif
     if (settings.stall_beep && stall_beep_response.active) {
         song_length = 0;
         buzzer(stall_response_tone(&stall_beep_response, true, now));
@@ -412,6 +493,12 @@ static cJSON *capabilities(void) {
     add_number(c, "current_volts_per_amp", CURRENT_VOLTS_PER_AMP);
 #endif
 #endif
+#ifdef MOTOR_BOARD_PD_SENSE
+    add_bool(c, "pd_power_good_supported", true);
+    add_bool(c, "pd_voltage_measurement_supported", true);
+    add_string(c, "pd_voltage_source", "INA226");
+    add_string(c, "pcb_revision", "1.0.48");
+#endif
     add_number(c, "full_steps_per_revolution", FULL_STEPS_PER_REVOLUTION);
     add_number(c, "min_speed_sps", MIN_SPEED_SPS);
 #ifndef MOTOR_BOARD_DRV8847
@@ -540,7 +627,23 @@ static void status(bool compact) {
 #else
     add_number(o, "pd_voltage_requested", pd_voltage);
 #endif
-#ifdef MOTOR_BOARD_A4988
+#ifdef MOTOR_BOARD_PD_SENSE
+    if (pd_sensor_valid) add_number(o, "pd_voltage_measured", pd_measured);
+    else null(o, "pd_voltage_measured");
+    add_bool(o, "pd_voltage_valid", pd_sensor_valid);
+    add_bool(o, "pd_alarm_active", pd_alarm_active());
+    add_string(o, "pd_fault_kind", !pd_fault_active() ? "none" :
+               pd_input_missing() ? "disconnected" : "negotiation");
+    add_bool(o, "pd_power_good", gpio_get(PD_GOOD_PIN));
+    add_string(o, "power_error", power_ready() ? "" :
+        pd_voltage < 9 ? "Select motor voltage" :
+        time_us_64() < power_at ? "Waiting for PD settling" :
+        !pd_sensor_valid ? "PD voltage sensor unavailable" :
+        pd_input_missing() ? "USB-PD power disconnected" :
+        !gpio_get(PD_GOOD_PIN) ? "PD POWER_GOOD is low" :
+        fabs(pd_measured - pd_voltage) > pd_voltage * 0.05 ? "PD voltage outside requested range" :
+        "Waiting for stable PD voltage");
+#elif defined(MOTOR_BOARD_A4988)
     if (supply_sampled) add_number(o, "pd_voltage_measured", motor_voltage);
     else null(o, "pd_voltage_measured");
     add_number(o, "data_voltage_measured", data_voltage);
@@ -1111,6 +1214,10 @@ static void command(const char *line) {
             gpio_put(5, code & 2);
             gpio_put(6, code & 4);
             gpio_put(4, code & 1);
+#ifdef MOTOR_BOARD_PD_SENSE
+            if (pd_voltage != (int)voltage) pd_alarm_since = 0;
+            pd_good_samples = 0;
+#endif
             pd_voltage = (int)voltage;
             power_at = time_us_64() + 2000000;
         }
@@ -1284,9 +1391,13 @@ static void protect(uint64_t now, motor_status_t s) {
         nema23_disarm();
 #endif
     if (s.mode != STOPPED) {
-#ifdef MOTOR_BOARD_A4988
+#if defined(MOTOR_BOARD_A4988) || defined(MOTOR_BOARD_PD_SENSE)
         if (s.enabled && !power_ready()) {
+#ifdef MOTOR_BOARD_PD_SENSE
+            stop("PD power-good lost or measured voltage invalid");
+#else
             stop("Motor supply lost or outside 13.5-16.5 V");
+#endif
             return;
         }
 #endif
@@ -1307,6 +1418,11 @@ static void protect(uint64_t now, motor_status_t s) {
     }
 }
 static void safe_gpio(void) {
+#ifdef MOTOR_BOARD_PD_SENSE
+    gpio_init(PD_GOOD_PIN);
+    gpio_set_dir(PD_GOOD_PIN, GPIO_IN);
+    gpio_disable_pulls(PD_GOOD_PIN);
+#endif
 #ifdef MOTOR_BOARD_A4988
     const int pins[] = {ARM_PIN, WAKE_PIN, STEP_PIN, DIR_PIN, LED_RED_PIN, LED_GREEN_PIN, LED_BLUE_PIN, BUZZER_PIN};
     const int inputs[] = {PD_GOOD_PIN};

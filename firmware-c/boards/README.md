@@ -1,6 +1,6 @@
 # Native firmware targets
 
-There are four supported firmware targets, one per retained hardware generation.
+There are five supported stepper firmware targets, including separate DRV8825 revisions.
 The first ordered NEMA17 generation is retired and has no target here.
 
 | Directory | Build selector (`MOTOR_BOARD`) | Board identity | Status |
@@ -8,6 +8,7 @@ The first ordered NEMA17 generation is retired and has no target here.
 | [`nema14-a4988/`](nema14-a4988/README.md) | `nema14_a4988` | `rp2040_a4988_nema14` | NEMA14 PCB 1.13.2; A4988 with fixed 15 V CH224A |
 | [`nema17-drv8847/`](nema17-drv8847/README.md) | `nema17_drv8847` | `rp2040_drv8847` | Second ordered NEMA17 generation; maintenance support for deprecated driver |
 | [`nema17-drv8825-1.0.42/`](nema17-drv8825-1.0.42/README.md) | `drv8825` | `rp2040_drv8825` | Latest NEMA17, PCB release 1.0.42; default target |
+| [`nema17-drv8825-1.0.48/`](nema17-drv8825-1.0.48/README.md) | `drv8825_pd` | `rp2040_drv8825_pd` | PCB 1.0.48 with POWER_GOOD and INA226 |
 | [`nema23-drv8452-1.3.2/`](nema23-drv8452-1.3.2/README.md) | `nema23_drv8452` | `rp2040_drv8452_nema23` | NEMA23, PCB release 1.3.2 |
 
 Numbers in directories identify published **PCB releases**, not firmware releases.

@@ -16,7 +16,7 @@ jobs:
   rp2040-build:
     strategy:
       matrix:
-        board: [drv8825, nema17_drv8847, nema23_drv8452, nema14_a4988, bldc]
+        board: [drv8825_pd, drv8825, nema17_drv8847, nema23_drv8452, nema14_a4988, bldc]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
