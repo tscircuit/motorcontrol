@@ -57,6 +57,7 @@ static double pd_measured;
 static bool pd_sensor_valid;
 static unsigned pd_good_samples;
 static uint64_t pd_alarm_since;
+static bool pd_alarm_missing;
 #endif
 static bool heartbeat_seen, temperature_valid, alarm, sensor_initialized;
 static double temperature;
@@ -140,8 +141,15 @@ static bool power_ready(void) {
 #endif
 }
 #ifdef MOTOR_BOARD_PD_SENSE
-static bool pd_alarm_active(void) {
+static bool pd_fault_active(void) {
     return pd_voltage >= 9 && time_us_64() >= power_at + 500000 && !power_ready();
+}
+static bool pd_input_missing(void) {
+    return pd_sensor_valid && pd_measured < 1.0 && !gpio_get(PD_GOOD_PIN);
+}
+static bool pd_alarm_active(void) {
+    return pd_fault_active() &&
+           (!pd_alarm_since || time_us_64() - pd_alarm_since < 4000000);
 }
 #endif
 static bool driver_fault(void) {
@@ -248,9 +256,11 @@ static void buzzer(int hz) {
 static void indicators(uint64_t now, motor_status_t s) {
     bool fault = alarm || driver_fault();
 #ifdef MOTOR_BOARD_PD_SENSE
-    bool pd_fault = pd_alarm_active();
-    if (!pd_fault) pd_alarm_since = 0;
-    else if (!pd_alarm_since) pd_alarm_since = now;
+    bool pd_fault = pd_fault_active();
+    if (pd_fault && !pd_alarm_since) {
+        pd_alarm_since = now;
+        pd_alarm_missing = pd_input_missing();
+    }
     fault = fault || pd_fault;
 #endif
 #ifdef MOTOR_BOARD_DRV8847
@@ -271,12 +281,17 @@ static void indicators(uint64_t now, motor_status_t s) {
         return;
     }
 #ifdef MOTOR_BOARD_PD_SENSE
-    if (pd_fault) {
+    if (pd_alarm_active()) {
         song_length = 0;
         uint64_t phase = (now - pd_alarm_since) % 2000000;
         int tone = 0;
-        if (phase < 220000) tone = 440;
-        else if (phase >= 280000 && phase < 600000) tone = 294;
+        if (pd_alarm_missing) {
+            if (phase < 150000 || (phase >= 230000 && phase < 380000)) tone = 220;
+            else if (phase >= 460000 && phase < 710000) tone = 330;
+        } else {
+            if (phase < 220000) tone = 440;
+            else if (phase >= 280000 && phase < 600000) tone = 294;
+        }
         buzzer(tone);
         return;
     }
@@ -616,11 +631,14 @@ static void status(bool compact) {
     else null(o, "pd_voltage_measured");
     add_bool(o, "pd_voltage_valid", pd_sensor_valid);
     add_bool(o, "pd_alarm_active", pd_alarm_active());
+    add_string(o, "pd_fault_kind", !pd_fault_active() ? "none" :
+               pd_input_missing() ? "disconnected" : "negotiation");
     add_bool(o, "pd_power_good", gpio_get(PD_GOOD_PIN));
     add_string(o, "power_error", power_ready() ? "" :
         pd_voltage < 9 ? "Select motor voltage" :
         time_us_64() < power_at ? "Waiting for PD settling" :
         !pd_sensor_valid ? "PD voltage sensor unavailable" :
+        pd_input_missing() ? "USB-PD power disconnected" :
         !gpio_get(PD_GOOD_PIN) ? "PD POWER_GOOD is low" :
         fabs(pd_measured - pd_voltage) > pd_voltage * 0.05 ? "PD voltage outside requested range" :
         "Waiting for stable PD voltage");
@@ -1195,12 +1213,12 @@ static void command(const char *line) {
             gpio_put(5, code & 2);
             gpio_put(6, code & 4);
             gpio_put(4, code & 1);
+#ifdef MOTOR_BOARD_PD_SENSE
+            if (pd_voltage != (int)voltage) pd_alarm_since = 0;
+            pd_good_samples = 0;
+#endif
             pd_voltage = (int)voltage;
             power_at = time_us_64() + 2000000;
-#ifdef MOTOR_BOARD_PD_SENSE
-            pd_good_samples = 0;
-            pd_alarm_since = 0;
-#endif
         }
 
 #endif

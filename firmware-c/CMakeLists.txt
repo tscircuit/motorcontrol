@@ -69,7 +69,7 @@ target_link_libraries(motorcontrol pico_stdlib pico_rand pico_unique_id pico_mul
 target_link_options(motorcontrol PRIVATE "LINKER:-T,${CMAKE_CURRENT_LIST_DIR}/memory_guard.ld")
 pico_set_program_name(motorcontrol "motorcontrol-native")
 if(MOTOR_BOARD STREQUAL "drv8825_pd")
-    pico_set_program_version(motorcontrol "1.0.21")
+    pico_set_program_version(motorcontrol "1.0.22")
 else()
     pico_set_program_version(motorcontrol "1.0.17")
 endif()
