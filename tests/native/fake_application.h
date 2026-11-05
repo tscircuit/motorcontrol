@@ -6,6 +6,10 @@ uint16_t fake_registers[4] = {25 * 256, 0x60c0, 60 * 256, 75 * 256};
 char output[32768];
 size_t output_length;
 static uint8_t selected_register;
+#ifdef MOTOR_BOARD_PD_SENSE
+static uint16_t fake_pd_registers[3] = {0x4526, 0, 7200};
+static bool fake_pd_available = true;
+#endif
 static motor_status_t fake_motor = {.mode = STOPPED, .factor = 1};
 settings_t settings = {.name = "Native test", .threshold = 65, .stall_sensitivity = 35};
 uint64_t time_us_64(void) { return fake_us; }
@@ -23,11 +27,20 @@ void gpio_init(uint pin) {}
 void gpio_set_dir(uint pin, bool value) {}
 void gpio_set_function(uint pin, uint function) {}
 void gpio_pull_up(uint pin) {}
+void gpio_disable_pulls(uint pin) {}
 int i2c_write_timeout_us(int bus, uint8_t address, const uint8_t *data, size_t n, bool nostop,
                          uint32_t timeout) {
 #ifdef MOTOR_BOARD_DRV8452
     if (bus == i2c0)
         return fake_pd_write(address, data, n);
+#endif
+#ifdef MOTOR_BOARD_PD_SENSE
+    if (address == 0x40) {
+        if (!fake_pd_available) return -1;
+        selected_register = data[0];
+        if (n == 3) fake_pd_registers[data[0]] = ((uint16_t)data[1] << 8) | data[2];
+        return n;
+    }
 #endif
     selected_register = data[0];
     if (n == 3)
@@ -39,6 +52,14 @@ int i2c_read_timeout_us(int bus, uint8_t address, uint8_t *data, size_t n, bool 
 #ifdef MOTOR_BOARD_DRV8452
     if (bus == i2c0)
         return fake_pd_read(address, data, n);
+#endif
+#ifdef MOTOR_BOARD_PD_SENSE
+    if (address == 0x40) {
+        if (!fake_pd_available) return -1;
+        data[0] = fake_pd_registers[selected_register] >> 8;
+        data[1] = fake_pd_registers[selected_register];
+        return n;
+    }
 #endif
     data[0] = fake_registers[selected_register] >> 8;
     data[1] = fake_registers[selected_register];

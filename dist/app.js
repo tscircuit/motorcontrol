@@ -177,7 +177,7 @@ function updateHardware(){
   $('pdVoltage').value=last?.pd_voltage_requested||5;
   hardwareKey=key;
  }
- $('hardwareStatus').textContent=`LED: ${last?.led_color||'—'} · ${c.power_arm_required&&!last?.pd_request_sent?'No software voltage request sent':'Requested motor supply: '+(last?.pd_voltage_requested??'—')+' V'}${last?.motor_power_ready?' · settled':' · driver unavailable / settling'}`;
+ $('hardwareStatus').textContent=`LED: ${last?.led_color||'—'} · ${c.power_arm_required&&!last?.pd_request_sent?'No software voltage request sent':'Requested motor supply: '+(last?.pd_voltage_requested??'—')+' V'}${last?.motor_power_ready?' · settled':' · driver unavailable / settling'}${c.pd_power_good_supported?` · POWER_GOOD ${last.pd_power_good?'high':'low'} · Measured PD ${Number.isFinite(last.pd_voltage_measured)?last.pd_voltage_measured.toFixed(2)+' V':'unavailable'}${last.power_error?' · '+last.power_error:''}`:''}`;
 }
 $('applyLed').addEventListener('click',async()=>{try{await send('set_led',{color:$('ledColor').value});await send('status');message('LED color applied. Alarms take priority.');}catch(e){message(e.message);}});
 $('applyPd').addEventListener('click',async()=>{try{await send('set_pd_voltage',{voltage:Number($('pdVoltage').value)});await send('status');message(caps().power_arm_required?'Voltage requested. Use Enable motor power to connect the rail.':'Motor voltage requested. Wait two seconds for settling.');}catch(e){message(e.message);}});

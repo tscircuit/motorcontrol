@@ -2,6 +2,8 @@
 #define MOTOR_BOARD_H
 #if defined(MOTOR_BOARD_A4988)
 #include "boards/nema14-a4988/board.h"
+#elif defined(MOTOR_BOARD_PD_SENSE)
+#include "boards/nema17-drv8825-1.0.48/board.h"
 #elif defined(MOTOR_BOARD_DRV8847)
 #include "boards/nema17-drv8847/board.h"
 #elif defined(MOTOR_BOARD_DRV8452)

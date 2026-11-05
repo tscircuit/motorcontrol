@@ -204,7 +204,7 @@ if(typeof document!=='undefined'){
   const live=!!a.port&&Date.now()-a.seen<1000&&!a.last?.restarting;
   $('setLed'+label).disabled=$('led'+label).disabled=!live||!c.led_colors?.length;
   $('setPd'+label).disabled=$('pd'+label).disabled=!live||!!a.last?.motor_enabled||jog.returning||!c.pd_voltages?.length;
-  $('hardwareStatus'+label).textContent=!live?'Connect for live board controls.':`LED: ${a.last?.led_color||'—'} · ${c.power_arm_required&&!a.last?.pd_request_sent?'No software voltage request sent':'Requested supply: '+(a.last?.pd_voltage_requested??'—')+' V'} · ${a.last?.motor_power_ready?'ready to request motion':a.last?.pd_voltage_requested===5?'choose motor voltage':c.power_arm_required?'motor power off':'waiting for settling'}`;
+  $('hardwareStatus'+label).textContent=!live?'Connect for live board controls.':`LED: ${a.last?.led_color||'—'} · ${c.power_arm_required&&!a.last?.pd_request_sent?'No software voltage request sent':'Requested supply: '+(a.last?.pd_voltage_requested??'—')+' V'} · ${a.last?.motor_power_ready?'ready to request motion':a.last?.pd_voltage_requested===5?'choose motor voltage':c.power_arm_required?'motor power off':'waiting for settling'}${c.pd_power_good_supported?` · POWER_GOOD ${a.last.pd_power_good?'high':'low'} · Measured PD ${Number.isFinite(a.last.pd_voltage_measured)?a.last.pd_voltage_measured.toFixed(2)+' V':'unavailable'}${a.last.power_error?' · '+a.last.power_error:''}`:''}`;
  }
  function renderStepSizes(){
   const connected=Object.values(axes).filter(a=>a.last&&a.port),select=$('jogResolution');
@@ -229,7 +229,7 @@ if(typeof document!=='undefined'){
    $('currentNote').textContent=c.current_note||'Current availability depends on the connected board.';
    const voltage=a.last?.pd_voltage_measured,measured=live&&Number.isFinite(voltage)&&voltage>=0;
    $('pdVoltageMeasured').textContent=measured?`${voltage.toFixed(2)} V`:'Unavailable';
-   $('pdVoltageNote').textContent=measured?'Live measurement reported by the connected board.':'This board does not report measured PD voltage. Use GND → PD with a multimeter; the requested voltage is not a measurement.';
+   $('pdVoltageNote').textContent=c.pd_voltage_measurement_supported?(live?`INA226 PD input · POWER_GOOD ${a.last.pd_power_good?'high':'low'}${measured?'':' · voltage sensor unavailable'}`:'Connect for live PD measurements'):measured?'Live measurement reported by the connected board.':'This board does not report measured PD voltage. Use GND → PD with a multimeter; the requested voltage is not a measurement.';
   }
  }
  function render(){
