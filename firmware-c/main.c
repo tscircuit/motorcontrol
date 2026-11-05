@@ -56,6 +56,7 @@ static uint64_t power_at;
 static double pd_measured;
 static bool pd_sensor_valid;
 static unsigned pd_good_samples;
+static uint64_t pd_alarm_since;
 #endif
 static bool heartbeat_seen, temperature_valid, alarm, sensor_initialized;
 static double temperature;
@@ -138,6 +139,11 @@ static bool power_ready(void) {
            ;
 #endif
 }
+#ifdef MOTOR_BOARD_PD_SENSE
+static bool pd_alarm_active(void) {
+    return pd_voltage >= 9 && time_us_64() >= power_at + 500000 && !power_ready();
+}
+#endif
 static bool driver_fault(void) {
 #ifdef MOTOR_BOARD_A4988
     return false; /* A4988 exposes no nFAULT pin. */
@@ -241,6 +247,12 @@ static void buzzer(int hz) {
 }
 static void indicators(uint64_t now, motor_status_t s) {
     bool fault = alarm || driver_fault();
+#ifdef MOTOR_BOARD_PD_SENSE
+    bool pd_fault = pd_alarm_active();
+    if (!pd_fault) pd_alarm_since = 0;
+    else if (!pd_alarm_since) pd_alarm_since = now;
+    fault = fault || pd_fault;
+#endif
 #ifdef MOTOR_BOARD_DRV8847
     led_bits = fault ? ((now / 125000) % 2) : s.mode == STOPPED ? 0 : ((now / 500000) % 2);
     gpio_put(LED_PIN, led_bits != 0);
@@ -258,6 +270,17 @@ static void indicators(uint64_t now, motor_status_t s) {
         buzzer((now / 1000) % 1000 < 180 ? 2731 : 0);
         return;
     }
+#ifdef MOTOR_BOARD_PD_SENSE
+    if (pd_fault) {
+        song_length = 0;
+        uint64_t phase = (now - pd_alarm_since) % 2000000;
+        int tone = 0;
+        if (phase < 220000) tone = 440;
+        else if (phase >= 280000 && phase < 600000) tone = 294;
+        buzzer(tone);
+        return;
+    }
+#endif
     if (settings.stall_beep && stall_beep_response.active) {
         song_length = 0;
         buzzer(stall_response_tone(&stall_beep_response, true, now));
@@ -592,6 +615,7 @@ static void status(bool compact) {
     if (pd_sensor_valid) add_number(o, "pd_voltage_measured", pd_measured);
     else null(o, "pd_voltage_measured");
     add_bool(o, "pd_voltage_valid", pd_sensor_valid);
+    add_bool(o, "pd_alarm_active", pd_alarm_active());
     add_bool(o, "pd_power_good", gpio_get(PD_GOOD_PIN));
     add_string(o, "power_error", power_ready() ? "" :
         pd_voltage < 9 ? "Select motor voltage" :
@@ -1175,6 +1199,7 @@ static void command(const char *line) {
             power_at = time_us_64() + 2000000;
 #ifdef MOTOR_BOARD_PD_SENSE
             pd_good_samples = 0;
+            pd_alarm_since = 0;
 #endif
         }
 

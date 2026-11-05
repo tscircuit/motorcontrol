@@ -63,6 +63,36 @@ int main(void) {
     assert(power_ready());
     fake_us += 300001;
     assert(!power_ready());
+    pd_voltage = 5;
+    assert(!pd_alarm_active());
+    indicators(fake_us, fake_motor);
+    assert(buzzer_frequency == 0);
+    pd_voltage = 9;
+    power_at = fake_us + 2000000;
+    fake_pd_registers[2] = 4000; /* A 5 V-only supply cannot satisfy 9 V. */
+    sample();
+    assert(!pd_alarm_active());
+    fake_us = power_at + 499999;
+    assert(!pd_alarm_active());
+    ++fake_us;
+    assert(pd_alarm_active());
+    indicators(fake_us, fake_motor);
+    assert(buzzer_frequency == 440);
+    fake_us += 240000;
+    indicators(fake_us, fake_motor);
+    assert(buzzer_frequency == 0);
+    fake_us += 60000;
+    indicators(fake_us, fake_motor);
+    assert(buzzer_frequency == 294);
+    fake_us += 400000;
+    indicators(fake_us, fake_motor);
+    assert(buzzer_frequency == 0);
+    fake_pd_registers[2] = 7200;
+    sample_stable();
+    assert(!pd_alarm_active());
+    indicators(fake_us, fake_motor);
+    assert(buzzer_frequency == 0);
+    puts("PASS two-tone PD alarm, negotiation grace, 5 V standby and recovery");
     puts("PASS PD sensing, scaling, settling, POWER_GOOD loss, wrong voltage, missing sensor, reset and freshness");
 }
 

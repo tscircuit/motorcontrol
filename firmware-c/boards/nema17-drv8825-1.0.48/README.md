@@ -23,6 +23,13 @@ checked each protection loop; voltage loss is checked each 100 ms sample.
 Motion stops and requires an explicit new motion command after recovery.
 Startup requests 5 V and holds the motor disabled.
 
+If a request of 9 V or higher is still unready 500 ms after the settling
+interval, the buzzer repeats a descending 440 Hz / 294 Hz “ehh arr” every
+two seconds. It clears when the supply qualifies or the user selects 5 V.
+Temperature alarms have priority. Telemetry exposes `pd_alarm_active`.
+A 5 V-only cable/supply triggers this when a higher voltage is requested;
+5 V standby alone cannot identify whether a cable supports PD.
+
 Circuit references:
 - https://imrishabh18--rp2040-motor-controller-v1-0-48.tscircuit.app/engineering/pd-power-good.md
 - https://imrishabh18--rp2040-motor-controller-v1-0-48.tscircuit.app/engineering/pd-voltage-monitor.md
