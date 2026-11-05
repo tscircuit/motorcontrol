@@ -9,10 +9,13 @@
 #include "pico/unique_id.h"
 #include "cJSON.h"
 #include "web_policy.h"
+#include "current_limits.h"
 #include "build_id.h"
 #include <math.h>
 
 static unsigned selected_voltage=9;
+static BldcCurrentLimits current_limits=BLDC_CURRENT_DEFAULTS;
+static bool limits_verified=false;
 static bool led_error=false;
 static const char *led_name="BOOT";
 static void led_show(const char *name,bool red,bool green,bool blue) {
@@ -137,28 +140,28 @@ static bool select_voltage(unsigned voltage) {
 }
 static bool profile_ready=false;
 static void prepare(void) {
-    off(); profile_ready=false; led_error=false;
+    off(); profile_ready=false; limits_verified=false; led_error=false;
     float vm=sample(1)*3.3f/4095*235/15;
     if(!bldc_voltage_ready(vm,selected_voltage,false) || gpio_get(6)) { puts("Motor voltage or PD contract is not ready"); return; }
     bool ok=motor_write(0xe8,0x8000); // Zero digital command, override pin.
     ok=ok && patch(0xa6,0x7e,0x44); // I2C speed, hardware direction, brake disabled.
-    ok=ok && patch(0xac,3,3); // Existing bidirectional CSA, now 40 V/V.
+    ok=ok && patch(0xac,0x37b,bldc_gd_current_bits(&current_limits)); // Existing bidirectional CSA, now 40 V/V.
     uint32_t gd;
-    ok=ok && motor_read(0xac,&gd) && (gd&(1u<<18)) && !(gd&0x300);
+    ok=ok && motor_read(0xac,&gd) && (gd&(1u<<18));
     // Alignment uses 0.4 V => nominal 1 A; run/open-loop uses 0.8 V => nominal 2 A.
-    ok=ok && patch(0x82,0x7fff0000u,(7u<<27)|(5u<<23)|(4u<<18)); // 10 V/s, 100 ms align, 10% cap.
-    ok=ok && patch(0x84,0x7f800000u,4u<<23); // Open loop max10%, nominal1A.
-    ok=ok && patch(0x88,0x6000007eu,(8u<<2)|2u); // CBC2A; OL uses same current limit.
-    ok=ok && patch(0x92,0x0fff8078u,(1u<<24)|(10u<<19)); // CBC recirculation; lock2.5A, latched tri-state.
+    ok=ok && patch(0x82,0x7fff0000u,(7u<<27)|(5u<<23)|((uint32_t)current_limits.align_code<<18)); // 10 V/s, 100 ms align, 10% cap.
+    ok=ok && patch(0x84,0x7f800000u,(uint32_t)current_limits.phase_code<<23); // Open loop duty cap10%; current selected below.
+    ok=ok && patch(0x88,0x6000007eu,((uint32_t)current_limits.phase_code<<2)|2u); // Open loop shares the run threshold.
+    ok=ok && patch(0x92,0x0fff8078u,bldc_fault_current_bits(&current_limits)); // Configurable CBC and lock-current actions.
     ok=ok && patch(0x80,0x7e000006u,0); // Stationary start, single align; no brake/resync.
     ok=ok && patch(0x8e,3,0); // Voltage-control mode, no speed/power loop.
     ok=ok && patch(0x9a,0x60000000u,0); // Direct reference mapping.
     ok=ok && motor_write(0xe8,0x8000);
     sleep_ms(20); uint32_t cmd;
     ok=ok && motor_read(0xe4,&cmd) && (cmd&0xfffe)==0;
-    profile_ready=ok;
+    profile_ready=ok; limits_verified=ok;
     if(ok) led_idle(); else led_fault();
-    puts(ok?"Experimental 2 A run profile verified in RAM; ARM OFF, digital command ZERO. No EEPROM writes.":"Profile verification failed; ARM OFF");
+    puts(ok?"Current profile verified in RAM; ARM OFF, digital command ZERO. No EEPROM writes.":"Profile verification failed; ARM OFF");
 }
 
 static bool running=false, armed=false, heartbeat_seen=false, browser_session=false;
@@ -214,8 +217,8 @@ static void telemetry(void) {
     float vin=sample(0)*3.3f/4095*235/15,vm=sample(1)*3.3f/4095*235/15;
     float current=sample(2)*3.3f/4095/0.4f;
     uint32_t elapsed=running?(uint32_t)(now_ms()-run_at):0;
-    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.4.3\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"pd_change_while_powered\":true,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":2,\"heartbeat_timeout_ms\":1000,\"decoded_command_percent\":%.2f,\"applied_duty_percent\":%.2f,\"set_duty_percent\":%.2f,\"knob_raw\":%u,\"watchdog_reset\":%s,\"peak_feed_delta_a\":%.3f,\"min_run_voltage_v\":%.3f,\"last_stop_reason\":\"%s\",\"last_trip\":\"%s\",\"trip_voltage_v\":%.3f,\"trip_feed_delta_a\":%.3f,\"trip_fault_n\":%u,\"trip_pd_n\":%u,\"trip_knob_raw\":%u,\"trip_gate_fault\":%lu,\"trip_controller_fault\":%lu}\n",
-        FIRMWARE_BUILD,device_id,state_name(),reason,armed?"true":"false",running?"true":"false",power_ready()?"true":"false",selected_voltage,vin,vm,current,feed_delta,electrical_hz,edges,percent,direction,(unsigned long)(running&&elapsed<run_duration?run_duration-elapsed:0),led_name,(unsigned long)gate_fault,(unsigned long)controller_fault,decoded_command,applied_duty,set_duty,sample(3),boot_was_watchdog?"true":"false",peak_current,min_voltage,last_stop,last_trip,trip_voltage,trip_current,trip_fault_n,trip_pd_n,trip_knob,(unsigned long)trip_gate,(unsigned long)trip_controller);
+    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.5.0\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"pd_change_while_powered\":true,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":%.2f,\"heartbeat_timeout_ms\":1000,\"decoded_command_percent\":%.2f,\"applied_duty_percent\":%.2f,\"set_duty_percent\":%.2f,\"knob_raw\":%u,\"watchdog_reset\":%s,\"peak_feed_delta_a\":%.3f,\"min_run_voltage_v\":%.3f,\"last_stop_reason\":\"%s\",\"last_trip\":\"%s\",\"trip_voltage_v\":%.3f,\"trip_feed_delta_a\":%.3f,\"trip_fault_n\":%u,\"trip_pd_n\":%u,\"trip_knob_raw\":%u,\"trip_gate_fault\":%lu,\"trip_controller_fault\":%lu,\"current_limits_supported\":true,\"limits_verified\":%s,\"hardware_input_limit_a\":1.233,\"current_limits\":{\"input_a\":%.3f,\"input_enabled\":%s,\"align_a\":%.2f,\"phase_a\":%.2f,\"phase_enabled\":%s,\"lock_a\":%.2f,\"lock_enabled\":%s,\"sense_ocp_enabled\":%s,\"vds_ocp_enabled\":%s,\"vds_v\":%.2f}}\n",
+        FIRMWARE_BUILD,device_id,state_name(),reason,armed?"true":"false",running?"true":"false",power_ready()?"true":"false",selected_voltage,vin,vm,current,feed_delta,electrical_hz,edges,percent,direction,(unsigned long)(running&&elapsed<run_duration?run_duration-elapsed:0),led_name,(unsigned long)gate_fault,(unsigned long)controller_fault,current_limits.phase_code*.25,decoded_command,applied_duty,set_duty,sample(3),boot_was_watchdog?"true":"false",peak_current,min_voltage,last_stop,last_trip,trip_voltage,trip_current,trip_fault_n,trip_pd_n,trip_knob,(unsigned long)trip_gate,(unsigned long)trip_controller,limits_verified?"true":"false",current_limits.input_a,current_limits.input_enabled?"true":"false",current_limits.align_code*.25,current_limits.phase_code*.25,current_limits.phase_enabled?"true":"false",current_limits.lock_code*.25,current_limits.lock_enabled?"true":"false",current_limits.sense_ocp_enabled?"true":"false",current_limits.vds_ocp_enabled?"true":"false",bldc_vds_voltage(current_limits.vds_code));
 }
 static void ack(int id,const char *cmd,bool ok,const char *error) {
     (void)cmd;
@@ -265,7 +268,7 @@ static void motion_tick(void) {
     if(!bldc_voltage_ready(v,selected_voltage,true)) {disarm("Motor voltage out of range",true);return;}
     if(gpio_get(6)) {disarm("PD contract lost",true);return;}
     if(!gpio_get(4)) {disarm("Driver nFAULT asserted",true);return;}
-    if(feed_delta>0.9f) {disarm("Motor-feed current limit",true);return;}
+    if(current_limits.input_enabled && feed_delta>current_limits.input_a) {disarm("Motor-feed current limit",true);return;}
     bool fg=gpio_get(5);if(fg!=previous_fg){edges++;previous_fg=fg;}
     static uint32_t last_driver_read;
     if((uint32_t)(now_ms()-last_driver_read)>=50) {
@@ -309,6 +312,19 @@ static void json_command(const char *line) {
         if(!cJSON_IsNumber(v)||v->valuedouble<0||v->valuedouble>20||v->valuedouble!=(unsigned)v->valuedouble||!bldc_voltage_valid((unsigned)v->valuedouble)) {ok=false;error="Choose 5, 9, 15 or 20 V";}
         else {disarm("Changing voltage",false);ok=select_voltage((unsigned)v->valuedouble);reason=ok?"Voltage selected; waiting to re-arm":"PD negotiation failed";voltage_rearm_pending=ok;voltage_rearm_at=now_ms();if(!ok)error="Requested PD contract unavailable";}
     }
+    else if(!strcmp(name,"set_current_limits")) {
+        BldcCurrentLimits proposed;
+        if(!bldc_parse_current_limits(root,&proposed)) {ok=false;error="Invalid current settings: phase values use 0.25 A steps (0.25-3.75 A)";}
+        else {
+            disarm("Current settings changed",false);
+            BldcCurrentLimits previous=current_limits;current_limits=proposed;limits_verified=false;
+            if(power_ready()) {
+                prepare();ok=profile_ready;
+                if(ok) {armed=live();arm_at=now_ms();reason="Current settings verified";}
+                else {current_limits=previous;prepare();armed=false;reason="Current settings readback failed";error=reason;led_fault();}
+            } else reason="Current settings saved for next arm";
+        }
+    }
     else if(!strcmp(name,"arm")) {
         if(running||!live()||!power_ready()) {ok=false;error="Need a live browser and matching motor voltage";}
         else {voltage_rearm_pending=false;prepare();ok=profile_ready;armed=ok;arm_at=now_ms();reason=ok?"Armed: waiting for browser Start":"Profile verification failed";if(!ok)error=reason;}
@@ -345,7 +361,7 @@ int main(void) {
     pico_get_unique_board_id_string(device_id,sizeof(device_id));stdio_init_all();
     boot_was_watchdog=watchdog_caused_reboot();
     watchdog_enable(250,true);
-    char line[256];unsigned used=0;bool discard=false,connected=false;uint32_t last_telemetry=0;
+    char line[512];unsigned used=0;bool discard=false,connected=false;uint32_t last_telemetry=0;
     while(true) {
         watchdog_update();motion_tick();bool usb=stdio_usb_connected();
         if(!usb && connected) {disarm("USB disconnected",false);browser_session=false;heartbeat_seen=false;used=0;discard=false;}

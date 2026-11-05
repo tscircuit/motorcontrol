@@ -43,7 +43,7 @@ CI builds this target alongside the retained stepper targets. The served UF2 is 
 
 ## Serial protocol
 
-115200 baud USB CDC; newline-delimited JSON, maximum 255 bytes per incoming line. Oversized lines are discarded through the next newline. Responses use `protocol: "bldc-1"`; telemetry also includes `firmware: "native-bldc"`.
+115200 baud USB CDC; newline-delimited JSON, maximum 511 bytes per incoming line. Oversized lines are discarded through the next newline. Responses use `protocol: "bldc-1"`; telemetry also includes `firmware: "native-bldc"`.
 
 Commands with an integer `id` receive `{ "type": "ack", "protocol": "bldc-1", "id": 1, "ok": true, "error": "" }`. Heartbeats do not receive ACKs. Plain diagnostic lines may be interleaved with JSON; clients ignore them.
 
@@ -82,3 +82,21 @@ The old unused-potentiometer zero gate was removed from browser startup. The kno
 ## Estimated RPM display
 
 The webpage calculates mechanicalRPM as electricalHz×60÷polePairs using the existing C-firmware frequency telemetry. A compact selector chooses12poles(6pairs) or14poles(7pairs) and is saved locally in the browser. Default12poles follows the supplied D4215 PDF, which lists14N12P; other listings disagree. Confirm the actual rotor magnet count for an accurate estimate. No new sensor or firmware upload is needed.
+
+
+## Configurable current protection (v1.5.0)
+
+The webpage's compact Current limits panel sends `set_current_limits`. Its values are kept in MCU RAM across browser reconnects, and revert to protected defaults on MCU reset. Applying a complete settings packet first disarms, applies and reads back driver registers when powered, then arms if the browser session is live. If the motor supply is off, settings are saved and verified on the next Arm. Failed readback rolls back the configuration and leaves drive disabled.
+
+Fields (all required):
+
+- `input_a`:0.05–8A; `input_enabled`:false bypasses the software input-feed cutoff.
+- `align_a`, `phase_a`:0.25–3.75A, in0.25A increments, using the authored10mΩ shunt and bidirectional CSA gain40. `phase_enabled`:false selects MCT CBC mode7, disabling alignment/open-loop/run cycle-by-cycle limiting.
+- `lock_a`:0.25–3.75A, in0.25A increments; `lock_enabled`:false selects lock-current mode9, disabling lock-current detection.
+- `sense_ocp_enabled`:false sets GD_CONFIG1.DIS_SNS_FLT.
+- `vds_ocp_enabled`:false sets GD_CONFIG1.DIS_VDS_FLT.
+- `vds_v`:one of0.06,0.12,0.18,0.24,0.3,0.36,0.42,0.48,0.6,0.8,1,1.2,1.4,1.6,1.8,2V; selects the MOSFET VDS fault threshold.
+
+Telemetry includes `current_limits`, `limits_verified`, and `hardware_input_limit_a`. Thresholds are nominal settings, not calibrated phase-current measurements. The TPS1H100 motor-feed limit is resistor-set at approximately1.233A and cannot be bypassed through firmware; the supply/charger also retains its own limits. Disabling a current mechanism does not disable unrelated voltage, temperature, motor-stall, USB or heartbeat fault paths.
+
+Protected defaults: input0.9A, alignment1A, run2A, lock2.5A, VDS2V; all mechanisms enabled. The Ignore checkboxes and Ignore all configurable limits option take effect only after Apply limits. Defaults loads these values into the form for application. Live hardware readback tests covered each bypass separately, all bypasses together, alternate thresholds, and rejection of invalid/partial settings, with the motor stopped. Protected defaults were restored afterward.
