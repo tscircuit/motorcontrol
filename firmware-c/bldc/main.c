@@ -139,6 +139,40 @@ static bool select_voltage(unsigned voltage) {
     }
     led_fault();return false;
 }
+static void recover_pd_voltage(void) {
+    static bool configured_this_attach;
+    // J19 can arrive after the MCU has already booted on J1.
+    float vin=sample(0)*3.3f/4095*235/15;
+    if(vin<4.65f) {
+        configured_this_attach=false;
+        return;
+    }
+    if(!gpio_get(6) && bldc_voltage_ready(vin,selected_voltage,false)) return;
+
+    uint32_t count,pdo,pe;
+    if(!pd_value(0x29,1,&pe) || pe!=0x18 ||
+       !pd_value(0x70,1,&count) || !pd_value(0x89,4,&pdo)) return;
+
+    unsigned units=(pdo>>10)&1023u;
+    unsigned voltage=units/20u;
+    bool motor_profile=(count&7u)==2u && (pdo>>30)==0 &&
+        units==voltage*20u && bldc_voltage_valid(voltage) && (pdo&1023u)==200u;
+    if(!motor_profile) {
+        // An unprovisioned controller can negotiate PDO3, which leaves OK2 inactive.
+        if(!configured_this_attach) {
+            configured_this_attach=true;
+            (void)select_voltage(selected_voltage);
+        }
+        return;
+    }
+
+    uint32_t rdo;
+    if(!gpio_get(6) && bldc_voltage_ready(vin,voltage,false) &&
+       pd_value(0x91,4,&rdo) && !(rdo&0x0c000000u) &&
+       ((rdo>>10)&1023u)==200u && (rdo&1023u)>=200u) {
+        selected_voltage=voltage;
+    }
+}
 static bool profile_ready=false;
 static void prepare(void) {
     off(); profile_ready=false; limits_verified=false; led_error=false;
@@ -237,7 +271,7 @@ static void telemetry(void) {
     float vin=sample(0)*3.3f/4095*235/15,vm=sample(1)*3.3f/4095*235/15;
     float current=sample(2)*3.3f/4095/0.4f;
     uint32_t elapsed=running?(uint32_t)(now_ms()-run_at):0;
-    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.6.1\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"pd_change_while_powered\":true,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":%.2f,\"heartbeat_timeout_ms\":1000,\"decoded_command_percent\":%.2f,\"applied_duty_percent\":%.2f,\"set_duty_percent\":%.2f,\"knob_raw\":%u,\"watchdog_reset\":%s,\"peak_feed_delta_a\":%.3f,\"min_run_voltage_v\":%.3f,\"last_stop_reason\":\"%s\",\"last_trip\":\"%s\",\"trip_voltage_v\":%.3f,\"trip_feed_delta_a\":%.3f,\"trip_fault_n\":%u,\"trip_pd_n\":%u,\"trip_knob_raw\":%u,\"trip_gate_fault\":%lu,\"trip_controller_fault\":%lu,\"current_limits_supported\":true,\"limits_verified\":%s,\"hardware_input_limit_a\":1.233,\"current_limits\":{\"input_a\":%.3f,\"input_enabled\":%s,\"align_a\":%.2f,\"phase_a\":%.2f,\"phase_enabled\":%s,\"lock_a\":%.2f,\"lock_enabled\":%s,\"sense_ocp_enabled\":%s,\"vds_ocp_enabled\":%s,\"vds_v\":%.2f}",
+    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.6.2\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"pd_change_while_powered\":true,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":%.2f,\"heartbeat_timeout_ms\":1000,\"decoded_command_percent\":%.2f,\"applied_duty_percent\":%.2f,\"set_duty_percent\":%.2f,\"knob_raw\":%u,\"watchdog_reset\":%s,\"peak_feed_delta_a\":%.3f,\"min_run_voltage_v\":%.3f,\"last_stop_reason\":\"%s\",\"last_trip\":\"%s\",\"trip_voltage_v\":%.3f,\"trip_feed_delta_a\":%.3f,\"trip_fault_n\":%u,\"trip_pd_n\":%u,\"trip_knob_raw\":%u,\"trip_gate_fault\":%lu,\"trip_controller_fault\":%lu,\"current_limits_supported\":true,\"limits_verified\":%s,\"hardware_input_limit_a\":1.233,\"current_limits\":{\"input_a\":%.3f,\"input_enabled\":%s,\"align_a\":%.2f,\"phase_a\":%.2f,\"phase_enabled\":%s,\"lock_a\":%.2f,\"lock_enabled\":%s,\"sense_ocp_enabled\":%s,\"vds_ocp_enabled\":%s,\"vds_v\":%.2f}",
         FIRMWARE_BUILD,device_id,state_name(),reason,armed?"true":"false",running?"true":"false",power_ready()?"true":"false",selected_voltage,vin,vm,current,feed_delta,electrical_hz,edges,percent,direction,(unsigned long)(running&&elapsed<run_duration?run_duration-elapsed:0),led_name,(unsigned long)gate_fault,(unsigned long)controller_fault,current_limits.phase_code*.25,decoded_command,applied_duty,set_duty,sample(3),boot_was_watchdog?"true":"false",peak_current,min_voltage,last_stop,last_trip,trip_voltage,trip_current,trip_fault_n,trip_pd_n,trip_knob,(unsigned long)trip_gate,(unsigned long)trip_controller,limits_verified?"true":"false",current_limits.input_a,current_limits.input_enabled?"true":"false",current_limits.align_code*.25,current_limits.phase_code*.25,current_limits.phase_enabled?"true":"false",current_limits.lock_code*.25,current_limits.lock_enabled?"true":"false",current_limits.sense_ocp_enabled?"true":"false",current_limits.vds_ocp_enabled?"true":"false",bldc_vds_voltage(current_limits.vds_code));
     printf(",\"data_usb_present\":%s,\"data_vbus_present\":%s,\"dial_percent\":%.2f,\"dial_arm_status\":\"%s\",\"arm_button_down\":%s,\"uptime_ms\":%lu,\"fault_event\":{\"id\":%lu,\"at_ms\":%lu,\"reason\":\"%s\",\"stopped\":%s,\"gate\":%lu,\"controller\":%lu,\"voltage_v\":%.3f,\"current_a\":%.3f,\"input_a\":%.3f,\"align_a\":%.2f,\"phase_a\":%.2f,\"lock_a\":%.2f,\"vds_v\":%.2f}}\n",
         data_usb_present()?"true":"false",gpio_get(9)?"true":"false",bldc_dial_percent(sample(3)),dial_arm_status,gpio_get(8)?"false":"true",(unsigned long)now_ms(),(unsigned long)fault_event_id,(unsigned long)fault_event_at,fault_event_reason,fault_event_stopped?"true":"false",(unsigned long)fault_event_gate,(unsigned long)fault_event_controller,fault_event_voltage,fault_event_current,fault_event_limits.input_a,fault_event_limits.align_code*.25,fault_event_limits.phase_code*.25,fault_event_limits.lock_code*.25,bldc_vds_voltage(fault_event_limits.vds_code));
@@ -448,16 +482,11 @@ int main(void) {
     gpio_disable_pulls(8); // SW3 already has an external pull-up.
     adc_init();for(unsigned p=26;p<=29;p++)adc_gpio_init(p);
     i2c_init(i2c1,100000);gpio_set_function(22,GPIO_FUNC_I2C);gpio_set_function(23,GPIO_FUNC_I2C);
-    // Recover an existing verified two-PDO RAM selection across MCU-only resets.
-    uint32_t count,pdo;
-    if(pd_value(0x70,1,&count)&&((count&7)==2)&&pd_value(0x89,4,&pdo)) {
-        unsigned units=(pdo>>10)&1023,voltage=units/20;
-        if((pdo>>30)==0&&units==voltage*20&&bldc_voltage_valid(voltage)&&(pdo&1023)==200) selected_voltage=voltage;
-    }
     pico_get_unique_board_id_string(device_id,sizeof(device_id));stdio_init_all();
     boot_was_watchdog=watchdog_caused_reboot();
     watchdog_enable(250,true);
     char line[512];unsigned used=0;bool discard=false,connected=false;uint32_t last_telemetry=0;
+    uint32_t last_pd_recovery=0;
     bool data=data_usb_present();
     bldc_dial_reset(&dial,now_ms());
     while(true) {
@@ -471,6 +500,12 @@ int main(void) {
             data=present;
         }
         if(!usb && connected && data) {disarm("USB disconnected",false);browser_session=false;heartbeat_seen=false;used=0;discard=false;}
+        uint32_t now=now_ms();
+        if(!running && !armed && !dial.armed && !voltage_rearm_pending &&
+           (uint32_t)(now-last_pd_recovery)>=250u) {
+            last_pd_recovery=now;
+            recover_pd_voltage();
+        }
         motion_tick();
         dial_tick(data);
         dial_led(data);
