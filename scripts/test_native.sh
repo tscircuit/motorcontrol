@@ -55,3 +55,6 @@ build/native-tests/test-bldc-policy
 
 "$compiler" -std=c11 -Wall -Wextra -Werror -DCJSON_NESTING_LIMIT=4 -fsanitize="$sanitize" -Ifirmware-c/vendor tests/native/test_bldc_current_limits.c firmware-c/bldc/current_limits.c firmware-c/vendor/cJSON.c -lm -o build/native-tests/test-bldc-current-limits
 build/native-tests/test-bldc-current-limits
+
+"$compiler" -std=c11 -Wall -Wextra -Werror -fsanitize="$sanitize" tests/native/test_bldc_dial.c -o build/native-tests/test-bldc-dial
+build/native-tests/test-bldc-dial

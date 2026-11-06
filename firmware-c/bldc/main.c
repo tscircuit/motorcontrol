@@ -9,6 +9,7 @@
 #include "pico/unique_id.h"
 #include "cJSON.h"
 #include "web_policy.h"
+#include "dial_policy.h"
 #include "current_limits.h"
 #include "build_id.h"
 #include <math.h>
@@ -186,11 +187,14 @@ static bool fault_event_stopped,fault_event_pending;
 static float fault_event_voltage,fault_event_current;
 static BldcCurrentLimits fault_event_limits=BLDC_CURRENT_DEFAULTS;
 static uint32_t previous_limit_bits;
-static bool boot_was_watchdog;
+static bool boot_was_watchdog,dial_running;
+static BldcDial dial;
 static const char *reason="Power-up: disarmed";
 static char device_id[2*PICO_UNIQUE_BOARD_ID_SIZE_BYTES+1];
 static uint32_t now_ms(void) { return to_ms_since_boot(get_absolute_time()); }
 static bool live(void) { return stdio_usb_connected() && bldc_live(now_ms(),heartbeat_at,heartbeat_seen); }
+static bool data_usb_present(void) { return gpio_get(9) || stdio_usb_connected(); }
+static bool control_available(bool local) { return local ? !data_usb_present() && dial.armed : live(); }
 static bool power_ready(void) {
     float v=sample(1)*3.3f/4095*235/15;
     return bldc_voltage_ready(v,selected_voltage,false) && !gpio_get(6);
@@ -206,7 +210,7 @@ static void disarm(const char *why,bool fault) {
         last_trip=why;trip_voltage=sample(1)*3.3f/4095*235/15;
         trip_current=feed_delta;trip_knob=sample(3);trip_fault_n=gpio_get(4);trip_pd_n=gpio_get(6);
     }
-    off(); running=false; armed=false; profile_ready=false; voltage_rearm_pending=false; percent=8;
+    off(); running=false; dial_running=false; dial.armed=false; armed=false; profile_ready=false; voltage_rearm_pending=false; percent=8;
     if(fault) {
         if(!motor_read(0xe0,&trip_gate))trip_gate=0xffffffffu;
         if(!motor_read(0xe2,&trip_controller))trip_controller=0xffffffffu;
@@ -220,7 +224,7 @@ static void disarm(const char *why,bool fault) {
 static const char *state_name(void) {
     if(led_error) return "fault";
     if(running) return driver_state==2 && electrical_hz>0 && edges>0?"running":"starting";
-    if(armed) return "armed";
+    if(armed||dial.armed) return "armed";
     if(voltage_rearm_pending) return "settling";
     if(sample(1)*3.3f/4095*235/15<1) return "power_off";
     return power_ready()?"idle":"power_not_ready";
@@ -230,20 +234,20 @@ static void telemetry(void) {
     float vin=sample(0)*3.3f/4095*235/15,vm=sample(1)*3.3f/4095*235/15;
     float current=sample(2)*3.3f/4095/0.4f;
     uint32_t elapsed=running?(uint32_t)(now_ms()-run_at):0;
-    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.5.2\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"pd_change_while_powered\":true,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":%.2f,\"heartbeat_timeout_ms\":1000,\"decoded_command_percent\":%.2f,\"applied_duty_percent\":%.2f,\"set_duty_percent\":%.2f,\"knob_raw\":%u,\"watchdog_reset\":%s,\"peak_feed_delta_a\":%.3f,\"min_run_voltage_v\":%.3f,\"last_stop_reason\":\"%s\",\"last_trip\":\"%s\",\"trip_voltage_v\":%.3f,\"trip_feed_delta_a\":%.3f,\"trip_fault_n\":%u,\"trip_pd_n\":%u,\"trip_knob_raw\":%u,\"trip_gate_fault\":%lu,\"trip_controller_fault\":%lu,\"current_limits_supported\":true,\"limits_verified\":%s,\"hardware_input_limit_a\":1.233,\"current_limits\":{\"input_a\":%.3f,\"input_enabled\":%s,\"align_a\":%.2f,\"phase_a\":%.2f,\"phase_enabled\":%s,\"lock_a\":%.2f,\"lock_enabled\":%s,\"sense_ocp_enabled\":%s,\"vds_ocp_enabled\":%s,\"vds_v\":%.2f}",
+    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.6.0\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"pd_change_while_powered\":true,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":%.2f,\"heartbeat_timeout_ms\":1000,\"decoded_command_percent\":%.2f,\"applied_duty_percent\":%.2f,\"set_duty_percent\":%.2f,\"knob_raw\":%u,\"watchdog_reset\":%s,\"peak_feed_delta_a\":%.3f,\"min_run_voltage_v\":%.3f,\"last_stop_reason\":\"%s\",\"last_trip\":\"%s\",\"trip_voltage_v\":%.3f,\"trip_feed_delta_a\":%.3f,\"trip_fault_n\":%u,\"trip_pd_n\":%u,\"trip_knob_raw\":%u,\"trip_gate_fault\":%lu,\"trip_controller_fault\":%lu,\"current_limits_supported\":true,\"limits_verified\":%s,\"hardware_input_limit_a\":1.233,\"current_limits\":{\"input_a\":%.3f,\"input_enabled\":%s,\"align_a\":%.2f,\"phase_a\":%.2f,\"phase_enabled\":%s,\"lock_a\":%.2f,\"lock_enabled\":%s,\"sense_ocp_enabled\":%s,\"vds_ocp_enabled\":%s,\"vds_v\":%.2f}",
         FIRMWARE_BUILD,device_id,state_name(),reason,armed?"true":"false",running?"true":"false",power_ready()?"true":"false",selected_voltage,vin,vm,current,feed_delta,electrical_hz,edges,percent,direction,(unsigned long)(running&&elapsed<run_duration?run_duration-elapsed:0),led_name,(unsigned long)gate_fault,(unsigned long)controller_fault,current_limits.phase_code*.25,decoded_command,applied_duty,set_duty,sample(3),boot_was_watchdog?"true":"false",peak_current,min_voltage,last_stop,last_trip,trip_voltage,trip_current,trip_fault_n,trip_pd_n,trip_knob,(unsigned long)trip_gate,(unsigned long)trip_controller,limits_verified?"true":"false",current_limits.input_a,current_limits.input_enabled?"true":"false",current_limits.align_code*.25,current_limits.phase_code*.25,current_limits.phase_enabled?"true":"false",current_limits.lock_code*.25,current_limits.lock_enabled?"true":"false",current_limits.sense_ocp_enabled?"true":"false",current_limits.vds_ocp_enabled?"true":"false",bldc_vds_voltage(current_limits.vds_code));
-    printf(",\"uptime_ms\":%lu,\"fault_event\":{\"id\":%lu,\"at_ms\":%lu,\"reason\":\"%s\",\"stopped\":%s,\"gate\":%lu,\"controller\":%lu,\"voltage_v\":%.3f,\"current_a\":%.3f,\"input_a\":%.3f,\"align_a\":%.2f,\"phase_a\":%.2f,\"lock_a\":%.2f,\"vds_v\":%.2f}}\n",
-        (unsigned long)now_ms(),(unsigned long)fault_event_id,(unsigned long)fault_event_at,fault_event_reason,fault_event_stopped?"true":"false",(unsigned long)fault_event_gate,(unsigned long)fault_event_controller,fault_event_voltage,fault_event_current,fault_event_limits.input_a,fault_event_limits.align_code*.25,fault_event_limits.phase_code*.25,fault_event_limits.lock_code*.25,bldc_vds_voltage(fault_event_limits.vds_code));
+    printf(",\"data_usb_present\":%s,\"data_vbus_present\":%s,\"dial_percent\":%.2f,\"uptime_ms\":%lu,\"fault_event\":{\"id\":%lu,\"at_ms\":%lu,\"reason\":\"%s\",\"stopped\":%s,\"gate\":%lu,\"controller\":%lu,\"voltage_v\":%.3f,\"current_a\":%.3f,\"input_a\":%.3f,\"align_a\":%.2f,\"phase_a\":%.2f,\"lock_a\":%.2f,\"vds_v\":%.2f}}\n",
+        data_usb_present()?"true":"false",gpio_get(9)?"true":"false",bldc_dial_percent(sample(3)),(unsigned long)now_ms(),(unsigned long)fault_event_id,(unsigned long)fault_event_at,fault_event_reason,fault_event_stopped?"true":"false",(unsigned long)fault_event_gate,(unsigned long)fault_event_controller,fault_event_voltage,fault_event_current,fault_event_limits.input_a,fault_event_limits.align_code*.25,fault_event_limits.phase_code*.25,fault_event_limits.lock_code*.25,bldc_vds_voltage(fault_event_limits.vds_code));
 
 }
 static void ack(int id,const char *cmd,bool ok,const char *error) {
     (void)cmd;
     printf("{\"type\":\"ack\",\"protocol\":\"bldc-1\",\"id\":%d,\"ok\":%s,\"error\":\"%s\"}\n",id,ok?"true":"false",error?error:"");
 }
-static bool begin_run(double speed,unsigned duration,int requested_direction) {
+static bool begin_run(double speed,unsigned duration,int requested_direction,bool local) {
     if(speed==0) {disarm("Power zero",false);return true;}
     if(!armed||!profile_ready) {reason="Start rejected: not armed";return false;}
-    if(!live()) {reason="Start rejected: heartbeat stale";return false;}
+    if(!control_available(local)) {reason="Start rejected: control unavailable";return false;}
     if(!power_ready()) {reason="Start rejected: motor voltage not ready";return false;}
     if((uint32_t)(now_ms()-arm_at)>=BLDC_ARM_MS) {reason="Start rejected: arming expired";return false;}
     armed=false; baseline=sample(2);peak_current=0;min_voltage=sample(1)*3.3f/4095*235/15; edges=0; previous_fg=gpio_get(5); electrical_hz=0; driver_state=0;
@@ -259,9 +263,10 @@ static bool begin_run(double speed,unsigned duration,int requested_direction) {
         ok=motor_read(0xe0,&gate_fault)&&motor_read(0xe2,&controller_fault);
         if(ok && !(gate_fault&0x9f000000u) && !(controller_fault&0xbfff0000u) && gpio_get(4)) {released=true;break;}
     }
-    if(!released || !live()) {disarm("Driver enable did not clear",true);return false;}
+    if(!released) {disarm("Driver enable did not clear",true);return false;}
+    if(!control_available(local)) {disarm("Start cancelled: control changed",false);return false;}
     if(!motor_write(0xe8,((uint32_t)(speed*32767/100)<<16)|0x8000u)) {disarm("Speed command failed",true);return false;}
-    previous_limit_bits=0;running=true;percent=speed;run_duration=duration;run_at=now_ms();reason=duration?"Timed run":"Running";return true;
+    previous_limit_bits=0;dial_running=local;running=true;percent=speed;run_duration=duration;run_at=now_ms();reason=local?"Dial control":duration?"Timed run":"Running";return true;
 }
 static void motion_tick(void) {
     if(!running) {
@@ -272,10 +277,10 @@ static void motion_tick(void) {
             reason=armed?"Voltage ready; armed":"Profile verification failed";
         }
         if(armed && (!live() || !power_ready() || (uint32_t)(now_ms()-arm_at)>=BLDC_ARM_MS)) disarm("Arming expired or connection/power lost",false);
-        if(armed) led_wait(); else led_idle();
+        if(armed||dial.armed) led_wait(); else led_idle();
         return;
     }
-    if(!live()) {disarm("Heartbeat or USB connection lost",true);return;}
+    if(!control_available(dial_running)) {disarm(dial_running?"Dial control ended":"Heartbeat or USB connection lost",!dial_running);return;}
     if(run_duration && (uint32_t)(now_ms()-run_at)>=run_duration) {disarm("Timed run complete",false);return;}
     float v=sample(1)*3.3f/4095*235/15;
     feed_delta=((int)sample(2)-(int)baseline)*3.3f/4095/0.4f;
@@ -307,6 +312,38 @@ static void motion_tick(void) {
         if(motor_read(0x522,&target_duty))set_duty=target_duty*(100.0f/1073741824.0f);
         if(driver_state==2&&electrical_hz>0&&edges>0) led_show("RUNNING",false,true,false);
         else led_show("STARTING",false,true,true);
+    }
+}
+static void dial_tick(void) {
+    static uint32_t last_tick;
+    uint32_t now=now_ms();
+    if((uint32_t)(now-last_tick)<BLDC_DIAL_TICK_MS) return;
+    last_tick=now;
+    if(!running && !power_ready()) {
+        if(dial.armed) disarm("Dial power lost",false);
+        bldc_dial_reset(&dial,now);
+        return;
+    }
+    unsigned raw=sample(3);
+    BldcDialAction action=bldc_dial_input(&dial,now,!gpio_get(8),raw);
+    if(action==DIAL_DISARM) {disarm("ARM button disarmed dial",false);return;}
+    if(action==DIAL_ARM) {led_error=false;reason="Dial armed";}
+    if(!dial.armed) return;
+    float target=bldc_dial_percent(raw);
+    if(target==0) {
+        if(dial_running) {disarm("Dial at zero",false);dial.armed=true;}
+        return;
+    }
+    float speed=bldc_dial_slew(running?percent:0,target);
+    if(!running) {
+        prepare();
+        armed=profile_ready;arm_at=now_ms();
+        if(!armed || !begin_run(speed,0,1,true)) {
+            if(dial.armed) disarm("Dial start failed",true);
+        }
+    } else if(fabsf(speed-percent)>=0.25f) {
+        if(motor_write(0xe8,((uint32_t)(speed*32767/100)<<16)|0x8000u)) percent=speed;
+        else disarm("Dial speed update failed",true);
     }
 }
 static void json_command(const char *line) {
@@ -364,7 +401,7 @@ static void json_command(const char *line) {
             if(!running||!live()) {ok=false;error="Motor is not running";}
             else if(speed==0) disarm("Power zero",false);
             else {ok=motor_write(0xe8,((uint32_t)(speed*32767/100)<<16)|0x8000u);if(ok)percent=speed;else disarm("Speed update failed",true);}
-        } else {ok=begin_run(speed,(unsigned)duration,dir?dir->valueint:1);if(!ok)error=reason;}
+        } else {ok=begin_run(speed,(unsigned)duration,dir?dir->valueint:1,false);if(!ok)error=reason;}
     }
     else {ok=false;error="Unsupported BLDC command";}
     if(strcmp(name,"heartbeat")) ack(id,name,ok,error);
@@ -377,6 +414,8 @@ int main(void) {
     for(unsigned p=0;p<=1;p++){gpio_init(p);release(p);}
     const unsigned inputs[]={4,5,6,8,9,24};
     for(unsigned i=0;i<sizeof(inputs)/sizeof(inputs[0]);i++){gpio_init(inputs[i]);gpio_set_dir(inputs[i],GPIO_IN);}
+    // The 100k/100k DATA VBUS divider needs a high-impedance input.
+    gpio_disable_pulls(9);
     adc_init();for(unsigned p=26;p<=29;p++)adc_gpio_init(p);
     i2c_init(i2c1,100000);gpio_set_function(22,GPIO_FUNC_I2C);gpio_set_function(23,GPIO_FUNC_I2C);
     // Recover an existing verified two-PDO RAM selection across MCU-only resets.
@@ -389,9 +428,20 @@ int main(void) {
     boot_was_watchdog=watchdog_caused_reboot();
     watchdog_enable(250,true);
     char line[512];unsigned used=0;bool discard=false,connected=false;uint32_t last_telemetry=0;
+    bool data=data_usb_present();
+    bldc_dial_reset(&dial,now_ms());
     while(true) {
-        watchdog_update();motion_tick();bool usb=stdio_usb_connected();
-        if(!usb && connected) {disarm("USB disconnected",false);browser_session=false;heartbeat_seen=false;used=0;discard=false;}
+        watchdog_update();
+        bool present=data_usb_present(),usb=stdio_usb_connected();
+        if(present!=data) {
+            disarm(present?"DATA USB connected: disarmed":"Dial mode: set zero and press ARM",false);
+            bldc_dial_reset(&dial,now_ms());
+            browser_session=false;heartbeat_seen=false;used=0;discard=false;
+            data=present;
+        }
+        if(!usb && connected && data) {disarm("USB disconnected",false);browser_session=false;heartbeat_seen=false;used=0;discard=false;}
+        motion_tick();
+        if(!data) dial_tick();
         if(usb&&!connected) telemetry();
         connected=usb;
         for(unsigned n=0;n<64;n++) {

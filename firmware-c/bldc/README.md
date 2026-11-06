@@ -103,3 +103,9 @@ Protected defaults: input0.9A, alignment1A, run2A, lock2.5A, VDS2V; all mechanis
 
 
 The 1.5.2 web telemetry adds `fault_event`: a monotonically numbered event with stop/limit reason, timestamp, gate/controller register snapshots, motor voltage, input current delta and thresholds captured at the event. A new event requests immediate telemetry. Repeated identical trips have different IDs. While running, fault registers are sampled every 50 ms; observed CBC/lock-current rising edges also report events without forcing a stop. Brief CBC assertions between samples cannot be guaranteed observable. A failed register read is `0xffffffff`, never decoded as every fault. The page shows 12-second dismissible toasts and keeps the last 20 events for the page session. U11's analog input clamp has no diagnostic wiring; motor undervoltage is not proof of that clamp firing.
+
+### Standalone dial control (1.6.0)
+
+Leave J19 PWR connected and unplug J1 DATA. With SW4 POWER on and the dial fully counterclockwise, press SW3 ARM, then turn the dial clockwise to request 0–100% power. The first 3% of travel is zero; the command rises at up to 50 percentage points per second. Zero stops drive and keeps dial mode armed; a second ARM press disarms. After a fault, power loss, or USB handoff, return to zero and press ARM again.
+
+J1 VBUS is sensed on GPIO9, independently of the browser's serial connection. Closing the page while J1 remains powered cannot enable dial mode. Plugging J1 in stops dial drive before browser control can start. Dial mode uses the existing forward motor profile, active current limits, and PD contract. USB telemetry includes the DATA-port detect state and dial percentage for diagnostics.
