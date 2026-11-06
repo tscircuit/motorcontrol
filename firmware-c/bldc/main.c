@@ -189,6 +189,9 @@ static BldcCurrentLimits fault_event_limits=BLDC_CURRENT_DEFAULTS;
 static uint32_t previous_limit_bits;
 static bool boot_was_watchdog,dial_running;
 static BldcDial dial;
+static const char *dial_arm_status="No ARM press recorded";
+static bool dial_reject_active;
+static uint32_t dial_reject_at;
 static const char *reason="Power-up: disarmed";
 static char device_id[2*PICO_UNIQUE_BOARD_ID_SIZE_BYTES+1];
 static uint32_t now_ms(void) { return to_ms_since_boot(get_absolute_time()); }
@@ -234,10 +237,10 @@ static void telemetry(void) {
     float vin=sample(0)*3.3f/4095*235/15,vm=sample(1)*3.3f/4095*235/15;
     float current=sample(2)*3.3f/4095/0.4f;
     uint32_t elapsed=running?(uint32_t)(now_ms()-run_at):0;
-    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.6.0\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"pd_change_while_powered\":true,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":%.2f,\"heartbeat_timeout_ms\":1000,\"decoded_command_percent\":%.2f,\"applied_duty_percent\":%.2f,\"set_duty_percent\":%.2f,\"knob_raw\":%u,\"watchdog_reset\":%s,\"peak_feed_delta_a\":%.3f,\"min_run_voltage_v\":%.3f,\"last_stop_reason\":\"%s\",\"last_trip\":\"%s\",\"trip_voltage_v\":%.3f,\"trip_feed_delta_a\":%.3f,\"trip_fault_n\":%u,\"trip_pd_n\":%u,\"trip_knob_raw\":%u,\"trip_gate_fault\":%lu,\"trip_controller_fault\":%lu,\"current_limits_supported\":true,\"limits_verified\":%s,\"hardware_input_limit_a\":1.233,\"current_limits\":{\"input_a\":%.3f,\"input_enabled\":%s,\"align_a\":%.2f,\"phase_a\":%.2f,\"phase_enabled\":%s,\"lock_a\":%.2f,\"lock_enabled\":%s,\"sense_ocp_enabled\":%s,\"vds_ocp_enabled\":%s,\"vds_v\":%.2f}",
+    printf("{\"type\":\"telemetry\",\"protocol\":\"bldc-1\",\"firmware\":\"native-bldc\",\"firmware_version\":\"1.6.1\",\"firmware_build\":\"%s\",\"device_id\":\"%s\",\"board\":\"RP2040 / MCT8329A\",\"motor\":\"D4215-650KV\",\"state\":\"%s\",\"reason\":\"%s\",\"armed\":%s,\"motor_enabled\":%s,\"power_ready\":%s,\"pd_voltage_requested\":%u,\"pd_voltages\":[5,9,15,20],\"pd_change_while_powered\":true,\"vbus_v\":%.3f,\"vmotor_v\":%.3f,\"feed_current_a\":%.3f,\"feed_delta_a\":%.3f,\"electrical_hz\":%.1f,\"fg_edges\":%u,\"command_percent\":%.2f,\"direction\":%d,\"direction_supported\":true,\"remaining_ms\":%lu,\"led\":\"%s\",\"gate_fault\":%lu,\"controller_fault\":%lu,\"max_percent\":100,\"max_run_ms\":60000,\"continuous_supported\":true,\"phase_limit_a\":%.2f,\"heartbeat_timeout_ms\":1000,\"decoded_command_percent\":%.2f,\"applied_duty_percent\":%.2f,\"set_duty_percent\":%.2f,\"knob_raw\":%u,\"watchdog_reset\":%s,\"peak_feed_delta_a\":%.3f,\"min_run_voltage_v\":%.3f,\"last_stop_reason\":\"%s\",\"last_trip\":\"%s\",\"trip_voltage_v\":%.3f,\"trip_feed_delta_a\":%.3f,\"trip_fault_n\":%u,\"trip_pd_n\":%u,\"trip_knob_raw\":%u,\"trip_gate_fault\":%lu,\"trip_controller_fault\":%lu,\"current_limits_supported\":true,\"limits_verified\":%s,\"hardware_input_limit_a\":1.233,\"current_limits\":{\"input_a\":%.3f,\"input_enabled\":%s,\"align_a\":%.2f,\"phase_a\":%.2f,\"phase_enabled\":%s,\"lock_a\":%.2f,\"lock_enabled\":%s,\"sense_ocp_enabled\":%s,\"vds_ocp_enabled\":%s,\"vds_v\":%.2f}",
         FIRMWARE_BUILD,device_id,state_name(),reason,armed?"true":"false",running?"true":"false",power_ready()?"true":"false",selected_voltage,vin,vm,current,feed_delta,electrical_hz,edges,percent,direction,(unsigned long)(running&&elapsed<run_duration?run_duration-elapsed:0),led_name,(unsigned long)gate_fault,(unsigned long)controller_fault,current_limits.phase_code*.25,decoded_command,applied_duty,set_duty,sample(3),boot_was_watchdog?"true":"false",peak_current,min_voltage,last_stop,last_trip,trip_voltage,trip_current,trip_fault_n,trip_pd_n,trip_knob,(unsigned long)trip_gate,(unsigned long)trip_controller,limits_verified?"true":"false",current_limits.input_a,current_limits.input_enabled?"true":"false",current_limits.align_code*.25,current_limits.phase_code*.25,current_limits.phase_enabled?"true":"false",current_limits.lock_code*.25,current_limits.lock_enabled?"true":"false",current_limits.sense_ocp_enabled?"true":"false",current_limits.vds_ocp_enabled?"true":"false",bldc_vds_voltage(current_limits.vds_code));
-    printf(",\"data_usb_present\":%s,\"data_vbus_present\":%s,\"dial_percent\":%.2f,\"uptime_ms\":%lu,\"fault_event\":{\"id\":%lu,\"at_ms\":%lu,\"reason\":\"%s\",\"stopped\":%s,\"gate\":%lu,\"controller\":%lu,\"voltage_v\":%.3f,\"current_a\":%.3f,\"input_a\":%.3f,\"align_a\":%.2f,\"phase_a\":%.2f,\"lock_a\":%.2f,\"vds_v\":%.2f}}\n",
-        data_usb_present()?"true":"false",gpio_get(9)?"true":"false",bldc_dial_percent(sample(3)),(unsigned long)now_ms(),(unsigned long)fault_event_id,(unsigned long)fault_event_at,fault_event_reason,fault_event_stopped?"true":"false",(unsigned long)fault_event_gate,(unsigned long)fault_event_controller,fault_event_voltage,fault_event_current,fault_event_limits.input_a,fault_event_limits.align_code*.25,fault_event_limits.phase_code*.25,fault_event_limits.lock_code*.25,bldc_vds_voltage(fault_event_limits.vds_code));
+    printf(",\"data_usb_present\":%s,\"data_vbus_present\":%s,\"dial_percent\":%.2f,\"dial_arm_status\":\"%s\",\"arm_button_down\":%s,\"uptime_ms\":%lu,\"fault_event\":{\"id\":%lu,\"at_ms\":%lu,\"reason\":\"%s\",\"stopped\":%s,\"gate\":%lu,\"controller\":%lu,\"voltage_v\":%.3f,\"current_a\":%.3f,\"input_a\":%.3f,\"align_a\":%.2f,\"phase_a\":%.2f,\"lock_a\":%.2f,\"vds_v\":%.2f}}\n",
+        data_usb_present()?"true":"false",gpio_get(9)?"true":"false",bldc_dial_percent(sample(3)),dial_arm_status,gpio_get(8)?"false":"true",(unsigned long)now_ms(),(unsigned long)fault_event_id,(unsigned long)fault_event_at,fault_event_reason,fault_event_stopped?"true":"false",(unsigned long)fault_event_gate,(unsigned long)fault_event_controller,fault_event_voltage,fault_event_current,fault_event_limits.input_a,fault_event_limits.align_code*.25,fault_event_limits.phase_code*.25,fault_event_limits.lock_code*.25,bldc_vds_voltage(fault_event_limits.vds_code));
 
 }
 static void ack(int id,const char *cmd,bool ok,const char *error) {
@@ -277,7 +280,7 @@ static void motion_tick(void) {
             reason=armed?"Voltage ready; armed":"Profile verification failed";
         }
         if(armed && (!live() || !power_ready() || (uint32_t)(now_ms()-arm_at)>=BLDC_ARM_MS)) disarm("Arming expired or connection/power lost",false);
-        if(armed||dial.armed) led_wait(); else led_idle();
+        if(armed) led_wait(); else led_idle();
         return;
     }
     if(!control_available(dial_running)) {disarm(dial_running?"Dial control ended":"Heartbeat or USB connection lost",!dial_running);return;}
@@ -314,21 +317,47 @@ static void motion_tick(void) {
         else led_show("STARTING",false,true,true);
     }
 }
-static void dial_tick(void) {
+static void dial_rejected(const char *why) {
+    dial_arm_status=why;dial_reject_active=true;dial_reject_at=now_ms();
+}
+static void dial_led(bool data) {
+    if(running) return;
+    if(dial_reject_active && (uint32_t)(now_ms()-dial_reject_at)<2000u) {
+        led_show("DIAL_ARM_IGNORED",true,false,true);
+    } else {
+        dial_reject_active=false;
+        if(!data && dial.armed) led_show("DIAL_READY",false,(now_ms()/250)%2==0,false);
+        else if(!data && !led_error && power_ready()) led_show("DIAL_WAITING_FOR_ARM",true,true,false);
+    }
+}
+static void dial_tick(bool data) {
     static uint32_t last_tick;
     uint32_t now=now_ms();
     if((uint32_t)(now-last_tick)<BLDC_DIAL_TICK_MS) return;
     last_tick=now;
-    if(!running && !power_ready()) {
-        if(dial.armed) disarm("Dial power lost",false);
+    bool ready=!data && (running || power_ready());
+    if(!ready && dial.armed) {
+        disarm("Dial power lost",false);
         bldc_dial_reset(&dial,now);
-        return;
     }
     unsigned raw=sample(3);
-    BldcDialAction action=bldc_dial_input(&dial,now,!gpio_get(8),raw);
-    if(action==DIAL_DISARM) {disarm("ARM button disarmed dial",false);return;}
-    if(action==DIAL_ARM) {led_error=false;reason="Dial armed";}
-    if(!dial.armed) return;
+    BldcDialAction action=bldc_dial_input(&dial,now,!gpio_get(8),raw,ready);
+    if(action==DIAL_REJECT_NOT_READY) dial_rejected(data?"Ignored: DATA USB connected":"Ignored: motor power or PD voltage not ready");
+    if(action==DIAL_REJECT_ZERO) dial_rejected("Ignored: return dial to zero before pressing ARM");
+    if(action==DIAL_DISARM) {
+        dial_reject_active=false;dial_arm_status="Disarmed by ARM button";
+        disarm("ARM button disarmed dial",false);return;
+    }
+    if(action==DIAL_ARM) {
+        prepare();
+        if(!profile_ready || data_usb_present()) {
+            dial.armed=false;dial_rejected("Ignored: motor profile or control unavailable");return;
+        }
+        dial_reject_active=false;dial_arm_status="Armed: ready to turn";reason="Dial armed";
+        // Re-read on the next tick; a press alone never applies motor power.
+        return;
+    }
+    if(data || !dial.armed) return;
     float target=bldc_dial_percent(raw);
     if(target==0) {
         if(dial_running) {disarm("Dial at zero",false);dial.armed=true;}
@@ -336,7 +365,7 @@ static void dial_tick(void) {
     }
     float speed=bldc_dial_slew(running?percent:0,target);
     if(!running) {
-        prepare();
+        if(!profile_ready) prepare();
         armed=profile_ready;arm_at=now_ms();
         if(!armed || !begin_run(speed,0,1,true)) {
             if(dial.armed) disarm("Dial start failed",true);
@@ -416,6 +445,7 @@ int main(void) {
     for(unsigned i=0;i<sizeof(inputs)/sizeof(inputs[0]);i++){gpio_init(inputs[i]);gpio_set_dir(inputs[i],GPIO_IN);}
     // The 100k/100k DATA VBUS divider needs a high-impedance input.
     gpio_disable_pulls(9);
+    gpio_disable_pulls(8); // SW3 already has an external pull-up.
     adc_init();for(unsigned p=26;p<=29;p++)adc_gpio_init(p);
     i2c_init(i2c1,100000);gpio_set_function(22,GPIO_FUNC_I2C);gpio_set_function(23,GPIO_FUNC_I2C);
     // Recover an existing verified two-PDO RAM selection across MCU-only resets.
@@ -436,12 +466,14 @@ int main(void) {
         if(present!=data) {
             disarm(present?"DATA USB connected: disarmed":"Dial mode: set zero and press ARM",false);
             bldc_dial_reset(&dial,now_ms());
+            dial_reject_active=false;
             browser_session=false;heartbeat_seen=false;used=0;discard=false;
             data=present;
         }
         if(!usb && connected && data) {disarm("USB disconnected",false);browser_session=false;heartbeat_seen=false;used=0;discard=false;}
         motion_tick();
-        if(!data) dial_tick();
+        dial_tick(data);
+        dial_led(data);
         if(usb&&!connected) telemetry();
         connected=usb;
         for(unsigned n=0;n<64;n++) {
