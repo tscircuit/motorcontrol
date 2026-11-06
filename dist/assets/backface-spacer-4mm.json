@@ -1,0 +1,62 @@
+[
+  {
+    "nema": 8,
+    "face": 20.3,
+    "pitch": 15.4,
+    "screw_clearance": 2.3,
+    "rotor_clearance": 16.6,
+    "sleeve_od": 4.8,
+    "corner_clip": 2.1,
+    "drawing": "https://www.stepperonline.ca/nema-8-bipolar-1-8deg-1-4ncm-1-98oz-in-0-2a-20x20x28mm-4-wires-8hs11-0204s.html"
+  },
+  {
+    "nema": 11,
+    "face": 28.2,
+    "pitch": 23,
+    "screw_clearance": 2.8,
+    "rotor_clearance": 22.6,
+    "sleeve_od": 5,
+    "corner_clip": 2.2,
+    "drawing": "https://www.omc-stepperonline.com/download/11HS18-1004H.pdf"
+  },
+  {
+    "nema": 14,
+    "face": 35.2,
+    "pitch": 26,
+    "screw_clearance": 3.4,
+    "rotor_clearance": 22.6,
+    "sleeve_od": 9,
+    "corner_clip": 4,
+    "drawing": "https://www.oyostepper.com/images/upload/File/14HS13-0804S.pdf"
+  },
+  {
+    "nema": 17,
+    "face": 42,
+    "pitch": 31,
+    "screw_clearance": 3.4,
+    "rotor_clearance": 22.6,
+    "sleeve_od": 10,
+    "corner_clip": 5,
+    "drawing": "https://www.aerotech.com/wp-content/uploads/2020/09/BM-Series-Data-Sheet-D20230804.pdf"
+  },
+  {
+    "nema": 23,
+    "face": 57,
+    "pitch": 47.14,
+    "screw_clearance": 5.5,
+    "rotor_clearance": 38.7,
+    "sleeve_od": 9.5,
+    "corner_clip": 4.3,
+    "drawing": "https://www.omc-stepperonline.com/download/23HS22-2804S.pdf"
+  },
+  {
+    "nema": 34,
+    "face": 85.85,
+    "pitch": 69.58,
+    "screw_clearance": 7,
+    "rotor_clearance": 73.6,
+    "sleeve_od": 15.5,
+    "corner_clip": 7,
+    "drawing": "https://www.omc-stepperonline.com/download/34HP44-6004S.pdf"
+  }
+]
