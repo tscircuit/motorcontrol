@@ -23,5 +23,18 @@ const moves=()=>calls.filter(c=>c[1]==='jog');
  axes.X.last.temperature_c=75;await j.tick(150,{});assert.equal(j.active,null);
  ({j,axes}=setup());axes.X.last.temperature_c=65;assert.equal(j.press('ArrowRight'),false);assert.equal(j.press('ArrowUp'),true);
  ({j,axes}=setup());axes.X.last.capabilities.fault_stop_mode_supported=true;axes.X.last.stop_on_detected_fault=false;axes.X.last.driver_fault_asserted=true;assert.equal(j.press('ArrowRight'),true);await j.tick(150,{});assert.equal(j.active,'X');axes.X.last.stop_on_detected_fault=true;await j.tick(150,{});assert.equal(j.active,null);
+ // One axis holds its last phase while the other continues to jog.
+ ({j,axes}=setup());
+ for(const a of Object.values(axes))a.last.capabilities.hold_position_supported=true;
+ j.holdPosition=true;j.press('ArrowRight');j.press('ArrowUp');await j.tick(150,{});
+ await j.release('ArrowRight');await j.tick(150,{});
+ assert.deepEqual(calls.findLast(c=>c[1]==='decelerate'),['X','decelerate',{hold_position:true}]);
+ axes.X.last.motor_holding=true;await j.tick(150,{});
+ assert.deepEqual(j.holding,['X']);assert.equal(j.states.X.braking,false);assert.equal(j.active,'Y');
+ await j.release('ArrowUp');await j.tick(150,{});
+ axes.Y.last.motor_holding=true;await j.tick(150,{});
+ assert.equal(j.active,null);assert.deepEqual(j.holding,['X','Y']);
+ axes.Y.last.driver_fault_asserted=true;await j.tick(150,{});
+ assert.equal(j.holdRequested,false);assert.deepEqual(calls.filter(c=>c[1]==='stop').map(c=>c[0]),['X','Y']);
  console.log('PASS simultaneous axes, opposite cancellation, live full/half and speed changes, resume/reverse while braking, independent USB queues, release races, no speed ceiling, stops/faults');
 })().catch(e=>{console.error(e);process.exitCode=1;});

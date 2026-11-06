@@ -121,7 +121,7 @@ void motor_stop(void) {
 #endif
 }
 bool motor_start(int factor, int direction, double speed, double acceleration, uint32_t steps,
-                 bool fixed, bool defer, bool jogging) {
+                 bool fixed, bool defer, bool jogging, bool hold_position) {
 #ifdef MOTOR_BOARD_DRV8452
     assert(nema23_status().spi_valid && fake_pins[6] && fake_pins[0]);
     gpio_put(22, 1);
@@ -145,9 +145,9 @@ bool motor_start(int factor, int direction, double speed, double acceleration, u
     return true;
 }
 bool motor_retarget(int factor, int direction, double speed, double acceleration, bool fixed) {
-    return motor_start(factor, direction, speed, acceleration, 0, fixed, false, true);
+    return motor_start(factor, direction, speed, acceleration, 0, fixed, false, true, false);
 }
-void motor_decelerate(void) { fake_motor.mode = BRAKING; }
+void motor_decelerate(bool hold_position) { fake_motor.mode = BRAKING; }
 bool motor_run_prepared(void) {
     if (fake_motor.mode != PREPARED)
         return false;

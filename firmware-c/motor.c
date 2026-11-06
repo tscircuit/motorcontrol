@@ -23,7 +23,8 @@ static travel_limits_t limits;
 static uint32_t base_count, generated, last_count, measured_count;
 static uint64_t measured_at;
 
-static uint64_t started_us, ready_us;
+static uint64_t started_us, ready_us, wake_us;
+static bool hold_at_end;
 static bool fixed_profile;
 static volatile bool core1_ready;
 static uint32_t count(void) { return UINT32_MAX - counter_value; }
@@ -57,6 +58,7 @@ static void pause_locked(void) {
     state.pulse_rate = 0;
 }
 static void halt_locked(void) {
+    hold_at_end = false;
     gpio_put(ARM_PIN,
 #ifdef MOTOR_BOARD_DRV8452
              0
@@ -80,6 +82,13 @@ bool motor_set_travel_limits(bool enabled, int64_t min, int64_t max) {
     if(ok) limits=(travel_limits_t){enabled,min,max};
     mutex_exit(&lock); return ok;
 }
+static void finish_locked(void) {
+    if (hold_at_end)
+        pause_locked();
+    else
+        halt_locked();
+    hold_at_end = false;
+}
 void motor_stop(void) {
     mutex_enter_blocking(&lock);
     halt_locked();
@@ -102,13 +111,13 @@ static void begin_locked(double initial, uint32_t target, bool fixed, bool defer
     profile_init(&profile, state.speed * multiplier, state.acceleration * multiplier, initial,
                  target, fixed);
     fixed_profile = fixed;
+    hold_at_end = false;
     state.mode = test ? DIAGNOSTIC : defer ? PREPARED : target ? FINITE : CONTINUOUS;
     started_us = time_us_64();
-    ready_us = started_us +
-               (test            ? 0
-                : state.enabled ? 3
-                                : 3000) +
-               (!test && !fixed && !jogging ? 100000 : 0);
+    if (!test && !state.enabled)
+        wake_us = started_us + 3000;
+    ready_us = test ? started_us : (wake_us > started_us + 3 ? wake_us : started_us + 3) +
+               (!fixed && !jogging ? 100000 : 0);
     gpio_put(DIR_PIN, state.direction > 0);
     if (!test) {
 #if !defined(MOTOR_BOARD_DRV8452) && !defined(MOTOR_BOARD_A4988)
@@ -127,7 +136,7 @@ static void begin_locked(double initial, uint32_t target, bool fixed, bool defer
     /* Enabled by core 1 after the driver's wake/setup interval. */
 }
 bool motor_start(int factor, int direction, double speed, double acceleration, uint32_t steps,
-                 bool fixed, bool defer, bool jogging) {
+                 bool fixed, bool defer, bool jogging, bool hold_position) {
     if (!profile_validate(speed, acceleration, factor, steps))
         return false;
     mutex_enter_blocking(&lock);
@@ -145,6 +154,7 @@ bool motor_start(int factor, int direction, double speed, double acceleration, u
     state.acceleration = acceleration;
     begin_locked(fixed ? 0 : fmin(10, speed) * (16 / factor), steps * (16 / factor), fixed, defer,
                  jogging, false);
+    hold_at_end = steps && hold_position;
     mutex_exit(&lock);
     return true;
 }
@@ -174,14 +184,15 @@ bool motor_retarget(int factor, int direction, double speed, double acceleration
     mutex_exit(&lock);
     return true;
 }
-void motor_decelerate(void) {
+void motor_decelerate(bool hold_position) {
     mutex_enter_blocking(&lock);
     if (state.mode == CONTINUOUS) {
         refresh_locked();
         double initial = profile_speed(&profile, (uint32_t)state.executed_pulses);
         double a = state.acceleration * (16 / state.factor);
         if (initial <= 0) {
-            halt_locked();
+            hold_at_end = hold_position;
+            finish_locked();
             mutex_exit(&lock);
             return;
         }
@@ -194,6 +205,7 @@ void motor_decelerate(void) {
                               .acceleration = initial * initial / (2 * tail),
                               .braking = true};
         state.mode = BRAKING;
+        hold_at_end = hold_position;
     }
     mutex_exit(&lock);
 }
@@ -213,7 +225,7 @@ bool motor_test(uint32_t pulses, double hz) {
     if (!pulses || pulses > MAX_MOVE_STEPS || !isfinite(hz) || hz < 1 || hz > MAX_PULSE_HZ)
         return false;
     mutex_enter_blocking(&lock);
-    if (state.mode != STOPPED || limits.enabled) {
+    if (state.mode != STOPPED || state.enabled || limits.enabled) {
         mutex_exit(&lock);
         return false;
     }
@@ -242,7 +254,7 @@ static void core1(void) {
         refresh_locked();
         if (state.mode != STOPPED && state.mode != PREPARED) {
             if (state.target_pulses && state.executed_pulses >= state.target_pulses) {
-                halt_locked();
+                finish_locked();
             } else if (time_us_64() >= ready_us) {
                 if (pio->fdebug & (1u << (PIO_FDEBUG_TXSTALL_LSB + step_sm))) {
                     if (!state.target_pulses || generated < state.target_pulses)

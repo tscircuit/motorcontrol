@@ -55,6 +55,12 @@ Updated firmware advertises `deceleration_supported: true`. Start a half-step jo
 
 The tail ends at the profile’s low starting rate before releasing coils. It is speed ramping, not current control. Keep sending heartbeats through deceleration. `stop`, faults and heartbeat expiry still disable outputs immediately. `decelerate` does not bypass any thermal, sensor or driver protection.
 
+### Idle holding
+
+Native stepper firmware advertises `hold_position_supported: true`. Send `{"cmd":"decelerate","hold_position":true}` to retain the last coil phase after the braking tail, or add `"hold_position":true` to a finite `start` to hold at its target. Omit the field for the existing behavior. Decelerating a stopped motor never energizes it.
+
+During a hold, telemetry reports `motion_mode: "stopped"`, `motor_enabled: true`, and `motor_holding: true`. The controller emits no steps. Keep sending heartbeats. An explicit stop, lost USB or heartbeat, or a protection trip releases the coils. A heartbeat by itself never restores a released hold.
+
 ## Commanded position reference
 
 `position_full_steps` accumulates signed commanded increments across all moves, normalized to full steps. Half-step output adds/subtracts 0.5; full-step output adds/subtracts 1. This is not an encoder measurement and does not count initial alignment or external motion. It starts at zero for each controller run.

@@ -427,6 +427,7 @@ static cJSON *capabilities(void) {
     add_bool(c, "acceleration_supported", true);
     add_bool(c, "deceleration_supported", true);
     add_bool(c, "jog_update_supported", true);
+    add_bool(c, "hold_position_supported", true);
     add_bool(c, "deferred_start_supported", true);
     add_number(c, "fixed_ramp_ms", 400);
     add_number(c, "min_acceleration_sps2", 10);
@@ -477,6 +478,7 @@ static void status(bool compact) {
     else
         null(o, "temperature_c");
     add_bool(o, "motor_enabled", s.enabled);
+    add_bool(o, "motor_holding", s.mode == STOPPED && s.enabled);
     add_number(o, "stall_sensitivity", settings.stall_sensitivity);
     add_number(o, "stall_score_threshold", 100-settings.stall_sensitivity);
     add_bool(o, "homing_active", home.active);
@@ -736,6 +738,9 @@ static const char *motion_command(cJSON *c, bool jog) {
     if (finite && (!number(c, "steps", &count) || count < 1 || count > MAX_MOVE_STEPS ||
                    floor(count) != count))
         return "Steps must be an integer from 1-100000";
+    cJSON *hold_item = cJSON_GetObjectItemCaseSensitive(c, "hold_position");
+    if (hold_item && (!cJSON_IsBool(hold_item) || !finite))
+        return "hold_position must be a boolean on a finite move";
     cJSON *defer_item = cJSON_GetObjectItemCaseSensitive(c, "defer");
     bool defer = cJSON_IsTrue(defer_item);
     if ((defer_item && !cJSON_IsBool(defer_item)) || (defer && (!finite || jog)))
@@ -764,7 +769,7 @@ static const char *motion_command(cJSON *c, bool jog) {
         return "TMP102 hardware thermal alert";
 #endif
 #ifdef MOTOR_BOARD_DRV8452
-    if (s.mode == STOPPED) {
+    if (s.mode == STOPPED && !s.enabled) {
         const char *driver_error = nema23_prepare_motion();
         if (driver_error)
             return driver_error;
@@ -773,7 +778,7 @@ static const char *motion_command(cJSON *c, bool jog) {
     bool ok = (jog && s.mode != STOPPED)
                   ? motor_retarget(factor, (int)direction, speed, acceleration, fixed)
                   : motor_start(factor, (int)direction, speed, acceleration, (uint32_t)count, fixed,
-                                defer, jog);
+                                defer, jog, cJSON_IsTrue(hold_item));
     if (!ok)
         return "Motion request rejected";
     song_length = 0;
@@ -786,12 +791,13 @@ static bool homing_move(int direction, uint32_t full_steps, unsigned phase) {
     home.phase=phase; home.candidate_at=0; home.clear_seen=false;
     home.deadline=time_us_64()+(uint64_t)((full_steps/home.speed+3)*1000000);
     if(home.deadline>time_us_64()+123000000) home.deadline=time_us_64()+123000000;
-    return motor_start(1,direction,home.speed,home.speed/.4,full_steps,true,false,false);
+    return motor_start(1,direction,home.speed,home.speed/.4,full_steps,true,false,false,false);
 }
 static void homing_fail(const char *message) { stop(message); home.message=message; }
 static const char *homing_start(cJSON *c) {
     double speed,travel,backoff;
-    if(home.active || motor_status().mode!=STOPPED) return "Stop motor before homing";
+    motor_status_t s = motor_status();
+    if(home.active || s.mode!=STOPPED || s.enabled) return "Stop motor before homing";
     if(!number(c,"speed_full_sps",&speed) || !number(c,"max_travel_full_steps",&travel) ||
        !number(c,"backoff_full_steps",&backoff) || speed<25 || speed>100 ||
        travel<100 || travel>MAX_MOVE_STEPS || floor(travel)!=travel ||
@@ -975,8 +981,11 @@ static void command(const char *line) {
         else
             previous_mode = FINITE;
     } else if (matches(cmd, "decelerate")) {
-        if (s.mode == CONTINUOUS) {
-            motor_decelerate();
+        cJSON *hold_item = cJSON_GetObjectItemCaseSensitive(c, "hold_position");
+        if (hold_item && !cJSON_IsBool(hold_item))
+            error = "hold_position must be a boolean";
+        else if (s.mode == CONTINUOUS) {
+            motor_decelerate(cJSON_IsTrue(hold_item));
             previous_mode = BRAKING;
         } else if (s.mode != STOPPED && s.mode != BRAKING)
             error = "Deceleration requires continuous motion";
@@ -1022,7 +1031,7 @@ static void command(const char *line) {
 #endif
     } else if (matches(cmd, "arm_power") || matches(cmd, "set_current_limit")) {
 #ifdef MOTOR_BOARD_DRV8452
-        if (s.mode != STOPPED || restart_at)
+        if (s.mode != STOPPED || s.enabled || restart_at)
             error = "Stop motor first";
         else if (matches(cmd, "arm_power")) {
             sample();
@@ -1044,7 +1053,7 @@ static void command(const char *line) {
                matches(cmd, "set_stop_on_detected_fault")) {
 #ifdef MOTOR_BOARD_DRV8452
         cJSON *enabled = cJSON_GetObjectItemCaseSensitive(c, "enabled");
-        if (s.mode != STOPPED || restart_at)
+        if (s.mode != STOPPED || s.enabled || restart_at)
             error = "Stop motor first";
         else if (!cJSON_IsBool(enabled))
             error = "enabled must be a boolean";
@@ -1071,7 +1080,7 @@ static void command(const char *line) {
     } else if (matches(cmd, "set_stall_threshold")) {
 #ifdef MOTOR_BOARD_DRV8452
         double threshold;
-        if (s.mode != STOPPED || restart_at) error = "Stop motor first";
+        if (s.mode != STOPPED || s.enabled || restart_at) error = "Stop motor first";
         else if (!number(c, "threshold", &threshold) || threshold < 1 || threshold > 4095 || floor(threshold) != threshold)
             error = "Stall threshold must be an integer from 1-4095";
         else error = nema23_set_stall_threshold((unsigned)threshold);
@@ -1083,7 +1092,7 @@ static void command(const char *line) {
         error = "Board does not support software voltage selection";
 #elif defined(MOTOR_BOARD_DRV8452)
         double voltage;
-        if (s.mode != STOPPED || restart_at)
+        if (s.mode != STOPPED || s.enabled || restart_at)
             error = "Stop motor before changing voltage";
         else if (!number(c, "voltage", &voltage) || floor(voltage) != voltage || voltage < 5 ||
                  voltage > 28)
@@ -1095,7 +1104,7 @@ static void command(const char *line) {
         }
 #else
         double voltage;
-        if (s.mode != STOPPED || restart_at)
+        if (s.mode != STOPPED || s.enabled || restart_at)
             error = "Stop motor before changing voltage";
         else if (!number(c, "voltage", &voltage) ||
                  (voltage != 5 && voltage != 9 && voltage != 12 && voltage != 15 && voltage != 20))
@@ -1140,7 +1149,7 @@ static void command(const char *line) {
 #endif
     } else if (matches(cmd, "set_stall_sensitivity")) {
         double sensitivity;
-        if(s.mode!=STOPPED || home.active) error="Stop motor before saving sensitivity";
+        if(s.mode!=STOPPED || s.enabled || home.active) error="Stop motor before saving sensitivity";
         else if(!number(c,"sensitivity",&sensitivity) || sensitivity<0 || sensitivity>100 || floor(sensitivity)!=sensitivity)
             error="Sensitivity must be an integer from 0 to 100";
         else {
@@ -1156,7 +1165,7 @@ static void command(const char *line) {
 #else
         double delay;
         cJSON *beep = cJSON_GetObjectItemCaseSensitive(c, "beeping_on");
-        if (s.mode != STOPPED || restart_at)
+        if (s.mode != STOPPED || s.enabled || restart_at)
             error = "Stop motor before saving settings";
         else if (!cJSON_IsBool(beep) || !number(c, "stop_ms", &delay) ||
                  delay < 0 || delay > 60000 || floor(delay) != delay)
@@ -1173,7 +1182,7 @@ static void command(const char *line) {
         }
 #endif
     } else if (matches(cmd, "set_threshold") || matches(cmd, "set_device_name")) {
-        if (s.mode != STOPPED || restart_at)
+        if (s.mode != STOPPED || s.enabled || restart_at)
             error = "Stop motor before saving settings";
         else {
             settings_t next = settings;
@@ -1203,7 +1212,7 @@ static void command(const char *line) {
         }
     } else if (matches(cmd, "play_song")) {
         sample();
-        if (s.mode != STOPPED || restart_at || alarm)
+        if (s.mode != STOPPED || s.enabled || restart_at || alarm)
             error = "Stop motor; alarms take priority over songs";
         else
             error = load_song(string(c, "hex"));
@@ -1244,7 +1253,7 @@ static void command(const char *line) {
         error = "DRV8847 has no STEP pin; pulse test is unavailable";
 #else
         double pulses, hz;
-        if (s.mode != STOPPED || restart_at)
+        if (s.mode != STOPPED || s.enabled || restart_at)
             error = "Stop motor before pulse test";
         else if (!number(c, "pulses", &pulses) || pulses < 1 || pulses > MAX_MOVE_STEPS ||
                  floor(pulses) != pulses || !number(c, "pulse_hz", &hz))
@@ -1280,10 +1289,20 @@ static void protect(uint64_t now, motor_status_t s) {
         stop("USB disconnected");
         return;
     }
-    if (s.mode != STOPPED && heartbeat_seen && now - heartbeat_us > HEARTBEAT_US)
+    if ((s.mode != STOPPED || s.enabled) && heartbeat_seen && now - heartbeat_us > HEARTBEAT_US)
         nema23_disarm();
 #endif
-    if (s.mode != STOPPED) {
+    if (s.mode != STOPPED || s.enabled) {
+        if (s.mode == STOPPED && !power_ready()) {
+            stop("Motor supply unavailable while holding");
+            return;
+        }
+#ifdef MOTOR_BOARD_DRV8452
+        if (s.mode == STOPPED && !gpio_get(24)) {
+            stop("Hardware power/temperature interlock active");
+            return;
+        }
+#endif
 #ifdef MOTOR_BOARD_A4988
         if (s.enabled && !power_ready()) {
             stop("Motor supply lost or outside 13.5-16.5 V");
