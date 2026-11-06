@@ -26,6 +26,7 @@ static profile_t profile;
 static uint32_t last_count, measured_count, generated;
 static uint64_t started_us, ready_us, wake_us, measured_at;
 static unsigned phase, initial_phase;
+static bool hold_at_end;
 static bool fixed_profile, phase_energized;
 static volatile bool core1_ready;
 
@@ -68,10 +69,19 @@ static void pause_locked(void) {
     state.profile_speed = state.pulse_rate = 0;
 }
 static void halt_locked(void) {
+    hold_at_end = false;
     gpio_put(ENABLE_PIN, 0);
     pause_locked();
     pio_sm_set_pins_with_mask(pio, sm, 0, BRIDGE_MASK);
     state.enabled = false;
+    phase_energized = false;
+}
+static void finish_locked(void) {
+    if (hold_at_end)
+        pause_locked();
+    else
+        halt_locked();
+    hold_at_end = false;
 }
 void motor_stop(void) {
     mutex_enter_blocking(&lock);
@@ -90,11 +100,12 @@ static void begin_locked(double initial, uint32_t steps, bool fixed, bool defer,
     measured_at = started_us = time_us_64();
     profile_init(&profile, state.speed, state.acceleration, initial, steps, fixed);
     fixed_profile = fixed;
+    hold_at_end = false;
     state.mode = defer ? PREPARED : steps ? FINITE : CONTINUOUS;
-    ready_us = started_us + (was_enabled ? 0 : 3000) +
+    if (!was_enabled)
+        wake_us = started_us + 3000;
+    ready_us = (wake_us > started_us ? wake_us : started_us) +
                (!fixed && !jogging ? 100000 : 0);
-    wake_us = started_us + (was_enabled ? 0 : 3000);
-    phase_energized = false;
     pio->fdebug = 1u << (PIO_FDEBUG_TXSTALL_LSB + sm);
     if (!was_enabled) {
         pio_sm_set_pins_with_mask(pio, sm, 0, BRIDGE_MASK);
@@ -104,7 +115,7 @@ static void begin_locked(double initial, uint32_t steps, bool fixed, bool defer,
     }
 }
 bool motor_start(int factor, int direction, double speed, double acceleration, uint32_t steps,
-                 bool fixed, bool defer, bool jogging) {
+                 bool fixed, bool defer, bool jogging, bool hold_position) {
     if (!profile_validate(speed, acceleration, factor, steps) ||
         (direction != 1 && direction != -1))
         return false;
@@ -118,6 +129,7 @@ bool motor_start(int factor, int direction, double speed, double acceleration, u
     state.speed = speed;
     state.acceleration = acceleration;
     begin_locked(fixed ? 0 : fmin(10, speed), steps, fixed, defer, jogging);
+    hold_at_end = steps && hold_position;
     mutex_exit(&lock);
     return true;
 }
@@ -141,19 +153,21 @@ bool motor_retarget(int factor, int direction, double speed, double acceleration
     mutex_exit(&lock);
     return true;
 }
-void motor_decelerate(void) {
+void motor_decelerate(bool hold_position) {
     mutex_enter_blocking(&lock);
     if (state.mode == CONTINUOUS) {
         pause_locked();
         double initial = profile_speed(&profile, (uint32_t)state.executed_pulses);
         if (initial <= 0) {
-            halt_locked();
+            hold_at_end = hold_position;
+            finish_locked();
         } else {
             uint32_t tail = (uint32_t)fmax(1, ceil(initial * initial / (2 * state.acceleration)));
             begin_locked(initial, tail, fixed_profile, false, true);
             profile = (profile_t){.initial = initial, .count = tail,
                                   .acceleration = initial * initial / (2 * tail), .braking = true};
             state.mode = BRAKING;
+            hold_at_end = hold_position;
         }
     }
     mutex_exit(&lock);
@@ -180,17 +194,15 @@ motor_status_t motor_status(void) {
 }
 static void service_locked(void) {
     refresh_locked();
-    if (state.mode == STOPPED)
-        return;
-    if (!phase_energized && time_us_64() >= wake_us) {
+    if (state.enabled && !phase_energized && time_us_64() >= wake_us) {
         pio_sm_set_pins_with_mask(pio, sm, (uint32_t)drv8847_mask(phase) << BRIDGE_BASE_PIN,
                                   BRIDGE_MASK);
         phase_energized = true;
     }
-    if (state.mode == PREPARED)
+    if (state.mode == STOPPED || state.mode == PREPARED)
         return;
     if (state.target_pulses && state.executed_pulses >= state.target_pulses) {
-        halt_locked();
+        finish_locked();
         return;
     }
     if (time_us_64() < ready_us)

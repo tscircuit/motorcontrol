@@ -21,9 +21,9 @@ bool motor_set_position(int64_t position);
 void motor_init(void);
 void motor_stop(void);
 bool motor_start(int factor, int direction, double speed, double acceleration, uint32_t steps,
-                 bool fixed, bool defer, bool jogging);
+                 bool fixed, bool defer, bool jogging, bool hold_position);
 bool motor_retarget(int factor, int direction, double speed, double acceleration, bool fixed);
-void motor_decelerate(void);
+void motor_decelerate(bool hold_position);
 bool motor_run_prepared(void);
 bool motor_test(uint32_t pulses, double pulse_hz);
 motor_status_t motor_status(void);

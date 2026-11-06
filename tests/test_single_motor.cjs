@@ -2,10 +2,10 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const html=fs.readFileSync(require.resolve('../dist/single-motor.html'),'utf8');
-const listeners={},windowListeners={},nodes={};
+const listeners={},windowListeners={},nodes={},intervals={};
 for(const [,id] of html.matchAll(/id="([^"]+)"/g))nodes[id]={value:id==='jogSpeed'?'150':id==='jogResolution'?'half':'',checked:false,tagName:'DIV',classList:{toggle(){}},addEventListener(){},replaceChildren(...children){this.children=children;},blur(){}};
 const arrows=[...html.matchAll(/data-arrow="([^"]+)"/g)].map(([,key])=>({dataset:{arrow:key},classList:{toggle(){}},addEventListener(){}}));
-const sandbox={console,setTimeout,clearTimeout,setInterval(){},navigator:{serial:{}},window:{localStorage:{getItem(){return null;},setItem(){}},addEventListener(k,fn){windowListeners[k]=fn;}},document:{createElement(){return {};},body:{dataset:{singleMotor:'true'}},hidden:false,getElementById(id){assert.ok(nodes[id],'Missing element '+id);return nodes[id];},querySelectorAll(){return arrows;},addEventListener(k,fn){listeners[k]=fn;}}};
+const sandbox={console,setTimeout,clearTimeout,setInterval(fn,ms){intervals[ms]=fn;},navigator:{serial:{}},window:{localStorage:{getItem(){return null;},setItem(){}},addEventListener(k,fn){windowListeners[k]=fn;}},document:{createElement(){return {};},body:{dataset:{singleMotor:'true'}},hidden:false,getElementById(id){assert.ok(nodes[id],'Missing element '+id);return nodes[id];},querySelectorAll(){return arrows;},addEventListener(k,fn){listeners[k]=fn;}}};
 let source=fs.readFileSync(require.resolve('../dist/gantry.js'),'utf8');
 source=source.replace(" render();\n if(!navigator.serial)"," globalThis.testApi={axes,jog,positions};\n render();\n if(!navigator.serial)");
 vm.runInNewContext(source,sandbox);
@@ -64,6 +64,30 @@ const flush=()=>new Promise(r=>setImmediate(r));
  const microReturn=calls.findLast(c=>c.cmd==='start').fields;
  assert.equal(microReturn.resolution,'sixteenth');assert.equal(microReturn.steps,1);assert.equal(microReturn.speed_sps,600);
  assert.equal(a.last.position_full_steps,0);
+ // Idle holding uses actual stopped-but-energized telemetry and keeps its USB lease.
+ a.last.capabilities.hold_position_supported=true;
+ a.send=async(cmd,fields)=>{
+  calls.push({cmd,fields});
+  if(cmd==='jog'){a.last.motor_enabled=true;a.last.motor_holding=false;}
+  if(cmd==='decelerate')a.last.motor_holding=!!fields?.hold_position;
+  if(cmd==='start')a.move=fields;
+  if(cmd==='run_move'){a.last.position_full_steps+=a.move.direction*a.move.steps/resolutions[a.move.resolution];a.last.motor_enabled=true;a.last.motor_holding=!!a.move.hold_position;a.last.stop_reason='Step move complete';}
+  if(cmd==='stop')a.last.motor_enabled=a.last.motor_holding=false;
+ };
+ jog.update();assert.equal(nodes.holdPosition.disabled,false);
+ nodes.holdPosition.checked=true;nodes.holdPosition.onchange();
+ listeners.keydown(event('ArrowRight'));await flush();
+ listeners.keyup(event('ArrowRight'));await flush();jog.update();
+ assert.equal(calls.findLast(c=>c.cmd==='decelerate').fields.hold_position,true);
+ assert.equal(nodes.jogPhase.textContent,'Holding position');
+ assert.equal(positions.save(1),true);
+ intervals[400]();assert.equal(calls.at(-1).cmd,'heartbeat');
+ a.last.position_full_steps=4;
+ await positions.goto(1,150,'quarter');
+ assert.equal(a.move.hold_position,true);assert.equal(a.last.position_full_steps,0);
+ windowListeners.blur();await flush();assert.equal(a.last.motor_holding,false);
+ const afterBlur=calls.length;
+ intervals[400]();assert.equal(calls.length,afterBlur);
  a.last.capabilities={...modern.capabilities,resolutions:{full:1,half:2},pd_voltages:[],led_colors:[]};jog.update();
  assert.deepEqual(Array.from(nodes.jogResolution.children,o=>o.value),['full','half']);assert.equal(nodes.hardwareX.hidden,true);
  a.seen=0;jog.update();assert.equal(nodes.jogResolution.disabled,true);assert.equal(nodes.setLedX.disabled,true);assert.equal(nodes.setPdX.disabled,true);

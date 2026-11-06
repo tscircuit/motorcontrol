@@ -39,7 +39,7 @@ int main(void) {
     const uint8_t full_forward[] = {4, 2, 8, 1};
     for (int factor = 1; factor <= 2; ++factor) {
         unsigned n = factor == 1 ? 4 : 8;
-        assert(motor_start(factor, 1, 40, 100, n, true, false, false));
+        assert(motor_start(factor, 1, 40, 100, n, true, false, false, false));
         service();
         assert(fifo_length == 0 && !fake_enabled); /* 3 ms wake interval. */
         fake_us += 3000;
@@ -50,7 +50,7 @@ int main(void) {
         service();
         assert(state.mode == STOPPED && state.executed_pulses == n && phase == 0);
         assert(state.position_microsteps == 64);
-        assert(motor_start(factor, -1, 40, 100, n, true, false, false));
+        assert(motor_start(factor, -1, 40, 100, n, true, false, false, false));
         fake_us += 3000;
         for (unsigned i = 0; i < n; ++i) {
             service();
@@ -60,11 +60,11 @@ int main(void) {
         service();
         assert(state.mode == STOPPED && state.position_microsteps == 0);
     }
-    assert(!motor_start(4, 1, 40, 100, 1, true, false, false));
-    assert(!motor_start(2, 1, 20001, 100, 1, true, false, false));
-    assert(!motor_start(2, 0, 40, 100, 1, true, false, false));
+    assert(!motor_start(4, 1, 40, 100, 1, true, false, false, false));
+    assert(!motor_start(2, 1, 20001, 100, 1, true, false, false, false));
+    assert(!motor_start(2, 0, 40, 100, 1, true, false, false, false));
     assert(!motor_test(100, 1000));
-    assert(motor_start(2, 1, 40, 100, 3, true, true, false));
+    assert(motor_start(2, 1, 40, 100, 3, true, true, false, false));
     fake_us += 1000000;
     service();
     assert(state.mode == PREPARED && !fake_enabled && fifo_length == 0);
@@ -73,7 +73,7 @@ int main(void) {
     finish(3);
     int64_t position = state.position_microsteps;
     /* Queue future phases, cancel them, and reverse from the emitted phase. */
-    assert(motor_start(2, 1, 150, 375, 0, true, false, true));
+    assert(motor_start(2, 1, 150, 375, 0, true, false, true, false));
     fake_us += 3000;
     service();
     uint8_t emitted = emit_phase();
@@ -89,16 +89,54 @@ int main(void) {
     motor_stop();
     assert(state.position_microsteps == position && !state.enabled && !fake_enabled);
     assert(!(fake_gpio & (BRIDGE_MASK | (1u << ENABLE_PIN))));
-    assert(motor_start(1, 1, 1000, 2500, 0, true, false, true));
+    assert(motor_start(1, 1, 1000, 2500, 0, true, false, true, false));
     fake_us += 3000;
     for (unsigned i = 0; i < 10; ++i) { service(); emit_phase(); }
-    motor_decelerate();
+    motor_decelerate(false);
     assert(state.mode == BRAKING && state.target_pulses > 0);
     finish(state.target_pulses);
+    /* An idle hold keeps exactly the last bridge mask and emits no more phases. */
+    assert(motor_start(2, 1, 150, 375, 0, true, false, true, false));
+    fake_us += 3000;
+    for (unsigned i = 0; i < 10; ++i) { service(); emit_phase(); }
+    motor_decelerate(true);
+    assert(state.mode == BRAKING && state.target_pulses > 0);
+    while (state.executed_pulses < state.target_pulses) {
+        service();
+        emit_phase();
+        motor_status();
+    }
+    service();
+    position = state.position_microsteps;
+    uint32_t holding_pins = fake_gpio;
+    assert(state.mode == STOPPED && state.enabled && !fake_enabled && fifo_length == 0);
+    assert((holding_pins & BRIDGE_MASK) != 0);
+    fake_us += 1000000;
+    service();
+    assert(fake_gpio == holding_pins && state.position_microsteps == position);
+    /* A deferred GOTO starts from hold without clearing the bridge and can hold again. */
+    assert(motor_start(2, -1, 40, 100, 1, true, true, false, true));
+    service();
+    assert(fake_gpio == holding_pins && !fake_enabled && fifo_length == 0);
+    assert(motor_run_prepared());
+    service();
+    emit_phase();
+    service();
+    assert(state.mode == STOPPED && state.enabled && state.position_microsteps == position - 8);
+    motor_stop();
+    assert(!(fake_gpio & (BRIDGE_MASK | (1u << ENABLE_PIN))));
+    /* A tap released during wake must not bypass the wake delay or emit a phase. */
+    assert(motor_start(2, 1, 40, 100, 0, true, false, true, false));
+    motor_decelerate(true);
+    assert(state.mode == STOPPED && state.enabled && !(fake_gpio & BRIDGE_MASK));
+    fake_us += 3000;
+    service();
+    assert((fake_gpio & BRIDGE_MASK) != 0 && !fake_enabled && fifo_length == 0);
+    motor_stop();
     /* Stop at every instruction boundary after OUT but before the RX count.
        The physical phase must be counted once, with no extra output. */
     for (unsigned pc = 7; pc <= 9; ++pc) {
-        assert(motor_start(2, 1, 40, 100, 0, true, false, true));
+        assert(motor_start(2, 1, 40, 100, 0, true, false, true, false));
         fake_us += 3000;
         service();
         position = state.position_microsteps;

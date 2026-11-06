@@ -146,6 +146,8 @@ Open `/gantry.html`, connect two different controllers as X and Y, then hold arr
 
 Input dispatch happens immediately on press/release and is reconciled every 16 ms. Each axis has its own in-flight command, so a slow acknowledgement from X never blocks Y. The firmware `jog` command starts without the finite-move alignment dwell, resumes braking without releasing coils, and retargets speed while preserving the current ramp rate. Direction changes restart at the low starting rate immediately. Release decelerates only the released axis; another press need not wait for stopped telemetry. Space/Escape and explicit stops clear held input. Settings use selected increments; GOTO continues using half steps for exact saved coordinates.
 
+On the gantry and single motor pages, enable **Hold position when idle** to keep the coils energized after releasing the arrows or joystick, or after a saved-position GOTO. On a gantry, an axis can hold while the other moves. Stop (Space/Esc), turning off the checkbox, loss of focus or connection, and firmware protection trips release the coils. Holding uses the board's configured drive current and can warm the motor. The checkbox requires updated native firmware on each connected axis.
+
 Controllers must advertise `fixed_ramp_ms: 400`. Upload updated `core/controller.py`, `core/motion.py`, and `boards/rp2040_drv8847.py` in maintenance mode. Existing names and alarm settings are preserved.
 
 There are no travel limits, homing, or coordinated XY trajectories. Watch physical travel. Stop releases holding torque. Half stepping can increase heat because it alternates one and two energized coils. Current and position are not measured by this firmware.

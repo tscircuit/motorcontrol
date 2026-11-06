@@ -231,6 +231,39 @@ int main(void) {
     assert(frame);
     assert(matches(string(frame, "firmware"), "native-c-pio"));
     cJSON_Delete(frame);
+    check("{\"cmd\":\"decelerate\",\"hold_position\":1}", false);
+    check("{\"cmd\":\"decelerate\",\"hold_position\":true}", true);
+    assert(!fake_motor.enabled); /* A hold request alone must never energize a stopped motor. */
+    command("{\"cmd\":\"heartbeat\"}");
+    fake_motor = (motor_status_t){.mode = STOPPED, .enabled = true, .factor = 2};
+    output_length = 0;
+    status(true);
+    cJSON *holding_frame = cJSON_Parse(output);
+    assert(cJSON_IsTrue(cJSON_GetObjectItem(holding_frame, "motor_holding")));
+    assert(matches(string(holding_frame, "motion_mode"), "stopped"));
+    cJSON_Delete(holding_frame);
+    check("{\"cmd\":\"test_pulses\",\"pulses\":2,\"pulse_hz\":20}", false);
+    protect(fake_us, fake_motor);
+    assert(fake_motor.enabled);
+    fake_us += HEARTBEAT_US + 1;
+    protect(fake_us, fake_motor);
+    assert(!fake_motor.enabled && matches(stop_reason, "Browser heartbeat lost"));
+    command("{\"cmd\":\"heartbeat\"}");
+    assert(!fake_motor.enabled);
+    fake_motor.enabled = true;
+    fake_connected = false;
+    protect(fake_us, fake_motor);
+    assert(!fake_motor.enabled && matches(stop_reason, "USB disconnected"));
+    fake_connected = true;
+    fake_motor.enabled = true;
+    fake_pins[23] = 0;
+    protect(fake_us, fake_motor);
+    assert(!fake_motor.enabled && matches(stop_reason, "Driver fault"));
+    fake_pins[23] = 1;
+    fake_motor.enabled = true;
+    temperature = SHUTDOWN_C;
+    protect(fake_us, fake_motor);
+    assert(!fake_motor.enabled && matches(stop_reason, "Thermal shutdown"));
     puts("Native protocol: heartbeat/power/temperature/fault gates, prepared moves, malformed "
          "commands, bounds, alarm priority and driver-disabled pulse test passed");
 }
