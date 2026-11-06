@@ -404,7 +404,7 @@ static void dial_tick(bool data) {
         if(!armed || !begin_run(speed,0,1,true)) {
             if(dial.armed) disarm("Dial start failed",true);
         }
-    } else if(fabsf(speed-percent)>=0.25f) {
+    } else if(fabs(speed-percent)>=0.25) {
         if(motor_write(0xe8,((uint32_t)(speed*32767/100)<<16)|0x8000u)) percent=speed;
         else disarm("Dial speed update failed",true);
     }
