@@ -1,6 +1,7 @@
 'use strict';
 const keys={ArrowLeft:['X',-1],ArrowRight:['X',1],ArrowDown:['Y',-1],ArrowUp:['Y',1]};
 const threeAxisKeys={...keys,'Shift+ArrowUp':['Z',1],'Shift+ArrowDown':['Z',-1]};
+const axisSpeed=(speed,axis)=>typeof speed==='number'?speed:speed?.[axis];
 class Jogger {
  constructor(axes,report,clock=()=>Date.now(),keyMap=keys){this.keys=keyMap;this.axes=axes;this.report=report;this.clock=clock;this.held=new Set();this.analog={};this.resetInput=()=>{};this.states=Object.fromEntries(Object.keys(axes).map(k=>[k,{sent:null,busy:false,braking:false}]));this.stopsPending=0;this.holdPosition=false;this.holdRequested=false;this.returning=false;this.generation=0;this.update=()=>{};}
  get key(){return this.held.values().next().value||(Object.values(this.analog).some(v=>v)?'joystick':null);}
@@ -52,11 +53,12 @@ class Jogger {
   if(!this.key&&!this.active&&!(this.holdRequested&&this.holding.length))return;
   if(!this.ready()){await this.stop(this.unavailableReason());return;}
   if(!this.key&&!this.active)return;
-  if(!Number.isFinite(speed)||speed<=0){await this.stop('Enter a positive speed.');return;}
+  const invalidAxis=Object.keys(this.axes).find(axis=>!Number.isFinite(axisSpeed(speed,axis))||axisSpeed(speed,axis)<=0);
+  if(invalidAxis){await this.stop(invalidAxis+': enter a positive speed.');return;}
   await Promise.all(Object.entries(this.axes).map(async([axis,a])=>{
    const state=this.states[axis];if(state.busy)return;
    const direction=this.direction(axis)*(invert[axis]?-1:1);
-   const fields={resolution,direction,speed_sps:speed*this.magnitude(axis),ramp_ms:400};
+   const fields={resolution,direction,speed_sps:axisSpeed(speed,axis)*this.magnitude(axis),ramp_ms:400};
    const desired=direction?JSON.stringify(fields):null;
    if(desired===state.sent){if(!desired&&(!a.last.motor_enabled||a.last.motor_holding))state.braking=false;return;}
    state.busy=true;const generation=this.generation;
@@ -106,19 +108,21 @@ class PositionSlots {
     const c=a.last.capabilities,[resolution,factor]=Object.entries(c.resolutions).reduce((best,item)=>item[1]>best[1]?item:best,['half',2]),delta=(this.slots[index][axis].position-a.last.position_full_steps)*factor;
     if(a.last.soft_limits_enabled&&(this.slots[index][axis].position<a.last.soft_limit_min_full_steps||this.slots[index][axis].position>a.last.soft_limit_max_full_steps))throw Error(axis+': saved position is outside soft limits.');
     if(!Number.isSafeInteger(delta)||Math.abs(delta)>(c.max_steps??100000))throw Error('Saved position is outside the board’s supported step count.');
-    if(!Number.isFinite(speed)||speed<=0)throw Error('Choose a positive target speed.');
+    const targetSpeed=axisSpeed(speed,axis);
+    if(!Number.isFinite(targetSpeed)||targetSpeed<=0)throw Error(axis+': choose a positive target speed.');
     const selectedFactor=selectedResolution===null?null:c.resolutions[selectedResolution];
     if(selectedResolution!==null&&!(selectedFactor>0))throw Error('Selected step size is unavailable on this board.');
-    return {axis,a,delta,resolution,factor,selectedFactor};
+    return {axis,a,delta,resolution,factor,selectedFactor,targetSpeed};
    });
    const moving=plan.filter(({delta})=>delta!==0);
    if(moving.some(({a})=>a.last.temperature_c>=(a.last.capabilities.start_below_c??60)))throw Error('Wait for the boards to cool before starting GOTO.');
    if(moving.some(({a})=>!a.last.capabilities.deferred_start_supported))throw Error('Update the board firmware for GOTO.');
    const longest=Math.max(1,...moving.map(({delta})=>Math.abs(delta)));
-   if(selectedResolution===null){
+   if(selectedResolution===null&&typeof speed==='number'){
     for(const move of moving)move.speed=speed*Math.abs(move.delta)/longest;
    }else{
-    const duration=Math.max(...moving.map(move=>Math.abs(move.delta)/move.factor/(speed/move.selectedFactor)));
+    // Match planned durations without exceeding any axis target in selected step units.
+    const duration=Math.max(0,...moving.map(move=>Math.abs(move.delta)/move.factor/(move.targetSpeed/(move.selectedFactor??move.factor))));
     for(const move of moving)move.speed=Math.abs(move.delta)/duration;
    }
    const hold=this.jog.holdPosition&&this.jog.canHold;
@@ -178,7 +182,9 @@ if(typeof document!=='undefined'){
  const axes=Object.fromEntries(labels.map(label=>[label,new Axis(label)]));const jog=new Jogger(axes,report,()=>Date.now(),inputKeys);let storage;try{storage=window.localStorage;}catch{}const positions=new PositionSlots(axes,jog,report,storage,undefined,single?'single-motor-position-slots-v1':threeAxis?'three-axis-gantry-position-slots-v1':'gantry-position-slots-v1');
  if(!single&&typeof GantryControls!=='undefined')GantryControls.mount(axes,jog,report);
  if(typeof HomingControls!=='undefined')HomingControls.mount(axes,jog,report,document.querySelector('main'));
- for(let i=0;i<3;i++){$('savePosition'+i).onclick=()=>positions.save(i);$('gotoPosition'+i).onclick=()=>void positions.goto(i,Number($('jogSpeed').value),single?$('jogResolution').value:null);}
+ const speedIds=threeAxis?labels.map(label=>'jogSpeed'+label):['jogSpeed'];
+ const readSpeeds=()=>threeAxis?Object.fromEntries(labels.map(label=>[label,Number($('jogSpeed'+label).value)])):Number($('jogSpeed').value);
+ for(let i=0;i<3;i++){$('savePosition'+i).onclick=()=>positions.save(i);$('gotoPosition'+i).onclick=()=>void positions.goto(i,readSpeeds(),single||threeAxis?$('jogResolution').value:null);}
  for(const label of labels){
   $('setLed'+label).onclick=async()=>{try{await axes[label].send('set_led',{color:$('led'+label).value});await axes[label].send('status');}catch(e){report(e.message);}};
   $('setPd'+label).onclick=async()=>{try{await axes[label].send('set_pd_voltage',{voltage:Number($('pd'+label).value)});await axes[label].send('status');report(axes[label].last?.capabilities?.power_arm_required?'Voltage requested. Use Enable motor power to connect the rail.':'Voltage requested. Wait two seconds for settling.');}catch(e){report(e.message);}};
@@ -198,8 +204,8 @@ if(typeof document!=='undefined'){
  document.addEventListener('keydown',e=>{if(e.key==='Escape'||(e.code==='Space'&&!editing(e)&&(e.target!==$('holdPosition')||jog.key||jog.active||jog.returning))){e.preventDefault();void jog.stop();return;}if(!inputKeys[e.key]||(['SELECT','TEXTAREA'].includes(e.target.tagName)||(e.target.tagName==='INPUT'&&e.target.type!=='checkbox'))||e.target.isContentEditable)return;e.preventDefault();if(e.repeat)return;const key=threeAxis&&e.shiftKey&&['ArrowUp','ArrowDown'].includes(e.key)?'Shift+'+e.key:e.key;pressedKeys.set(e.key,key);jog.press(key);});
  document.addEventListener('keyup',e=>{if(inputKeys[e.key]){e.preventDefault();const key=pressedKeys.get(e.key)||e.key;pressedKeys.delete(e.key);void jog.release(key);}});
  window.addEventListener('blur',()=>void jog.stop('Paused because the page lost focus. Press an arrow when you return.'));window.addEventListener('pagehide',()=>void jog.stop());document.addEventListener('visibilitychange',()=>{if(document.hidden)void jog.stop('Paused because the page is hidden. Press an arrow when you return.');});
- jog.update=()=>{render();void jog.tick(Number($('jogSpeed').value),Object.fromEntries(labels.map(label=>[label,$('invert'+label).checked])),$('jogResolution').value);};
- for(const id of ['jogSpeed','jogResolution',...labels.map(label=>'invert'+label)])$(id).onchange=()=>{if(id==='jogResolution')$(id).blur();jog.update();};
+ jog.update=()=>{render();void jog.tick(readSpeeds(),Object.fromEntries(labels.map(label=>[label,$('invert'+label).checked])),$('jogResolution').value);};
+ for(const id of [...speedIds,'jogResolution',...labels.map(label=>'invert'+label)])$(id).onchange=()=>{if(id==='jogResolution')$(id).blur();jog.update();};
  setInterval(jog.update,16);
  setInterval(()=>{for(const a of Object.values(axes))if(a.port&&!jog.stopsPending&&(jog.key||jog.active||jog.returning||(jog.holdRequested&&a.last?.motor_holding&&jog.ready()))&&!document.hidden&&Date.now()-a.seen<1000)void a.send('heartbeat',{},false);},400);
  for(const button of document.querySelectorAll('[data-arrow]')){button.addEventListener('pointerdown',e=>{e.preventDefault();if(jog.press(button.dataset.arrow))button.setPointerCapture(e.pointerId);});button.addEventListener('pointerup',()=>void jog.release(button.dataset.arrow));button.addEventListener('pointercancel',()=>void jog.stop());button.addEventListener('lostpointercapture',()=>void jog.release(button.dataset.arrow));}
@@ -237,6 +243,10 @@ if(typeof document!=='undefined'){
     select.value=modes.some(([mode])=>mode===selected)?selected:modes[0]?.[0]||'';resolutionKey=key;
    }
   }
+  if(threeAxis)for(const label of labels){
+   $('jogSpeedLabel'+label).textContent=label+' target '+stepUnit(select.value)+'/sec';
+   $('jogSpeed'+label).disabled=jog.returning;
+  }
   if(single){
    const a=axes.X,c=a.last?.capabilities||{},mode=select.value,factor=c.resolutions?.[mode],fullSteps=c.full_steps_per_revolution||200,speed=Number($('jogSpeed').value);
    $('jogSpeedLabel').textContent=`Target ${stepUnit(mode)}/sec`;
@@ -259,7 +269,9 @@ if(typeof document!=='undefined'){
   for(const button of document.querySelectorAll('[data-arrow]')){button.disabled=!jog.ready()||jog.stopsPending>0||jog.returning;button.classList.toggle('engaged',jog.held.has(button.dataset.arrow));button.classList.toggle('coasting',jog.states[inputKeys[button.dataset.arrow][0]].braking);}
   for(let i=0;i<3;i++){const slot=positions.slots[i];$('savePosition'+i).disabled=!positions.hasCoordinates()||!positions.idle();$('gotoPosition'+i).disabled=!positions.valid(i)||!positions.idle();$('positionValue'+i).textContent=!slot?'Not saved':positions.hasCoordinates()&&!positions.valid(i)?'Previous board session · save again':labels.map(label=>`${single?'Motor':label} ${Number(slot[label]?.position).toFixed(4)}`).join(' · ')+' full steps';}
   $('jogPhase').textContent=jog.returning?(positions.busy?`GOTO position ${positions.slot+1}…`:'Stall-based homing…'):jog.phase==='braking'?'Slowing down…':jog.active?'Accelerating / jogging':jog.stopsPending?'Stopping…':jog.ready()?(jog.holding.length?'Holding position'+(single?'':' · '+jog.holding.join(' / ')):'Ready · press an arrow'):jog.unavailableReason();
-  $('brakeEstimate').textContent=`Release can add up to ${Math.max(1,Math.ceil(Number($('jogSpeed').value)*0.2))} ${stepUnit($('jogResolution').value)} of deceleration, plus USB/input latency. Space/Escape stops immediately.`;
+  const speeds=readSpeeds(),brakingSteps=value=>Number.isFinite(value)&&value>0?Math.max(1,Math.ceil(value*0.2)):'—';
+  const braking=threeAxis?labels.map(label=>label+' '+brakingSteps(speeds[label])).join(' / '):brakingSteps(speeds);
+  $('brakeEstimate').textContent=`Release can add up to ${braking} ${stepUnit($('jogResolution').value)} of deceleration, plus USB/input latency. Space/Escape stops immediately.`;
   for(const label of labels){renderHardware(label);const a=axes[label];$('connect'+label).textContent=a.port?'Disconnect '+(single?'motor':label):'Connect '+(single?'motor':label);$('beep'+label).disabled=!a.port||Date.now()-a.seen>1000;$('rename'+label).disabled=!a.port||Date.now()-a.seen>1000||!a.last?.usb_name_supported||a.last?.motor_enabled;}
  }
  render();

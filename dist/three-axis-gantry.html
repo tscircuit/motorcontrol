@@ -105,8 +105,9 @@ main{max-width:1100px;margin:40px auto;padding:20px}.axes{display:grid;grid-temp
 <option value="full">Full steps · 1.8°</option>
 </select>
 </label>
-<label>Target steps/sec <input id="jogSpeed" type="number" min="0" step="any" value="150">
-</label>
+<label><span id="jogSpeedLabelX">X target half steps/sec</span> <input id="jogSpeedX" type="number" min="0" step="any" value="150"></label>
+<label><span id="jogSpeedLabelY">Y target half steps/sec</span> <input id="jogSpeedY" type="number" min="0" step="any" value="150"></label>
+<label><span id="jogSpeedLabelZ">Z target half steps/sec</span> <input id="jogSpeedZ" type="number" min="0" step="any" value="150"></label>
 <p>Acceleration / deceleration: fixed 400 ms</p>
 </div>
 <div class="arrows" aria-label="Hold to jog">
@@ -134,7 +135,7 @@ main{max-width:1100px;margin:40px auto;padding:20px}.axes{display:grid;grid-temp
 </section>
 <section class="jogPanel">
 <h2>Joystick</h2>
-<p>Drag and hold to move X/Y together. Distance from center controls speed up to the target above. Release to decelerate.</p>
+<p>Drag and hold to move X/Y together. Distance from center controls each axis’s speed up to its own target above. Release to decelerate.</p>
 <button id="joystick" aria-label="Drag to jog X and Y" disabled>
 <span id="joystickKnob">
 </span>
@@ -289,7 +290,7 @@ main{max-width:1100px;margin:40px auto;padding:20px}.axes{display:grid;grid-temp
 </tr>
 </tbody>
 </table>
-<p>GOTO prepares all three axes, starts them together, and scales their speeds to arrive together. The longer axis uses your target speed; all use fixed 400 ms ramps. Short moves may finish before reaching that speed. Positions use commanded steps from this power-on session; they do not measure the gantry or track manual movement. Save only while stopped. Board restarts invalidate saved positions.</p>
+<p>GOTO prepares all three axes, starts them together, and scales their speeds to arrive together. Each axis stays at or below its own target speed, using the selected step mode. Faster axes slow down to share the same planned arrival time; all use fixed 400 ms ramps. Short moves may finish before reaching that speed. Positions use commanded steps from this power-on session; they do not measure the gantry or track manual movement. Save only while stopped. Board restarts invalidate saved positions.</p>
 </section>
 </details>
 <details>

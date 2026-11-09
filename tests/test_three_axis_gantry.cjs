@@ -5,7 +5,7 @@ const html = fs.readFileSync(require.resolve('../dist/three-axis-gantry.html'), 
 const listeners = {}, windowListeners = {}, nodes = {}, intervals = {};
 for (const [, id] of html.matchAll(/id="([^"]+)"/g)) {
   assert.ok(!nodes[id], 'Duplicate element ' + id);
-  nodes[id] = {value: id === 'jogSpeed' ? '150' : id === 'jogResolution' ? 'half' : '', checked: false, tagName: 'DIV', classList: {toggle() {}}, addEventListener() {}, replaceChildren(...children) {this.children = children;}, blur() {}};
+  nodes[id] = {value: /^jogSpeed[XYZ]$/.test(id) ? '150' : id === 'jogResolution' ? 'half' : '', checked: false, tagName: 'DIV', classList: {toggle() {}}, addEventListener() {}, replaceChildren(...children) {this.children = children;}, blur() {}};
 }
 const arrows = [...html.matchAll(/data-arrow="([^"]+)"/g)].map(([, key]) => ({dataset: {arrow: key}, events: {}, classList: {toggle() {}}, addEventListener(name, fn) {this.events[name] = fn;}, setPointerCapture() {}}));
 const storage = new Map();
@@ -27,7 +27,7 @@ for (const [axis, a] of Object.entries(axes)) {
     if (cmd === 'jog') a.last.motor_enabled = true;
     if (cmd === 'stop' || cmd === 'decelerate') a.last.motor_enabled = false;
     if (cmd === 'start') a.move = fields;
-    if (cmd === 'run_move') {a.last.position_full_steps += a.move.direction * a.move.steps / 2; a.last.motor_enabled = false; a.last.stop_reason = 'Step move complete';}
+    if (cmd === 'run_move') {a.last.position_full_steps += a.move.direction * a.move.steps / a.last.capabilities.resolutions[a.move.resolution]; a.last.motor_enabled = false; a.last.stop_reason = 'Step move complete';}
   };
 }
 const event = (key, extra = {}) => ({key, code: key, repeat: false, shiftKey: false, target: {tagName: 'BODY'}, preventDefault() {}, ...extra});
@@ -84,6 +84,27 @@ async function reset() {await jog.stop(); calls.length = 0; for (const a of Obje
     assert.equal(jog.press('ArrowRight'), false);
     axes.Z.port = {}; axes.Z.last.driver_fault_asserted = false; axes.Z.seen = Date.now();
   }
+  // Independent targets apply to simultaneous keys, live retargeting and analog XY.
+  await reset();
+  nodes.jogSpeedX.value = '120'; nodes.jogSpeedY.value = '80'; nodes.jogSpeedZ.value = '30';
+  await keydown('ArrowRight'); await keydown('ArrowUp');
+  zPlus.events.pointerdown({pointerId: 2, preventDefault() {}}); await flush();
+  assert.deepEqual(moves().map(c => [c.axis, c.fields.speed_sps]), [['X', 120], ['Y', 80], ['Z', 30]]);
+  nodes.jogSpeedZ.value = '45'; nodes.jogSpeedZ.onchange(); await flush();
+  assert.deepEqual(moves().slice(3).map(c => [c.axis, c.fields.speed_sps]), [['Z', 45]]);
+  assert.match(nodes.brakeEstimate.textContent, /X 24 \/ Y 16 \/ Z 9/);
+  await reset(); assert.equal(jog.setAnalog(0.5, -0.25), true); jog.update(); await flush();
+  assert.deepEqual(moves().map(c => [c.axis, c.fields.speed_sps, c.fields.direction]), [['X', 60, 1], ['Y', 20, -1]]);
+  // An invalid target must stop every moving axis, never emit an invalid speed.
+  for (const invalid of ['', '0', '-1', 'NaN', 'Infinity']) {
+    await reset(); nodes.jogSpeedZ.value = '30'; await keydown('ArrowUp', {shiftKey: true});
+    nodes.jogSpeedZ.value = invalid; nodes.jogSpeedZ.onchange(); await flush();
+    assert.equal(jog.held.size, 0);
+    assert.deepEqual(calls.filter(c => c.cmd === 'stop').map(c => c.axis), ['X', 'Y', 'Z']);
+    assert.ok(moves().every(c => Number.isFinite(c.fields.speed_sps) && c.fields.speed_sps > 0));
+    assert.match(nodes.message.textContent, /Z: enter a positive speed/);
+  }
+  for (const axis of ['X', 'Y', 'Z']) nodes['jogSpeed' + axis].value = '150';
   // Save all coordinates in isolated storage; wait for Z's preparation ACK.
   await reset();
   for (const [axis, position] of [['X', 10], ['Y', -5], ['Z', 20]]) axes[axis].last.position_full_steps = position;
@@ -99,7 +120,25 @@ async function reset() {await jog.stop(); calls.length = 0; for (const a of Obje
   assert.deepEqual(calls.filter(c => c.cmd === 'start').map(c => [c.axis, c.fields.steps, c.fields.speed_sps]), [['X', 20, 75], ['Y', 10, 37.5], ['Z', 40, 150]]);
   assert.deepEqual(Object.values(axes).map(a => a.last.position_full_steps), [10, -5, 20]);
   jog.update(); assert.match(nodes.positionValue0.textContent, /Z 20.0000/);
+  // UI GOTO respects the slowest axis even when it has the shortest distance,
+  // converting selected half-step rates to each board's finest resolution.
+  await reset();
+  axes.Y.last.capabilities.resolutions.sixteenth = 16;
+  axes.Z.last.capabilities.resolutions.eighth = 8;
+  for (const a of Object.values(axes)) a.last.position_full_steps = 0;
+  nodes.jogSpeedX.value = '120'; nodes.jogSpeedY.value = '2'; nodes.jogSpeedZ.value = '30';
+  nodes.gotoPosition0.onclick(); await flush();
+  assert.equal(positions.busy, false);
+  assert.deepEqual(calls.filter(c => c.cmd === 'start').map(c => [c.axis, c.fields.steps, c.fields.speed_sps]), [['X', 20, 4], ['Y', 80, 16], ['Z', 160, 32]]);
+  assert.deepEqual(Object.values(axes).map(a => a.last.position_full_steps), [10, -5, 20]);
+  // Already-at-target GOTO never sends a move; invalid speed never prepares any axis.
+  await reset(); nodes.gotoPosition0.onclick(); await flush();
+  assert.equal(calls.some(c => c.cmd === 'start'), false);
+  axes.Z.last.position_full_steps = 0; nodes.jogSpeedZ.value = '0';
+  nodes.gotoPosition0.onclick(); await flush();
+  assert.equal(calls.some(c => c.cmd === 'start'), false);
+  assert.match(nodes.message.textContent, /Z: choose a positive target speed/);
   axes.Z.last.position_session = 'restarted'; assert.equal(positions.valid(0), false);
   assert.equal(await positions.goto(0, 150), false);
-  console.log('PASS three-axis page, Shift routing/release order, simultaneous XYZ, Z reversal/cancellation, all-axis stops/readiness, isolated XYZ positions and preparation barrier');
+  console.log('PASS three-axis page, Shift routing/release order, simultaneous XYZ, Z reversal/cancellation, all-axis stops/readiness, independent jog/analog speeds, invalid speed stops, isolated XYZ positions, per-axis GOTO limits and preparation barrier');
 })().catch(e => {console.error(e); process.exitCode = 1;});
