@@ -1,5 +1,6 @@
 'use strict';
 const keys={ArrowLeft:['X',-1],ArrowRight:['X',1],ArrowDown:['Y',-1],ArrowUp:['Y',1]};
+const threeAxisKeys={...keys,'Shift+ArrowUp':['Z',1],'Shift+ArrowDown':['Z',-1]};
 class Jogger {
  constructor(axes,report,clock=()=>Date.now(),keyMap=keys){this.keys=keyMap;this.axes=axes;this.report=report;this.clock=clock;this.held=new Set();this.analog={};this.resetInput=()=>{};this.states=Object.fromEntries(Object.keys(axes).map(k=>[k,{sent:null,busy:false,braking:false}]));this.stopsPending=0;this.holdPosition=false;this.holdRequested=false;this.returning=false;this.generation=0;this.update=()=>{};}
  get key(){return this.held.values().next().value||(Object.values(this.analog).some(v=>v)?'joystick':null);}
@@ -159,7 +160,7 @@ class PositionSlots {
   finally{this.busy=false;this.slot=null;this.jog.returning=false;}
  }
 }
-if(typeof module!=='undefined')module.exports={Jogger,PositionSlots,keys};
+if(typeof module!=='undefined')module.exports={Jogger,PositionSlots,keys,threeAxisKeys};
 if(typeof document!=='undefined'){
  const $=id=>document.getElementById(id),report=t=>{$('message').textContent=t;};
  class Axis {
@@ -171,9 +172,10 @@ if(typeof document!=='undefined'){
   async close(){if(this.closing)return;this.closing=true;try{if(this.reader)await this.reader.cancel();if(this.reading)await this.reading;await this.chain.catch(()=>{});if(this.port)await this.port.close();}catch{}finally{this.port=null;if(typeof BoardControls!=='undefined')BoardControls.disconnect(this.label);if(typeof StallControls!=='undefined')StallControls.disconnect(this.label);if(typeof FirmwareStatus!=='undefined')FirmwareStatus.disconnect(this.label);if(typeof CurrentCharts!=='undefined')CurrentCharts.disconnect(this.label);this.last=null;this.seen=0;this.closing=false;for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(Error('Disconnected'));}this.pending.clear();$('status'+this.label).textContent='Disconnected';}}
  }
  const single=document.body.dataset.singleMotor==='true';
- const inputKeys=single?{ArrowLeft:['X',-1],ArrowRight:['X',1],ArrowDown:['X',-1],ArrowUp:['X',1]}:keys;
- const labels=single?['X']:['X','Y'];
- const axes=Object.fromEntries(labels.map(label=>[label,new Axis(label)]));const jog=new Jogger(axes,report,()=>Date.now(),inputKeys);let storage;try{storage=window.localStorage;}catch{}const positions=new PositionSlots(axes,jog,report,storage,undefined,single?'single-motor-position-slots-v1':'gantry-position-slots-v1');
+ const threeAxis=!single&&document.body.dataset.threeAxis==='true';
+ const inputKeys=single?{ArrowLeft:['X',-1],ArrowRight:['X',1],ArrowDown:['X',-1],ArrowUp:['X',1]}:threeAxis?threeAxisKeys:keys;
+ const labels=single?['X']:threeAxis?['X','Y','Z']:['X','Y'];
+ const axes=Object.fromEntries(labels.map(label=>[label,new Axis(label)]));const jog=new Jogger(axes,report,()=>Date.now(),inputKeys);let storage;try{storage=window.localStorage;}catch{}const positions=new PositionSlots(axes,jog,report,storage,undefined,single?'single-motor-position-slots-v1':threeAxis?'three-axis-gantry-position-slots-v1':'gantry-position-slots-v1');
  if(!single&&typeof GantryControls!=='undefined')GantryControls.mount(axes,jog,report);
  if(typeof HomingControls!=='undefined')HomingControls.mount(axes,jog,report,document.querySelector('main'));
  for(let i=0;i<3;i++){$('savePosition'+i).onclick=()=>positions.save(i);$('gotoPosition'+i).onclick=()=>void positions.goto(i,Number($('jogSpeed').value),single?$('jogResolution').value:null);}
@@ -189,10 +191,12 @@ if(typeof document!=='undefined'){
   if(!jog.holdPosition&&jog.holdRequested)void jog.stop('Holding disabled.');
  };
  $('stopAll').onclick=()=>void jog.stop('Stopped. Press a fresh arrow key to jog again.');
+ // Latch the axis until arrow release, including when Shift is released first.
+ const pressedKeys=new Map();
  const editing=e=>['SELECT','TEXTAREA'].includes(e.target.tagName)||(e.target.tagName==='INPUT'&&e.target.type!=='checkbox')||e.target.isContentEditable;
  document.addEventListener('focusin',e=>{if(editing(e)&&(jog.key||jog.active||jog.returning))void jog.stop('Paused while editing settings. Press an arrow after editing to jog.');});
- document.addEventListener('keydown',e=>{if(e.key==='Escape'||(e.code==='Space'&&!editing(e)&&(e.target!==$('holdPosition')||jog.key||jog.active||jog.returning))){e.preventDefault();void jog.stop();return;}if(!inputKeys[e.key]||(['SELECT','TEXTAREA'].includes(e.target.tagName)||(e.target.tagName==='INPUT'&&e.target.type!=='checkbox'))||e.target.isContentEditable)return;e.preventDefault();if(e.repeat)return;jog.press(e.key);});
- document.addEventListener('keyup',e=>{if(inputKeys[e.key]){e.preventDefault();void jog.release(e.key);}});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'||(e.code==='Space'&&!editing(e)&&(e.target!==$('holdPosition')||jog.key||jog.active||jog.returning))){e.preventDefault();void jog.stop();return;}if(!inputKeys[e.key]||(['SELECT','TEXTAREA'].includes(e.target.tagName)||(e.target.tagName==='INPUT'&&e.target.type!=='checkbox'))||e.target.isContentEditable)return;e.preventDefault();if(e.repeat)return;const key=threeAxis&&e.shiftKey&&['ArrowUp','ArrowDown'].includes(e.key)?'Shift+'+e.key:e.key;pressedKeys.set(e.key,key);jog.press(key);});
+ document.addEventListener('keyup',e=>{if(inputKeys[e.key]){e.preventDefault();const key=pressedKeys.get(e.key)||e.key;pressedKeys.delete(e.key);void jog.release(key);}});
  window.addEventListener('blur',()=>void jog.stop('Paused because the page lost focus. Press an arrow when you return.'));window.addEventListener('pagehide',()=>void jog.stop());document.addEventListener('visibilitychange',()=>{if(document.hidden)void jog.stop('Paused because the page is hidden. Press an arrow when you return.');});
  jog.update=()=>{render();void jog.tick(Number($('jogSpeed').value),Object.fromEntries(labels.map(label=>[label,$('invert'+label).checked])),$('jogResolution').value);};
  for(const id of ['jogSpeed','jogResolution',...labels.map(label=>'invert'+label)])$(id).onchange=()=>{if(id==='jogResolution')$(id).blur();jog.update();};

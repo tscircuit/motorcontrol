@@ -53,7 +53,7 @@ function mount(axes,jog,report,parent){
   const connected=Object.entries(axes).filter(([,a])=>a.port);
   run.disabled=runner.busy||!connected.length||connected.some(([,a])=>!a.last?.capabilities?.stall_homing_supported||a.last.motor_enabled||!a.last.motor_power_ready||Date.now()-a.seen>1000);
   speed.disabled=travel.disabled=backoff.disabled=runner.busy;
-  status.textContent=connected.map(([axis,a])=>axis+': '+(a.last?.homing_active?a.last.homing_message:a.last?.homed?'Homed · bounds 0–'+a.last.bounds_max_full_steps+' full steps':a.last?.bounds_saved?'Bounds saved · homing required':'Not homed')).join(' · ')||'Connect one axis or both X and Y. With two connected controllers, X homes first, then Y.';
+  status.textContent=connected.map(([axis,a])=>axis+': '+(a.last?.homing_active?a.last.homing_message:a.last?.homed?'Homed · bounds 0–'+a.last.bounds_max_full_steps+' full steps':a.last?.bounds_saved?'Bounds saved · homing required':'Not homed')).join(' · ')||'Connect the axes to home. Connected axes home in order: '+Object.keys(axes).join(', ')+'.';
  },200);
  return runner;
 }

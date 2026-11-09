@@ -156,6 +156,14 @@ Run `node tests/test_gantry.cjs` and `python3 -m unittest discover -s tests` for
 
 Scheduler lateness and slow jog transitions no longer trigger automatic motion shutdowns. Lateness counters remain diagnostic. Commands, connection/heartbeat loss, and board faults retain their existing handling.
 
+## 3 axis gantry
+
+Open `/three-axis-gantry.html` and connect three different controllers as X, Y, and Z. Left/Right jog X and Up/Down jog Y. **Shift + Up** jogs Z positive and **Shift + Down** jogs Z negative. The axis is selected on the initial arrow press and remains selected until that arrow is released, even if Shift is released first. Release and press the arrow again to change axes. Dedicated on-screen Z buttons can be held alongside the X/Y arrows; the joystick continues to control X/Y.
+
+Each axis has direction reversal, board controls, live charts, and soft limits. SAVE/GOTO includes all three commanded coordinates, with separate browser storage from the two-board gantry and single-motor pages. All three boards must be connected and healthy to jog or return to a saved position. Release decelerates the selected axis; Stop, Space/Escape, focus loss, or a board fault stops all three. The existing firmware protocol supports each controller independently; no new firmware target is required.
+
+Run `node tests/test_three_axis_gantry.cjs` for keyboard routing, three-axis motion, stop handling, and saved-position regression checks. Physical three-axis gantry motion has not been validated.
+
 ## Three saved gantry positions
 
 The gantry page has three SAVE/GOTO rows. SAVE records both boards’ cumulative commanded positions while stopped, and stores the slots in this browser’s local storage. GOTO prepares both boards, then dispatches their starts together. The longer axis uses the selected target speed. It uses fixed 400 ms ramps from zero to full speed and from full speed to zero. Each axis accelerates, cruises if the distance allows, and decelerates independently; short moves use triangular ramps and may not reach the target speed. The shorter axis uses proportionally less speed so both have the same planned arrival time; actual arrival can differ by USB start latency and step timing. Arrow jogging is paused during GOTO; Stop/Space/Escape or focus loss cancels the return and stops both axes.
