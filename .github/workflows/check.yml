@@ -30,6 +30,7 @@ jobs:
       - run: node tests/test_song.cjs
       - run: node --check dist/gantry.js
       - run: node tests/test_single_motor.cjs
+      - run: node tests/test_three_axis_gantry.cjs
       - run: node tests/test_gantry.cjs
       - run: node --check dist/gantry-controls.js
       - run: node tests/test_gantry_joystick.cjs

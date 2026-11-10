@@ -85,7 +85,7 @@ function mount(axes,jog,report){
  const canSetLimits=()=>!jog.key&&!jog.active&&!jog.returning&&!jog.stopsPending&&Object.values(axes).every(a=>!a.last?.motor_enabled);
  async function applyLimits(axis,enabled,min,max){
   const a=axes[axis];
-  if(!canSetLimits()){report('Stop both axes before setting limits.');return false;}
+  if(!canSetLimits()){report('Stop '+(Object.keys(axes).length===2?'both':'all')+' axes before setting limits.');return false;}
   try{
    await a.send('set_soft_limits',{enabled,min_full_steps:min,max_full_steps:max});
    await a.send('status');report(axis+': limits set to '+(enabled?min+' … '+max+' full steps.':'disabled.'));return true;
