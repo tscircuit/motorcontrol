@@ -1,10 +1,12 @@
-// Dimensions in mm. Defaults reproduce the NEMA 17 spacer.
+// Dimensions in mm. Defaults reproduce the 4 mm NEMA 17 spacer.
+// Set total_height = 10 for the 10 mm NEMA 17 variant (1 mm base + 9 mm sleeves).
 // Use scripts/build_spacer_assets.py to export all frame sizes.
 $fn = 160;
 face = 42;
 pitch = 31;
 base_height = 1;
-sleeve_height = 3;
+total_height = 4;
+sleeve_height = total_height - base_height;
 sleeve_od = 10;
 screw_clearance = 3.4;
 rotor_clearance = 22.6;
