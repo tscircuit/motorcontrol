@@ -107,13 +107,17 @@ CI runs host tests, JavaScript checks, and firmware staging. Host tests exercise
 ## Dashboard deployment
 
 The [Assets viewer](https://motorcontrol.tscircuit.com/assets.html) lists the
-printable `backface-spacer-4mm` STLs for NEMA 8, 11, 14, 17, 23, and 34.
+printable `backface-spacer-4mm` STLs for NEMA 8, 11, 14, 17, 23, and 34,
+plus a `backface-spacer-10mm` STL for NEMA 17. The 10 mm variant uses a
+1 mm base and four 9 mm sleeves, a 42 mm face, 31 mm hole pitch,
+3.4 mm screw clearance, and 22.6 mm center clearance.
 The STL files, parametric OpenSCAD source, and frame dimensions are in
 [`dist/assets/`](dist/assets/). The dimensions follow the linked motor
 drawings. Check the hole pitch and clearances against your specific motor.
 
 Run `python3 scripts/build_spacer_assets.py` with OpenSCAD on PATH to regenerate
-the STLs. To rebuild the Assets page's Tailwind stylesheet, run
+the STLs. Both heights share `backface-spacer-4mm.scad`; set `total_height = 10`
+to edit the taller NEMA 17 variant in OpenSCAD. To rebuild the Assets page's Tailwind stylesheet, run
 `npx --yes tailwindcss@3.4.19 --content ./dist/assets.html --minify -o ./dist/assets/viewer.css`.
 
 The Vercel project `tscircuit/motorcontrol` is connected to this repository. Production deployments from `main` serve only `dist/` at https://motorcontrol.tscircuit.com. `vercel.json` configures a static deployment with no install/build step. `.vercelignore` excludes firmware, tests, scripts, and docs from CLI uploads.

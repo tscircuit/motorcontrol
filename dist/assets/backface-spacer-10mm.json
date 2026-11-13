@@ -1,0 +1,12 @@
+[
+  {
+    "nema": 17,
+    "face": 42,
+    "pitch": 31,
+    "screw_clearance": 3.4,
+    "rotor_clearance": 22.6,
+    "sleeve_od": 10,
+    "corner_clip": 5,
+    "drawing": "https://www.aerotech.com/wp-content/uploads/2020/09/BM-Series-Data-Sheet-D20230804.pdf"
+  }
+]
