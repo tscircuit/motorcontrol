@@ -2,6 +2,7 @@
 mechanical/
 src/
 node_modules/
+.assets-build/
 tests/
 scripts/
 docs/

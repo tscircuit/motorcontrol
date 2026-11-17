@@ -24,6 +24,16 @@ class Links(HTMLParser):
 
 
 class EnclosureAssetsTest(unittest.TestCase):
+    def test_tsx_page_keeps_source_only_material_out_of_dist(self):
+        page = (ROOT / "dist/assets.html").read_text()
+        self.assertIn("Generated from src/assets-page.tsx", page)
+        self.assertTrue((ROOT / "src/assets-page.tsx").is_file())
+        self.assertTrue((ROOT / "src/enclosure-catalog.tsx").is_file())
+        for filename in ("fit-notes.txt", "bolt-clearance.json", "label-source-v6.json"):
+            self.assertFalse((ASSETS / filename).exists())
+            self.assertNotIn(f"assets/nema17-enclosure/{filename}", page)
+        self.assertTrue((ROOT / "mechanical/nema17-enclosure/fit-notes.txt").is_file())
+
     def test_download_links_mesh_dimensions_and_integrity(self):
         catalog = json.loads((ASSETS / "catalog.json").read_text())
         links = Links((ROOT / "dist/assets.html").read_text()).urls
@@ -59,7 +69,7 @@ class EnclosureAssetsTest(unittest.TestCase):
         for url in links:
             if url.startswith("assets/nema17-enclosure/"):
                 self.assertTrue((ROOT / "dist" / url).is_file(), url)
-        source = json.loads((ASSETS / "label-source-v6.json").read_text())
+        source = json.loads((ROOT / "mechanical/nema17-enclosure/label-source-v6.json").read_text())
         self.assertEqual(source["repository"], "tscircuit/product-packaging")
         self.assertEqual([r["text"] for r in source["layout"]["rows"]][:2],
                          ["NEMA17 USB-PD", "Stepper driver & controller"])

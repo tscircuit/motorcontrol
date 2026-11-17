@@ -14,3 +14,4 @@ hot_alert.json
 
 node_modules/
 .venv-enclosure/
+.assets-build/
