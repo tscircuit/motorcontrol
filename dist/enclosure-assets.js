@@ -14,9 +14,8 @@ for (const button of document.querySelectorAll("[data-enclosure-preview]")) {
     const panel = document.getElementById(button.getAttribute("aria-controls") ?? "");
     const host = panel?.querySelector("[data-enclosure-model]");
     const status = panel?.querySelector("[data-enclosure-status]");
-    const image = panel?.querySelector("img");
     const download = row?.querySelector('a[href$=".stl"]');
-    if (!panel || !host || !status || !image || !download)
+    if (!panel || !host || !status || !download)
         continue;
     button.addEventListener("click", async () => {
         const wasOpen = active?.button === button;
@@ -29,22 +28,21 @@ for (const button of document.querySelectorAll("[data-enclosure-preview]")) {
         button.setAttribute("aria-expanded", "true");
         panel.hidden = false;
         host.hidden = false;
-        image.hidden = false;
         status.textContent = "Loading 3D model…";
         try {
             const moduleUrl = "./stl-preview.js";
-            const { showStl } = await import(moduleUrl);
+            const { showStl } = (await import(moduleUrl));
             await showStl(host, download.href, row?.querySelector("h3")?.textContent ?? "enclosure", controller.signal);
             if (controller.signal.aborted)
                 return;
-            image.hidden = true;
             status.textContent = "Drag to rotate · Scroll or pinch to zoom";
         }
         catch (error) {
             if (controller.signal.aborted)
                 return;
             host.hidden = true;
-            status.textContent = "3D preview unavailable. The reference image and STEP/STL downloads are still available.";
+            status.textContent =
+                "3D preview unavailable. Use the STEP or STL download links above.";
             console.error(error);
         }
     });

@@ -2,18 +2,17 @@
 
 Native CAD source and inputs for the enclosure previously published in the
 [assembly viewer](https://tscircuit-nema17-enclosure.anassoftwaredev.chatgpt.site/).
-The four printable parts retain the original geometry. This import does not
+The retained public parts preserve their original geometry. This import does not
 change the board, motor, screw length, or enclosure dimensions.
 
 The downloads are served from `dist/assets/nema17-enclosure/` and listed on
 [`assets.html`](../../dist/assets.html#enclosure-heading). `catalog.json`
-records the revision, part names and SHA-256 hashes of all eight CAD downloads.
+records the revision, part names and SHA-256 hashes of all six public CAD downloads.
 
 | Part | Height | Exterior |
 | --- | --- | --- |
 | Plain top (`top-laser`) | 6.8 mm | Flat; no sticker pocket or wordmark recess |
 | Sticker top (`top-sticker`) | 6.8 mm | 38.7 × 19.65 × 0.3 mm label pocket |
-| Wordmark top (`top-recessed`) | 6.8 mm | 0.3 mm recessed tscircuit lettering |
 | Bottom housing (`bottom`) | 3.4 mm | Continuous lower JST wall; replaces the old spacer |
 
 All parts have a nominal 42 × 42 mm footprint, 31 × 31 mm mounting pattern,
@@ -57,9 +56,9 @@ The builder writes native STEP and STL to its ignored `models/` folder and
 validates component-envelope clearance. The validator checks all four parts,
 bores, screw pockets and material around the pockets. To publish a deliberate
 new revision, copy the exported `cover-laser-mark-draft`,
-`cover-sticker-pocket-draft`, `cover-recessed-logo-draft` and
+`cover-sticker-pocket-draft` and
 `insulating-base-draft` files into the corresponding `top-laser`, `top-sticker`,
-`top-recessed` and `bottom` download paths, then update the catalog hashes and
+`bottom` download paths, then update the catalog hashes and
 revision. Motor-reference STEP files emitted by the builder are illustrative
 and are not distributed as manufacturer CAD.
 
@@ -75,10 +74,11 @@ at 100% / Actual Size, and check alignment on plain paper first.
 
 ## Released export verification
 
-All eight v4 STL/STEP exports were compared byte-for-byte with the current files
+The six retained v4 STL/STEP exports were compared byte-for-byte with the current files
 served by the shared enclosure viewer. Their SHA-256 hashes match the catalog.
-The flat fit-test lid is `tscircuit-nema17-top-laser-v4`; the sticker-pocket and
-recessed-wordmark variants are separate exports. No geometry is changed by the
+The flat fit-test lid is `tscircuit-nema17-top-laser-v4`; the sticker-pocket cover is a distinct public variant. The recessed-wordmark
+variant is no longer published; its editable native CAD source is retained for
+historical reproducibility. No geometry is changed by the
 TSX page conversion. The exact native generator remains CadQuery Python; no
 verified tscircuit/JSCAD TSX geometry generator is available, and equivalence to
 a newly reconstructed TSX model is not claimed.
@@ -87,3 +87,8 @@ The enclosure download catalog serves the intended released assets. Fit notes, l
 provenance and clearance reports remain with this native-source directory,
 which is excluded from web deployment. No PCB source or new private fit notes
 are fetched or added by the TSX conversion.
+
+The public page does not contain decorative/placeholder images. Previews load
+the actual retained STL into the interactive viewer, or show a text error while
+keeping STEP/STL downloads available. The removed recessed-wordmark STEP/STL
+and all static enclosure-card images are excluded from the public assets.

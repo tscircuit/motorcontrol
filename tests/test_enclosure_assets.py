@@ -24,6 +24,17 @@ class Links(HTMLParser):
 
 
 class EnclosureAssetsTest(unittest.TestCase):
+    def test_removed_wordmark_variant_and_card_images_are_not_published(self):
+        page = (ROOT / "dist/assets.html").read_text()
+        self.assertNotIn("enclosure-recessed", page)
+        self.assertNotIn("<img", page)
+        for filename in ("tscircuit-nema17-top-recessed-v4.stl",
+                         "tscircuit-nema17-top-recessed-v4.step",
+                         "recessed-preview.webp", "laser-preview.webp",
+                         "sticker-preview.webp", "base-preview.webp"):
+            self.assertFalse((ASSETS / filename).exists())
+        self.assertTrue((ROOT / "mechanical/nema17-enclosure/build-cad.py").is_file())
+
     def test_tsx_page_keeps_source_only_material_out_of_dist(self):
         page = (ROOT / "dist/assets.html").read_text()
         self.assertIn("Generated from src/assets-page.tsx", page)
@@ -38,10 +49,10 @@ class EnclosureAssetsTest(unittest.TestCase):
         catalog = json.loads((ASSETS / "catalog.json").read_text())
         links = Links((ROOT / "dist/assets.html").read_text()).urls
         self.assertEqual({p["id"] for p in catalog["parts"]},
-                         {"plain", "sticker", "recessed", "bottom"})
+                         {"plain", "sticker", "bottom"})
         for part in catalog["parts"]:
             with self.subTest(part=part["id"]):
-                for kind in ("stl", "step", "preview"):
+                for kind in ("stl", "step"):
                     name = part[kind]
                     self.assertIn(f"assets/nema17-enclosure/{name}", links)
                     self.assertTrue((ASSETS / name).is_file())

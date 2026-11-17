@@ -29,14 +29,6 @@ function EnclosurePartRow({ part }: { part: EnclosurePart }) {
         </button>
       </div>
       <div id={`enclosure-preview-${part.id}`} className="mt-3" hidden>
-        <img
-          src={assetRoot + part.preview}
-          alt={`${part.title} reference render`}
-          width="1100"
-          height="850"
-          loading="lazy"
-          style={{ width: "100%", height: "auto" }}
-        />
         <div
           data-enclosure-model=""
           className="relative h-64 overflow-hidden rounded-md border border-slate-200 bg-white sm:h-80"

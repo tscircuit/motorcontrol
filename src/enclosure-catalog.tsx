@@ -1,9 +1,8 @@
 export type EnclosurePart = {
-  id: "plain" | "sticker" | "recessed" | "bottom";
+  id: "plain" | "sticker" | "bottom";
   title: string;
   stl: string;
   step: string;
-  preview: string;
   notes: string;
   height_mm: number;
 };
@@ -31,7 +30,6 @@ export const enclosureCatalog: EnclosureCatalog = {
       title: "Plain top cover · no sticker recess",
       stl: "tscircuit-nema17-top-laser-v4.stl",
       step: "tscircuit-nema17-top-laser-v4.step",
-      preview: "laser-preview.webp",
       notes:
         "Flat outer face for a fit-test print or UV laser marking. Bolt counterbores remain.",
       height_mm: 6.8,
@@ -41,17 +39,7 @@ export const enclosureCatalog: EnclosureCatalog = {
       title: "Top cover · sticker pocket",
       stl: "tscircuit-nema17-top-sticker-v4.stl",
       step: "tscircuit-nema17-top-sticker-v4.step",
-      preview: "sticker-preview.webp",
       notes: "38.7 × 19.65 × 0.3 mm pocket for the 38.1 × 19.05 mm label.",
-      height_mm: 6.8,
-    },
-    {
-      id: "recessed",
-      title: "Top cover · recessed wordmark",
-      stl: "tscircuit-nema17-top-recessed-v4.stl",
-      step: "tscircuit-nema17-top-recessed-v4.step",
-      preview: "recessed-preview.webp",
-      notes: "Official tscircuit wordmark recessed 0.3 mm into the outer face.",
       height_mm: 6.8,
     },
     {
@@ -59,7 +47,6 @@ export const enclosureCatalog: EnclosureCatalog = {
       title: "Bottom housing",
       stl: "tscircuit-nema17-bottom-v4.stl",
       step: "tscircuit-nema17-bottom-v4.step",
-      preview: "base-preview.webp",
       notes: "Continuous exterior wall under the JST; replaces the old spacer.",
       height_mm: 3.4,
     },
@@ -73,10 +60,6 @@ export const enclosureCatalog: EnclosureCatalog = {
       "651e5949a4034f23cfee416a06d09ef5fe59d66011fb385bc172d6e05c4df4c4",
     "tscircuit-nema17-top-sticker-v4.step":
       "dc9e34c2bb9834f812cebb56aa3a3bdf58ba7caddbc7daba38fdf295f672bd91",
-    "tscircuit-nema17-top-recessed-v4.stl":
-      "9c0ea38377c64fd6b8ebfc52bd7b7c024239bb4c77230ed4bae367b4fa87fc78",
-    "tscircuit-nema17-top-recessed-v4.step":
-      "c40bce0d232f47ac19599b155e96b5a0611bea58bbd3f316992c1f0733ca2a67",
     "tscircuit-nema17-bottom-v4.stl":
       "d17903ea9095163b85c737f05c5df93049944c757ce978f0401f665bb34e1100",
     "tscircuit-nema17-bottom-v4.step":

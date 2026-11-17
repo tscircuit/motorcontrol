@@ -13,7 +13,6 @@
       "title": "Plain top cover · no sticker recess",
       "stl": "tscircuit-nema17-top-laser-v4.stl",
       "step": "tscircuit-nema17-top-laser-v4.step",
-      "preview": "laser-preview.webp",
       "notes": "Flat outer face for a fit-test print or UV laser marking. Bolt counterbores remain.",
       "height_mm": 6.8
     },
@@ -22,17 +21,7 @@
       "title": "Top cover · sticker pocket",
       "stl": "tscircuit-nema17-top-sticker-v4.stl",
       "step": "tscircuit-nema17-top-sticker-v4.step",
-      "preview": "sticker-preview.webp",
       "notes": "38.7 × 19.65 × 0.3 mm pocket for the 38.1 × 19.05 mm label.",
-      "height_mm": 6.8
-    },
-    {
-      "id": "recessed",
-      "title": "Top cover · recessed wordmark",
-      "stl": "tscircuit-nema17-top-recessed-v4.stl",
-      "step": "tscircuit-nema17-top-recessed-v4.step",
-      "preview": "recessed-preview.webp",
-      "notes": "Official tscircuit wordmark recessed 0.3 mm into the outer face.",
       "height_mm": 6.8
     },
     {
@@ -40,7 +29,6 @@
       "title": "Bottom housing",
       "stl": "tscircuit-nema17-bottom-v4.stl",
       "step": "tscircuit-nema17-bottom-v4.step",
-      "preview": "base-preview.webp",
       "notes": "Continuous exterior wall under the JST; replaces the old spacer.",
       "height_mm": 3.4
     }
@@ -50,8 +38,6 @@
     "tscircuit-nema17-top-laser-v4.step": "72faa556a7152028e2167c3ed1b2e2e2f182ed211caa9ebf183653032e2435ec",
     "tscircuit-nema17-top-sticker-v4.stl": "651e5949a4034f23cfee416a06d09ef5fe59d66011fb385bc172d6e05c4df4c4",
     "tscircuit-nema17-top-sticker-v4.step": "dc9e34c2bb9834f812cebb56aa3a3bdf58ba7caddbc7daba38fdf295f672bd91",
-    "tscircuit-nema17-top-recessed-v4.stl": "9c0ea38377c64fd6b8ebfc52bd7b7c024239bb4c77230ed4bae367b4fa87fc78",
-    "tscircuit-nema17-top-recessed-v4.step": "c40bce0d232f47ac19599b155e96b5a0611bea58bbd3f316992c1f0733ca2a67",
     "tscircuit-nema17-bottom-v4.stl": "d17903ea9095163b85c737f05c5df93049944c757ce978f0401f665bb34e1100",
     "tscircuit-nema17-bottom-v4.step": "092caf0026f08dbe3ef6dc612e584d34a99421d3b1a68902f10ed790d83e1135"
   }
