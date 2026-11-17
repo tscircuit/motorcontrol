@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "lib": ["ES2022", "DOM"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "types": ["node"],
+    "rootDir": ".",
+    "outDir": ".assets-build",
+    "noEmitOnError": true
+  },
+  "include": [
+    "src/assets-page.tsx",
+    "src/enclosure-catalog.tsx",
+    "scripts/build-assets-page.ts"
+  ]
+}

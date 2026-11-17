@@ -1,0 +1,3 @@
+# Preserve CAD exporter bytes and avoid treating STEP entities as code diffs.
+*.step -diff -text
+*.stl -diff -text

@@ -1,0 +1,63 @@
+tscircuit NEMA17 enclosure — bolt-clearance v4 fit-test draft, 17 November 2026
+Units: millimetres. STEP for editing; STL for slicing.
+Both case parts shown matte black. PCB solder mask is assumed black for the
+preview only (selectable green, black and blue in the web viewer). Original PCB geometry and 1.6 mm thickness are unchanged.
+Select black filament when printing; STL files describe geometry, not color.
+
+Base support height: 3.4 mm. Base floor: 1.0 mm.
+Top cover height: 6.8 mm. Roof: 1.4 mm; below sticker pocket: 1.1 mm.
+Overall rear plane to case top: 11.8 mm (previous slim draft: 12.4 mm).
+Resolved tallest-component roof gap: 0.6 mm. JST pin/base clearance: 0.6 mm.
+USB-C shell clearance: 0.3 mm above and on each side; opening width 9.54 mm.
+No specific cable overmold has been validated. Test actual plugs.
+Nominal footprint: 42 x 42 mm. M3 mounting pitch: 31 x 31 mm.
+New bottom housing replaces the original spacer. Do not stack them.
+Re-measure screw under-head length for this shorter stack.
+
+Sticker: 38.1 x 19.05 mm (1.5 x 0.75 inch), square corners.
+Official icon left, text aligned right; no QR code.
+Pocket: 38.7 x 19.65 x 0.3 mm. Print SVG at 100% actual size.
+The 60-up sheet is for OnlineLabels OL1067WX US Letter sheets.
+Readable link: motorcontrol.tscircuit.com
+
+CAD checks passed for resolved component and screw-head clearance,
+connected valid case solids, continuous lower JST wall, USB lips and through bores.
+This is not a physical, thermal or structural certification. Confirm the actual
+motor rear geometry, board revision, mating plugs, retention and print tolerances.
+Prototype these thinner parts before production.
+
+PCB source: https://tscircuit.com/imrishabh18/rp2040-motor-controller v1.0.57.
+Motor: reconstructed 34-mm-body reference, not a confirmed lab motor.
+Source PCB STEP uses published PCB coordinates; translate +4.2 mm Z for this
+assembly. Case and motor references share motor rear plane Z=0.
+Ordinary printed plastic is not certified ESD shielding.
+Sticker lid: exterior up with removable roof supports or a proven bridge strategy;
+verify in the slicer. Plain laser lid can print exterior face down.
+
+REVISION v4 — MORE BOLT CLEARANCE
+Head pocket: Ø6.6 mm (previously Ø6.0 mm), 3.2 mm deep.
+Nominal Ø5.5 mm head radial clearance: 0.55 mm per side (previously 0.25 mm).
+Top and bottom printed-part shaft bores: Ø3.6 mm (previously Ø3.4 mm).
+Nominal Ø3.0 mm shaft radial clearance: 0.30 mm per side.
+Entry chamfer: Ø7.0 mm maximum, 0.2 mm deep.
+Post outside diameter: Ø8.4 mm (previously Ø7.8 mm), leaving 0.9 mm
+nominal wall beside the counterbore. Component reliefs remain board-specific.
+Motor and PCB holes are source/reference geometry and have not been enlarged.
+The 31 x 31 mm bolt pattern, 8.6 mm head-seat Z and 11.8 mm stack are unchanged.
+CAD checks: all three lids and bottom housing are valid single solids;
+all 16 printed-part bore positions clear; all 12 lid pockets clear;
+post-wall probes and conservative component-clearance checks pass.
+This nominal allowance is a prototype starting point, not a physical print test.
+Print one corner or one case and check the actual bolts before a batch.
+Viewer default 40 mm under-head length is a reference, not an approved motor fit.
+
+LABEL ARTWORK v6
+Master source: tscircuit/product-packaging, products/nema17/enclosure-label.
+Source commit: d4b1e2a0f34f189d1dadd37ed4532dcebddaff70
+NEMA17, Stepper driver & controller, and motorcontrol.tscircuit.com all use
+Geist Regular at the same 1.85 mm size. NEMA17 is not bold.
+Visible text edges and the official wordmark align at X=13 mm.
+The 10 mm icon is vertically centered against the complete text block.
+Label dimensions remain 38.1 x 19.05 mm.
+Print the matching OL1067 sheet at 100% / Actual Size; test alignment on plain
+paper before using the pre-cut labels.

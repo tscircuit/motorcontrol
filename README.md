@@ -106,6 +106,24 @@ CI runs host tests, JavaScript checks, and firmware staging. Host tests exercise
 
 ## Dashboard deployment
 
+The Assets page also has a **NEMA17 controller enclosure** section with the
+flat plain top, distinct sticker-pocket top, and bottom housing.
+Each part has STEP/STL downloads and a real rotatable CAD preview, with text
+status and working download links when WebGL is unavailable. The plain top has no sticker indentation.
+See [`mechanical/nema17-enclosure/`](mechanical/nema17-enclosure/) for native CAD
+source, rebuilding, dimensions and fit-test notes. These are the existing v4
+fit-study parts for PCB v1.0.57; physical fit is not yet verified.
+
+The editable page is `src/assets-page.tsx`, and its typed enclosure catalog is
+`src/enclosure-catalog.tsx`. Preview controls remain in `src/enclosure-assets.ts`.
+Run `npm ci`, `npm run check:assets`, and `npm run build:assets`. React renders
+the TSX to committed static `dist/assets.html`; the catalog JSON and preview
+JavaScript are generated too, because deployment serves `dist/` directly.
+Do not edit the generated HTML. CI checks all generated outputs for drift.
+The STL/STEP files remain CAD exports, with exact native CadQuery Python source;
+no equivalent TSX geometry generator is claimed. Fit notes and source reports
+are kept outside the public `dist/` tree.
+
 The [Assets viewer](https://motorcontrol.tscircuit.com/assets.html) lists the
 printable `backface-spacer-4mm` STLs for NEMA 8, 11, 14, 17, 23, and 34,
 plus a `backface-spacer-10mm` STL for NEMA 17. The 10 mm variant uses a

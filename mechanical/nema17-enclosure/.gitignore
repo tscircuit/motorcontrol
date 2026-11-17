@@ -1,0 +1,7 @@
+models/
+__pycache__/
+source/cad-preview.json.gz
+reports/component-reliefs.json
+reports/design-parameters.json
+reports/usb-opening-dimensions.json
+reports/component-aabb-collisions.json
