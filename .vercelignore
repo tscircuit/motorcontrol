@@ -1,4 +1,7 @@
 /firmware/
+mechanical/
+src/
+node_modules/
 tests/
 scripts/
 docs/

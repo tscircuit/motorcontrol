@@ -23,6 +23,78 @@
   </header>
   <main class="mx-auto max-w-4xl px-4 py-8 sm:px-6">
     <h1 class="text-2xl font-semibold tracking-tight">Assets</h1>
+    <p class="mt-1 text-sm text-slate-600">Download printable motor spacers and the NEMA17 controller enclosure.</p>
+    <section aria-labelledby="enclosure-heading" class="mt-5">
+      <h2 id="enclosure-heading" class="text-2xl font-semibold tracking-tight">NEMA17 controller enclosure</h2>
+      <p class="mt-1 text-sm text-slate-600">42 × 42 mm · 31 mm bolt pitch · PCB v1.0.57 fit-test draft. Confirm the actual board and motor before printing a batch.</p>
+      <p class="mt-3 text-sm text-slate-600">For a flat outer face, choose <strong>Plain top cover</strong>. Print its exterior face down; inspect the slicer before adding supports. The bottom housing replaces the old spacer.</p>
+      <ul aria-label="NEMA17 enclosure parts" class="mt-5 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+        <li class="px-4 py-3" id="enclosure-plain">
+          <h3 class="text-sm font-semibold">Plain top cover · no sticker recess</h3>
+          <p class="mt-1 text-xs text-slate-600">42 × 42 × 6.8 mm · Ø3.6 mm bores. Flat outer face for a fit-test print or UV laser marking. Bolt counterbores remain.</p>
+          <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+            <a class="text-blue-700 underline" href="assets/nema17-enclosure/tscircuit-nema17-top-laser-v4.stl" download>STL · Plain top cover</a>
+            <a class="text-blue-700 underline" href="assets/nema17-enclosure/tscircuit-nema17-top-laser-v4.step" download>STEP · Plain top cover</a>
+            <button type="button" class="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm hover:bg-slate-50" data-enclosure-preview="plain" aria-expanded="false" aria-controls="enclosure-preview-plain">Preview</button>
+          </div>
+          <div id="enclosure-preview-plain" class="mt-3" hidden>
+            <img src="assets/nema17-enclosure/laser-preview.webp" alt="Plain top cover · no sticker recess on the reference motor" width="1100" height="850" loading="lazy" style="width:100%;height:auto">
+            <div data-enclosure-model class="relative h-64 overflow-hidden rounded-md border border-slate-200 bg-white sm:h-80"></div>
+            <p data-enclosure-status role="status" class="mt-2 text-xs text-slate-600">Drag the model to rotate; scroll to zoom.</p>
+          </div>
+        </li>
+        <li class="px-4 py-3" id="enclosure-sticker">
+          <h3 class="text-sm font-semibold">Top cover · sticker pocket</h3>
+          <p class="mt-1 text-xs text-slate-600">42 × 42 × 6.8 mm · Ø3.6 mm bores. 38.7 × 19.65 × 0.3 mm pocket for the 38.1 × 19.05 mm label.</p>
+          <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+            <a class="text-blue-700 underline" href="assets/nema17-enclosure/tscircuit-nema17-top-sticker-v4.stl" download>STL · Top cover</a>
+            <a class="text-blue-700 underline" href="assets/nema17-enclosure/tscircuit-nema17-top-sticker-v4.step" download>STEP · Top cover</a>
+            <button type="button" class="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm hover:bg-slate-50" data-enclosure-preview="sticker" aria-expanded="false" aria-controls="enclosure-preview-sticker">Preview</button>
+          </div>
+          <div id="enclosure-preview-sticker" class="mt-3" hidden>
+            <img src="assets/nema17-enclosure/sticker-preview.webp" alt="Top cover · sticker pocket on the reference motor" width="1100" height="850" loading="lazy" style="width:100%;height:auto">
+            <div data-enclosure-model class="relative h-64 overflow-hidden rounded-md border border-slate-200 bg-white sm:h-80"></div>
+            <p data-enclosure-status role="status" class="mt-2 text-xs text-slate-600">Drag the model to rotate; scroll to zoom.</p>
+          </div>
+        </li>
+        <li class="px-4 py-3" id="enclosure-recessed">
+          <h3 class="text-sm font-semibold">Top cover · recessed wordmark</h3>
+          <p class="mt-1 text-xs text-slate-600">42 × 42 × 6.8 mm · Ø3.6 mm bores. Official tscircuit wordmark recessed 0.3 mm into the outer face.</p>
+          <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+            <a class="text-blue-700 underline" href="assets/nema17-enclosure/tscircuit-nema17-top-recessed-v4.stl" download>STL · Top cover</a>
+            <a class="text-blue-700 underline" href="assets/nema17-enclosure/tscircuit-nema17-top-recessed-v4.step" download>STEP · Top cover</a>
+            <button type="button" class="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm hover:bg-slate-50" data-enclosure-preview="recessed" aria-expanded="false" aria-controls="enclosure-preview-recessed">Preview</button>
+          </div>
+          <div id="enclosure-preview-recessed" class="mt-3" hidden>
+            <img src="assets/nema17-enclosure/recessed-preview.webp" alt="Top cover · recessed wordmark on the reference motor" width="1100" height="850" loading="lazy" style="width:100%;height:auto">
+            <div data-enclosure-model class="relative h-64 overflow-hidden rounded-md border border-slate-200 bg-white sm:h-80"></div>
+            <p data-enclosure-status role="status" class="mt-2 text-xs text-slate-600">Drag the model to rotate; scroll to zoom.</p>
+          </div>
+        </li>
+        <li class="px-4 py-3" id="enclosure-bottom">
+          <h3 class="text-sm font-semibold">Bottom housing</h3>
+          <p class="mt-1 text-xs text-slate-600">42 × 42 × 3.4 mm · Ø3.6 mm bores. Continuous exterior wall under the JST; replaces the old spacer.</p>
+          <div class="mt-2 flex flex-wrap items-center gap-3 text-sm">
+            <a class="text-blue-700 underline" href="assets/nema17-enclosure/tscircuit-nema17-bottom-v4.stl" download>STL · Bottom housing</a>
+            <a class="text-blue-700 underline" href="assets/nema17-enclosure/tscircuit-nema17-bottom-v4.step" download>STEP · Bottom housing</a>
+            <button type="button" class="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm hover:bg-slate-50" data-enclosure-preview="bottom" aria-expanded="false" aria-controls="enclosure-preview-bottom">Preview</button>
+          </div>
+          <div id="enclosure-preview-bottom" class="mt-3" hidden>
+            <img src="assets/nema17-enclosure/base-preview.webp" alt="Reference render of the bottom housing" width="1100" height="850" loading="lazy" style="width:100%;height:auto">
+            <div data-enclosure-model class="relative h-64 overflow-hidden rounded-md border border-slate-200 bg-white sm:h-80"></div>
+            <p data-enclosure-status role="status" class="mt-2 text-xs text-slate-600">Drag the model to rotate; scroll to zoom.</p>
+          </div>
+        </li>
+      </ul>
+      <p class="mt-3 flex flex-wrap gap-3 text-sm">
+        <a class="text-blue-700 underline" href="assets/nema17-enclosure/fit-notes.txt" download>Fit and printing notes</a>
+        <a class="text-blue-700 underline" href="assets/nema17-enclosure/tscircuit-nema17-sticker-v6.pdf" download>Label PDF</a>
+        <a class="text-blue-700 underline" href="assets/nema17-enclosure/tscircuit-nema17-sticker-sheet-v6.pdf" download>60-up label sheet PDF</a>
+        <a class="text-blue-700 underline" href="https://github.com/tscircuit/motorcontrol/tree/main/mechanical/nema17-enclosure">CAD source</a>
+        <a class="text-blue-700 underline" href="https://tscircuit-nema17-enclosure.anassoftwaredev.chatgpt.site/">Full assembly viewer</a>
+      </p>
+    </section>
+    <h2 class="mt-5 text-2xl font-semibold tracking-tight">Backface spacers</h2>
     <p class="mt-1 text-sm text-slate-600">4 mm backface spacers for NEMA 8–34 and a 10 mm option for NEMA 17. Each has a 1 mm base and four sleeves with 45° corner cuts; total height includes the base.</p>
     <ul id="assets" aria-label="Printable models" class="mt-5 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white"></ul>
     <p id="catalog-status" role="status" class="mt-3 text-sm text-slate-600">Loading assets…</p>
@@ -55,5 +127,6 @@
     </li>
   </template>
   <script type="module" src="assets-viewer.js"></script>
+  <script type="module" src="enclosure-assets.js"></script>
 </body>
 </html>

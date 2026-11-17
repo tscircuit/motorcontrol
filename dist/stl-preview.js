@@ -12,7 +12,7 @@ export async function showStl(host, url, label, signal) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.domElement.setAttribute("role", "img");
-  renderer.domElement.setAttribute("aria-label", `3D preview of ${label} spacer`);
+  renderer.domElement.setAttribute("aria-label", `3D preview of ${label}`);
 
   const geometry = new STLLoader().parse(bytes);
   geometry.center();

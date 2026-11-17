@@ -106,6 +106,18 @@ CI runs host tests, JavaScript checks, and firmware staging. Host tests exercise
 
 ## Dashboard deployment
 
+The Assets page also has a **NEMA17 controller enclosure** section with the
+plain top, sticker-pocket top, recessed-wordmark top, and bottom housing.
+Each part has STEP/STL downloads and a rotatable preview, with a reference image
+when WebGL is unavailable. The plain top has no sticker indentation.
+See [`mechanical/nema17-enclosure/`](mechanical/nema17-enclosure/) for native CAD
+source, rebuilding, dimensions and fit-test notes. These are the existing v4
+fit-study parts for PCB v1.0.57; physical fit is not yet verified.
+
+The new enclosure preview controls are authored in `src/enclosure-assets.ts`.
+Run `npm ci`, `npm run build:assets`, and `npm run check:assets`; generated
+browser JavaScript is committed because deployment serves `dist/` directly.
+
 The [Assets viewer](https://motorcontrol.tscircuit.com/assets.html) lists the
 printable `backface-spacer-4mm` STLs for NEMA 8, 11, 14, 17, 23, and 34,
 plus a `backface-spacer-10mm` STL for NEMA 17. The 10 mm variant uses a

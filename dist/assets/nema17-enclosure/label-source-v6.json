@@ -1,0 +1,76 @@
+{
+  "repository": "tscircuit/product-packaging",
+  "commit": "d4b1e2a0f34f189d1dadd37ed4532dcebddaff70",
+  "path": "products/nema17/enclosure-label",
+  "generator": "scripts/build-nema17-enclosure-label.ts",
+  "layout": {
+    "sticker_mm": [
+      38.1,
+      19.05
+    ],
+    "font": "Geist Regular",
+    "font_size_mm": 1.85,
+    "wordmark_extra_stroke_mm": 0.09,
+    "text_ink_left_mm": 13,
+    "wordmark_ink_left_mm": 13,
+    "icon_mm": [
+      1.5,
+      4.1111,
+      10,
+      10
+    ],
+    "text_block_center_y_mm": 9.1111,
+    "rows": [
+      {
+        "text": "NEMA17 USB-PD",
+        "x": 12.8298,
+        "baseline": 9.65,
+        "fontSize": 1.85,
+        "inkLeft": 13,
+        "inkRight": 27.097,
+        "inkTop": 8.3069,
+        "inkBottom": 9.6796
+      },
+      {
+        "text": "Stepper driver & controller",
+        "x": 12.89825,
+        "baseline": 12.6,
+        "fontSize": 1.85,
+        "inkLeft": 13,
+        "inkRight": 35.0705,
+        "inkTop": 11.2569,
+        "inkBottom": 12.8775
+      },
+      {
+        "text": "motorcontrol.tscircuit.com",
+        "x": 12.852,
+        "baseline": 16.2,
+        "fontSize": 1.85,
+        "inkLeft": 13,
+        "inkRight": 34.94655,
+        "inkTop": 14.884649999999999,
+        "inkBottom": 16.2222
+      }
+    ],
+    "sheet": {
+      "width": 612,
+      "height": 792,
+      "columns": 5,
+      "rows": 12,
+      "left": 6.35,
+      "top": 7.9375,
+      "pitchX": 41.275,
+      "pitchY": 22.225,
+      "label_count": 60
+    },
+    "print_scaling": "100% / Actual Size",
+    "validation": "Generated PDF text: 180 text lines, one font face and one size; bounds, alignment and page sizes checked"
+  },
+  "sha256": {
+    "label.svg": "fb258cd77983232a3987209080b2a3e8f9063df3339de5ea6cf940b3aef82cbd",
+    "label.pdf": "3dc6b9c968002f7c9dbc8d62d2b4780103d0d8436ddf00f5399de45bae6140ee",
+    "sheet-OL1067.svg": "163af06f721328ac24883262025117b3b9cffa4c561af8c2898d7d77b7d8b452",
+    "sheet-OL1067.pdf": "bad69ed21eaa59d4dca9bd3610ee2edb7e088713a433a6a715f3f70931fcbabb",
+    "label-preview.png": "43743d072b50a34e981392cdc443e2ab127d54e3f88e4674fb9da7485836cc0a"
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "revision": "v4",
+  "head_pocket_before_mm": 6.0,
+  "head_pocket_mm": 6.6,
+  "head_diameter_mm": 5.5,
+  "head_radial_clearance_before_mm": 0.25,
+  "head_radial_clearance_mm": 0.55,
+  "shaft_bore_before_mm": 3.4,
+  "shaft_bore_mm": 3.6,
+  "shaft_radial_clearance_mm": 0.3,
+  "entry_diameter_mm": 7.0,
+  "counterbore_depth_mm": 3.2,
+  "head_seat_z_mm": 8.6,
+  "post_outer_diameter_mm": 8.4,
+  "nominal_post_wall_at_pocket_mm": 0.9,
+  "footprint_mm": [
+    42,
+    42
+  ],
+  "case_shapes_valid_single_solids": true,
+  "component_collisions": [],
+  "axis_checks": [
+    {
+      "case": "base",
+      "x": -15.5,
+      "y": -15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": false
+    },
+    {
+      "case": "base",
+      "x": -15.5,
+      "y": 15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": false
+    },
+    {
+      "case": "base",
+      "x": 15.5,
+      "y": -15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": false
+    },
+    {
+      "case": "base",
+      "x": 15.5,
+      "y": 15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": false
+    },
+    {
+      "case": "sticker",
+      "x": -15.5,
+      "y": -15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    },
+    {
+      "case": "sticker",
+      "x": -15.5,
+      "y": 15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    },
+    {
+      "case": "sticker",
+      "x": 15.5,
+      "y": -15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    },
+    {
+      "case": "sticker",
+      "x": 15.5,
+      "y": 15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    },
+    {
+      "case": "laser",
+      "x": -15.5,
+      "y": -15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    },
+    {
+      "case": "laser",
+      "x": -15.5,
+      "y": 15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    },
+    {
+      "case": "laser",
+      "x": 15.5,
+      "y": -15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    },
+    {
+      "case": "laser",
+      "x": 15.5,
+      "y": 15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    },
+    {
+      "case": "recessed",
+      "x": -15.5,
+      "y": -15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    },
+    {
+      "case": "recessed",
+      "x": -15.5,
+      "y": 15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    },
+    {
+      "case": "recessed",
+      "x": 15.5,
+      "y": -15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    },
+    {
+      "case": "recessed",
+      "x": 15.5,
+      "y": 15.5,
+      "shaft_bore_clear": true,
+      "head_pocket_clear": true
+    }
+  ],
+  "physical_print_test": "Not performed; printer compensation, shrinkage and motor fit remain unverified"
+}

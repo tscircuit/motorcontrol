@@ -1,0 +1,11 @@
+{
+  "name": "motorcontrol-assets",
+  "private": true,
+  "scripts": {
+    "build:assets": "tsc --project tsconfig.assets.json",
+    "check:assets": "tsc --project tsconfig.assets.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}
