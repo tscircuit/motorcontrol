@@ -64,6 +64,9 @@ function Header() {
         <a className="text-slate-600 hover:text-blue-700" href="gantry.html">
           Gantry
         </a>
+        <a className="text-slate-600 hover:text-blue-700" href="three-axis-gantry.html">
+          3-axis gantry
+        </a>
         <a className="text-slate-600 hover:text-blue-700" href="bldc.html">
           BLDC
         </a>

@@ -1,0 +1,189 @@
+.axes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+[data-single-motor] .axes {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-three-axis] .axes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.axis,
+.jogPanel,
+.boardControls {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.axis,
+.jogPanel {
+  overflow-wrap: anywhere;
+}
+
+.axis button,
+.jogPanel > button {
+  margin: 4px 4px 4px 0;
+}
+
+.axis label,
+.jogPanel label {
+  margin: 10px 0;
+}
+
+.axis h2,
+.jogPanel h2 {
+  margin-bottom: 8px;
+}
+
+.axis pre {
+  white-space: pre-wrap;
+  color: var(--muted);
+}
+
+.jogPanel,
+.currentReadings {
+  margin: 20px 0;
+}
+
+.boardControls {
+  margin: 16px 0;
+}
+
+.currentReadings h3 {
+  margin-bottom: 8px;
+}
+
+.jogSettings,
+.limitGrid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 20px;
+}
+
+.jogSettings input[type="number"],
+.limitGrid input[type="number"] {
+  width: 100px;
+}
+
+.arrows {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 84px));
+  grid-template-rows: repeat(2, 78px);
+  justify-content: center;
+  gap: 8px;
+  margin: 24px 0;
+}
+
+.arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  touch-action: none;
+  user-select: none;
+}
+
+.arrow small {
+  font-size: 12px;
+}
+
+.arrow.engaged:enabled,
+.arrow.engaged:enabled:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.arrow.coasting:enabled,
+.arrow.coasting:enabled:hover {
+  border-color: #fcd34d;
+  background: #fef3c7;
+  color: var(--warning);
+}
+
+.up { grid-column: 2; }
+.left { grid-column: 1; grid-row: 2; }
+.down { grid-column: 2; grid-row: 2; }
+.right { grid-column: 3; grid-row: 2; }
+
+.zArrows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 140px));
+  justify-content: center;
+  gap: 8px;
+  margin: 20px 0;
+}
+
+.zArrows .arrow {
+  min-height: 78px;
+}
+
+#jogPhase {
+  text-align: center;
+  color: var(--accent);
+}
+
+.positions {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.positions th,
+.positions td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.positions th {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+#joystick {
+  display: block;
+  position: relative;
+  width: 180px;
+  height: 180px;
+  border: 2px solid #93c5fd;
+  border-radius: 50%;
+  margin: 20px auto;
+  touch-action: none;
+  background: #eff6ff;
+}
+
+#joystickKnob {
+  display: block;
+  position: absolute;
+  left: 64px;
+  top: 64px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+@media (max-width: 680px) {
+  .axes,
+  [data-three-axis] .axes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .positions th,
+  .positions td {
+    padding: 6px;
+    font-size: 12px;
+  }
+}

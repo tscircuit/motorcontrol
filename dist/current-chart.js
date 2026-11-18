@@ -66,10 +66,10 @@ function drawCurrent(chart,now){
  const visible=h.points.filter(p=>p.t>=now-10000);
  let range=.1;for(const p of visible)for(const s of p.w)if(s)range=Math.max(range,Math.abs(s.min),Math.abs(s.max));range=Math.ceil(range*12)/10;
  const x=t=>left+(t-(now-10000))/10000*(right-left),y=v=>top+(range-v)/(2*range)*(bottom-top);
- ctx.font='12px system-ui';ctx.strokeStyle='#334155';ctx.fillStyle='#94a3b8';ctx.lineWidth=1;
+ ctx.font='12px system-ui';ctx.strokeStyle='#e2e8f0';ctx.fillStyle='#475569';ctx.lineWidth=1;
  for(let j=-2;j<=2;j++){const v=j*range/2;ctx.beginPath();ctx.moveTo(left,y(v));ctx.lineTo(right,y(v));ctx.stroke();ctx.fillText(v.toFixed(2),3,y(v)+4);}
  for(let j=0;j<=5;j++)ctx.fillText(j===5?'now':`${10-2*j}s`,left+j*(right-left)/5-8,height-8);
- const colors=['#38bdf8','#fbbf24'];
+ const colors=['#0369a1','#a16207'];
  for(let w=0;w<2;w++){
   ctx.strokeStyle=colors[w];ctx.globalAlpha=.22;ctx.lineWidth=Math.max(1,(right-left)/1000);
   ctx.beginPath();for(const p of visible){const s=p.w[w];if(s){ctx.moveTo(x(p.t),y(s.min));ctx.lineTo(x(p.t),y(s.max));}}ctx.stroke();
@@ -92,11 +92,11 @@ function drawTemperature(chart,now){
  let low=Math.floor((Math.min(...values,20)-5)/5)*5,high=Math.ceil((Math.max(...values,30)+5)/5)*5;
  if(h.threshold!==null){low=Math.min(low,Math.floor(h.threshold/5)*5);high=Math.max(high,Math.ceil(h.threshold/5)*5+5);}
  const x=t=>left+(t-(now-10000))/10000*(right-left),y=v=>top+(high-v)/(high-low)*(bottom-top);
- ctx.font='12px system-ui';ctx.strokeStyle='#334155';ctx.fillStyle='#94a3b8';ctx.lineWidth=1;
+ ctx.font='12px system-ui';ctx.strokeStyle='#e2e8f0';ctx.fillStyle='#475569';ctx.lineWidth=1;
  for(let j=0;j<=4;j++){const v=low+(high-low)*j/4;ctx.beginPath();ctx.moveTo(left,y(v));ctx.lineTo(right,y(v));ctx.stroke();ctx.fillText(v.toFixed(1),3,y(v)+4);}
  for(let j=0;j<=5;j++)ctx.fillText(j===5?'now':`${10-2*j}s`,left+j*(right-left)/5-8,height-8);
- if(h.threshold!==null){ctx.strokeStyle='#fb7185';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(left,y(h.threshold));ctx.lineTo(right,y(h.threshold));ctx.stroke();ctx.setLineDash([]);}
- ctx.strokeStyle='#75efd0';ctx.lineWidth=2;ctx.beginPath();let prev=null;
+ if(h.threshold!==null){ctx.strokeStyle='#be123c';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(left,y(h.threshold));ctx.lineTo(right,y(h.threshold));ctx.stroke();ctx.setLineDash([]);}
+ ctx.strokeStyle='#0f766e';ctx.lineWidth=2;ctx.beginPath();let prev=null;
  for(const p of visible){if(p.value===null){prev=null;continue;}if(prev!==null&&p.t-prev<1000)ctx.lineTo(x(p.t),y(p.value));else ctx.moveTo(x(p.t),y(p.value));prev=p.t;}
  ctx.stroke();
  const last=visible.at(-1),live=h.seen&&now-h.seen<1500;
@@ -110,11 +110,11 @@ function drawStall(chart,now){
  const left=49,right=width-12,top=12,bottom=height-30,points=h.points.filter(p=>p.t>=now-10000);
  const max=Math.max(10,...points.map(p=>p.value??0),(h.threshold??3)*2);
  const x=t=>left+(t-now+10000)/10000*(right-left),y=v=>bottom-v/max*(bottom-top);
- ctx.font='12px system-ui';ctx.strokeStyle='#334155';ctx.fillStyle='#94a3b8';ctx.lineWidth=1;
+ ctx.font='12px system-ui';ctx.strokeStyle='#e2e8f0';ctx.fillStyle='#475569';ctx.lineWidth=1;
  for(let j=0;j<=4;j++){const v=max*j/4;ctx.beginPath();ctx.moveTo(left,y(v));ctx.lineTo(right,y(v));ctx.stroke();ctx.fillText(v.toFixed(0),3,y(v)+4);}
  for(let j=0;j<=5;j++)ctx.fillText(j===5?'now':`${10-2*j}s`,left+j*(right-left)/5-8,height-8);
- if(h.threshold!==null){ctx.strokeStyle='#fb7185';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(left,y(h.threshold));ctx.lineTo(right,y(h.threshold));ctx.stroke();ctx.setLineDash([]);}
- ctx.strokeStyle='#c4b5fd';ctx.lineWidth=2;ctx.beginPath();let prev=null;
+ if(h.threshold!==null){ctx.strokeStyle='#be123c';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(left,y(h.threshold));ctx.lineTo(right,y(h.threshold));ctx.stroke();ctx.setLineDash([]);}
+ ctx.strokeStyle='#6d28d9';ctx.lineWidth=2;ctx.beginPath();let prev=null;
  for(const p of points){if(p.value===null){prev=null;continue;}if(prev!==null&&p.t-prev<1000)ctx.lineTo(x(p.t),y(p.value));else ctx.moveTo(x(p.t),y(p.value));prev=p.t;}ctx.stroke();
  const live=h.seen&&now-h.seen<1500,last=points.at(-1);
  summary.textContent=!live?'Stall status unknown · waiting for telemetry.':h.inhibited?'Stall status unknown · hardware interlock active.':last?.value==null?'Stall status unknown · collecting torque data.':`${h.suspected?'Stall suspected':'No stall indication'} · Torque count ${last.value} · Threshold ${h.threshold} · Uncalibrated sensorless estimate`;
