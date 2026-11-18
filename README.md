@@ -138,6 +138,9 @@ the STLs. Both heights share `backface-spacer-4mm.scad`; set `total_height = 10`
 to edit the taller NEMA 17 variant in OpenSCAD. To rebuild the Assets page's Tailwind stylesheet, run
 `npx --yes tailwindcss@3.4.19 --content ./dist/assets.html --minify -o ./dist/assets/viewer.css`.
 
+The dashboards share the Assets page’s Tailwind palette. Edit `src/dashboard.css`
+and run `npm run build:dashboard-css` to rebuild the committed `dist/style.css`.
+
 The Vercel project `tscircuit/motorcontrol` is connected to this repository. Production deployments from `main` serve only `dist/` at https://motorcontrol.tscircuit.com. `vercel.json` configures a static deployment with no install/build step. `.vercelignore` excludes firmware, tests, scripts, and docs from CLI uploads.
 
 Cloudflare DNS: `motorcontrol` is a DNS-only CNAME to `9009e8f2bfd94482.vercel-dns-016.com`. Vercel manages HTTPS. For a manual production deployment, use `vercel deploy --prod --scope tscircuit` from the linked repository root. Local Vercel state and environment files are ignored by Git.

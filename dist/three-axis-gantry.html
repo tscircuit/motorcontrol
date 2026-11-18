@@ -5,25 +5,28 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>3 axis gantry · Motor control</title>
 <link rel="stylesheet" href="style.css">
-<style>
-main{max-width:1100px;margin:40px auto;padding:20px}.axes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.axis{padding:20px;border:1px solid #334155;border-radius:12px}input[type=number]{width:100px}button{margin:6px}#stopAll{background:#963e44}pre{white-space:pre-wrap}label{display:block;margin:12px 0}.jogPanel{margin:24px 0;padding:24px;border-radius:16px;background:#151f2c;border:1px solid #334155}.jogSettings{display:flex;gap:24px;flex-wrap:wrap}.arrows{display:grid;grid-template-columns:repeat(3,84px);grid-template-rows:repeat(2,78px);justify-content:center;gap:8px;margin:24px 0}.arrow{font-size:32px;touch-action:none;user-select:none;transition:background .12s,box-shadow .12s;display:flex;flex-direction:column;justify-content:center;align-items:center}.arrow small{font-size:12px}.arrow.engaged{background:#236653;box-shadow:0 0 0 3px #75efd0}.arrow.coasting{background:#69502a}.up{grid-column:2}.left{grid-column:1;grid-row:2}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}.zArrows{display:flex;justify-content:center;gap:8px;margin:20px 0}.zArrows .arrow{min-width:140px;min-height:78px}#jogPhase{text-align:center;color:#75efd0}@media(max-width:600px){.axes{grid-template-columns:1fr}}
-.positions{width:100%;border-collapse:collapse;margin:20px 0}.positions th,.positions td{padding:10px;text-align:left;border-bottom:1px solid #334155}.positions td button{margin:0}.positions th{font-size:13px;color:#91a3b8}@media(max-width:600px){.positions th,.positions td{padding:6px;font-size:12px}}
-#joystick{display:block;position:relative;width:180px;height:180px;border-radius:50%;margin:20px auto;touch-action:none;background:#22364b;border:2px solid #6ba6bf}#joystickKnob{display:block;position:absolute;left:64px;top:64px;width:48px;height:48px;border-radius:50%;background:#75efd0;pointer-events:none}.limitGrid{display:flex;gap:24px;flex-wrap:wrap}</style>
+<link rel="stylesheet" href="jog.css">
 <link rel="stylesheet" href="current-chart.css">
 </head>
 <body data-three-axis="true">
+<header class="siteHeader">
+  <nav class="siteNav" aria-label="Motorcontrol">
+    <a href="/">Motorcontrol</a>
+    <a href="single-motor.html">Single stepper</a>
+    <a href="gantry.html">Gantry</a>
+    <a href="three-axis-gantry.html" aria-current="page">3-axis gantry</a>
+    <a href="bldc.html">BLDC</a>
+    <a href="firmware.html">Firmware</a>
+    <a href="assets.html">Assets</a>
+  </nav>
+</header>
 <main>
-<nav aria-label="Motorcontrol" class="sourceLinks">
-<a href="/">← Motor bench</a>
-<a href="gantry.html">Two-board gantry</a>
-<a href="assets.html">Assets</a>
-</nav>
 <h1>3 axis gantry</h1>
 <p>Connect all three boards, then press an arrow key or hold an on-screen arrow. Hold arrows to accelerate; combine X and Y arrows to move diagonally. Shift + Up moves Z positive; Shift + Down moves Z negative. The axis is selected when you press the arrow and stays selected until you release it. Use the on-screen Z buttons to combine Z with X/Y. Release either arrow to slow that axis. Opposite arrows cancel on the same axis.</p>
 <div class="axes">
 <section class="axis">
 <h2>Gantry X</h2>
-<button id="connectX">Connect X</button>
+<button id="connectX" class="primary">Connect X</button>
 <button id="beepX" disabled>Test X tone</button>
 <label>USB name <input id="nameX" value="Gantry X" maxlength="32">
 </label>
@@ -48,7 +51,7 @@ main{max-width:1100px;margin:40px auto;padding:20px}.axes{display:grid;grid-temp
 </section>
 <section class="axis">
 <h2>Gantry Y</h2>
-<button id="connectY">Connect Y</button>
+<button id="connectY" class="primary">Connect Y</button>
 <button id="beepY" disabled>Test Y tone</button>
 <label>USB name <input id="nameY" value="Gantry Y" maxlength="32">
 </label>
@@ -73,7 +76,7 @@ main{max-width:1100px;margin:40px auto;padding:20px}.axes{display:grid;grid-temp
 </section>
 <section class="axis">
 <h2>Gantry Z</h2>
-<button id="connectZ">Connect Z</button>
+<button id="connectZ" class="primary">Connect Z</button>
 <button id="beepZ" disabled>Test Z tone</button>
 <label>USB name <input id="nameZ" value="Gantry Z" maxlength="32">
 </label>
