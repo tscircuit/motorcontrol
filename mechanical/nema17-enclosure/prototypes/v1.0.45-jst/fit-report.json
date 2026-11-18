@@ -5,21 +5,26 @@
     42,
     42
   ],
-  "case_height_mm": 21.8,
+  "case_height_mm": 20.2,
   "roof_thickness_mm": 1.4,
-  "side_relief_width_mm": 11.3,
-  "side_relief_top_above_pcb_mm": 15.4,
-  "assumed_wire_outer_diameter_mm": 1.5,
-  "assumed_minimum_bend_radius_mm": 4.5,
+  "outer_corner_radius_mm": 4.0,
+  "roof_edge_radius_mm": 0.8,
+  "bottom_edge_radius_mm": 0.25,
+  "notch_edge_radius_mm": 0.25,
+  "vertical_assembly_corridor_clear": true,
+  "side_relief_width_mm": 9.8,
+  "side_relief_top_above_pcb_mm": 13.8,
+  "assumed_wire_outer_diameter_mm": 1.6,
+  "assumed_minimum_bend_radius_mm": 3.35,
   "assumed_mated_connector_height_mm": 8.03,
-  "conservative_roof_headroom_mm": 1.15,
+  "conservative_roof_headroom_mm": 0.65,
   "modeled_wire_to_lid_distances_mm": [
-    1.267,
-    1.267,
-    1.267,
-    1.267
+    0.661,
+    0.661,
+    0.661,
+    0.661
   ],
-  "modeled_mated_plug_to_lid_distance_mm": 1.606,
+  "modeled_mated_plug_to_lid_distance_mm": 0.904,
   "mated_plug_vertical_gap_above_other_components_mm": 1.396,
   "component_bounds_overlaps": []
 }

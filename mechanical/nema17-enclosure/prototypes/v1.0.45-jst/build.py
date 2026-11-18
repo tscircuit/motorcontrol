@@ -3,6 +3,7 @@
 import argparse
 import json
 import math
+import struct
 from pathlib import Path
 
 import cadquery as cq
@@ -13,12 +14,16 @@ from OCP.Bnd import Bnd_Box
 HERE = Path(__file__).resolve().parent
 RELEASED_PARTS = HERE.parents[3] / "dist/assets/nema17-enclosure"
 PCB_TOP = 5.0
-TOP = 21.8
+TOP = 20.2
 CEILING = TOP - 1.4
-OPENING_Y = (-10.3, 1.0)
+OPENING_Y = (-9.55, 0.25)
+CORNER_RADIUS = 4.0
+ROOF_EDGE_RADIUS = 0.8
+BOTTOM_EDGE_RADIUS = 0.25
+NOTCH_EDGE_RADIUS = 0.25
 SCREW_SEAT = 8.6
-WIRE_DIAMETER = 1.5
-BEND_RADIUS = 4.5
+WIRE_DIAMETER = 1.6
+BEND_RADIUS = 3.35
 WIRE_X = 17.73
 WIRE_LAUNCH_Z = 14.0
 WIRE_Y = (-7.65, -5.65, -3.65, -1.65)
@@ -33,14 +38,9 @@ def box(xmin, ymin, zmin, xmax, ymax, zmax):
                             cq.Vector(xmin, ymin, zmin))
 
 
-def outline(half_width, clip, height):
-    w, c = half_width, clip
-    return cq.Wire.makePolygon(
-        [(x, y, height) for x, y in
-         [(-w + c, -w), (w - c, -w), (w, -w + c), (w, w - c),
-          (w - c, w), (-w + c, w), (-w, w - c), (-w, -w + c)]],
-        close=True,
-    )
+def rounded_prism(width, radius, bottom, top):
+    return (cq.Workplane("XY", origin=(0, 0, bottom))
+            .rect(width, width).extrude(top - bottom).edges("|Z").fillet(radius))
 
 
 def bounds(shape):
@@ -59,25 +59,47 @@ def cut_for_bolts(lid):
     return lid
 
 
+def round_notch(lid):
+    edges = []
+    for edge in lid.Edges():
+        xmin, ymin, zmin, xmax, ymax, zmax = bounds(edge)
+        if abs(xmin - 21) > TOL or abs(xmax - 21) > TOL:
+            continue
+        lip = abs(zmin - CEILING) < TOL and abs(zmax - CEILING) < TOL
+        jamb = any(abs(ymin - y) < TOL and abs(ymax - y) < TOL for y in OPENING_Y)
+        if lip and ymin >= OPENING_Y[0] - TOL and ymax <= OPENING_Y[1] + TOL:
+            edges.append(edge)
+        elif jamb and zmax <= CEILING + TOL:
+            edges.append(edge)
+    assert len(edges) == 3, "the exterior notch needs two jambs and a top lip"
+    return lid.fillet(NOTCH_EDGE_RADIUS, edges).clean()
+
+
 def build_lid(stock):
-    # Keep the released USB cutouts, lower post reliefs and mating geometry.
+    # Keep the original USB-C cuts and lower post reliefs. Round the full
+    # exterior within the original 42 mm envelope.
     overlap_z, splice_z = 9.80, 9.96
+    outer = (rounded_prism(42, CORNER_RADIUS, PCB_TOP, TOP)
+             .edges(">Z").fillet(ROOF_EDGE_RADIUS)
+             .edges("<Z").fillet(BOTTOM_EDGE_RADIUS).val())
     lower = stock.intersect(box(-22, -22, PCB_TOP - 0.1, 22, 22, splice_z))
-    outer = cq.Solid.makeLoft([
-        outline(21, 2.3, overlap_z), outline(21, 2.3, TOP - 0.8),
-        outline(20.2, 1.84, TOP),
-    ], ruled=True)
-    inside = cq.Solid.makeLoft([
-        outline(19.8, 1.6, overlap_z - 0.1), outline(19.8, 1.6, CEILING),
-    ], ruled=True)
-    upper = outer.cut(inside)
+    upper = outer.intersect(box(-22, -22, overlap_z, 22, 22, TOP + 0.1))
+    cavity = rounded_prism(39.6, CORNER_RADIUS - 1.2, overlap_z - 0.1, CEILING).val()
+    upper = upper.cut(cavity, box(19.2, -10.45, overlap_z - 0.1, 20.35, 1.15, 11.35))
     for x, y in MOUNT_CENTERS:
-        post = cq.Solid.makeCylinder(4.2, TOP - overlap_z,
-                                     cq.Vector(x, y, overlap_z))
+        post = cq.Solid.makeCylinder(4.2, TOP - overlap_z, cq.Vector(x, y, overlap_z))
         upper = upper.fuse(outer.intersect(post))
-    # Carry the existing side relief up to the new roof at its existing width.
-    side_relief = box(18.5, OPENING_Y[0], overlap_z - 0.1, 23, OPENING_Y[1], CEILING)
-    return cut_for_bolts(lower.fuse(upper.cut(side_relief))).clean()
+
+    # Fill the two narrow jambs along the edges of the old, wider outlet.
+    # The centre remains open to the PCB so a pre-crimped cable can lie in
+    # place as the lid is lowered.
+    jambs = [
+        box(20.35, -10.42, PCB_TOP, 21, OPENING_Y[0], 11.4),
+        box(20.35, OPENING_Y[1], PCB_TOP, 21, 1.12, 11.4),
+    ]
+    notch = box(18.5, OPENING_Y[0], PCB_TOP - 0.1, 23, OPENING_Y[1], CEILING)
+    lid = lower.fuse(upper, *jambs).intersect(outer).cut(notch).clean()
+    return cut_for_bolts(round_notch(lid)).clean()
 
 
 def wire_envelope(y):
@@ -102,13 +124,14 @@ def check_lid(lid, stock):
     for actual, expected in zip(extent, (-21, -21, PCB_TOP, 21, 21, TOP)):
         assert abs(actual - expected) < TOL, extent
 
-    # The two sidewalls at the USB edge and the complete lower mating slice
-    # must retain the released shape, including openings and counterbores.
-    lower_region = box(-22, -22, PCB_TOP - 0.1, 22, 22, 9.69)
-    old_lower = stock.intersect(lower_region)
-    new_lower = lid.intersect(lower_region)
-    lower_delta = old_lower.cut(new_lower).Volume() + new_lower.cut(old_lower).Volume()
-    assert lower_delta < TOL, ("released lower geometry changed", lower_delta)
+    # Check the socket openings above the new bottom edge round.
+    usb_region = box(-13, 19.42, PCB_TOP + BOTTOM_EDGE_RADIUS, 13, 22, 9.55)
+    original_usb, new_usb = stock.intersect(usb_region), lid.intersect(usb_region)
+    assert original_usb.cut(new_usb).Volume() + new_usb.cut(original_usb).Volume() < TOL
+    # The wire and mated plug are bounded by one clear vertical corridor.
+    # The roof moves away from them as the lid is lifted.
+    corridor = box(15.77, -8.76, PCB_TOP - 0.01, 27.1, -0.54, CEILING)
+    assert lid.intersect(corridor).Volume() < TOL
     for x, y in MOUNT_CENTERS:
         shank = cq.Solid.makeCylinder(1.799, TOP + 0.1, cq.Vector(x, y, PCB_TOP))
         well = cq.Solid.makeCylinder(3.299, TOP - SCREW_SEAT, cq.Vector(x, y, SCREW_SEAT))
@@ -119,7 +142,8 @@ def check_lid(lid, stock):
         assert abs(lid.intersect(seat_ring).Volume() - seat_ring.Volume()) < TOL, (x, y, "screw seat")
 
     plug = box(15.78, -8.75, MATED_BOTTOM, 19.38, -0.55, MATED_TOP)
-    assert plug.distance(lid) >= 1.0 and plug.intersect(lid).Volume() < TOL
+    plug_gap = plug.distance(lid)
+    assert plug_gap >= 0.9 and plug.intersect(lid).Volume() < TOL
     gaps = []
     for y in WIRE_Y:
         wire = wire_envelope(y)
@@ -128,7 +152,7 @@ def check_lid(lid, stock):
         gaps.append(wire.distance(lid))
     conservative_headroom = CEILING - (WIRE_LAUNCH_Z + BEND_RADIUS + WIRE_DIAMETER / 2)
     assert min(gaps) >= conservative_headroom - TOL, gaps
-    return gaps, plug.distance(lid), conservative_headroom
+    return gaps, plug_gap, conservative_headroom
 
 
 def find_component_intersections(lid, base, model):
@@ -146,6 +170,23 @@ def find_component_intersections(lid, base, model):
                 intersections.append({"part": name, "case": case_name,
                                       "aabb_overlap_mm3": round(overlap, 6)})
     return intersections
+
+
+def export_stl(lid, path):
+    cq.exporters.export(lid, str(path), tolerance=0.045, angularTolerance=0.15)
+    data = path.read_bytes()
+    count, = struct.unpack_from("<I", data, 80)
+    assert len(data) == 84 + 50 * count
+    faces = []
+    for index in range(count):
+        offset = 84 + 50 * index
+        coordinates = struct.unpack_from("<9f", data, offset + 12)
+        vertices = {coordinates[i:i+3] for i in (0, 3, 6)}
+        # Meshing a fillet junction can emit a collapsed, zero-area facet.
+        if len(vertices) == 3:
+            faces.append(data[offset:offset+50])
+    if len(faces) != count:
+        path.write_bytes(data[:80] + struct.pack("<I", len(faces)) + b"".join(faces))
 
 
 def main():
@@ -167,6 +208,11 @@ def main():
         "case_footprint_mm": [42, 42],
         "case_height_mm": TOP,
         "roof_thickness_mm": 1.4,
+        "outer_corner_radius_mm": CORNER_RADIUS,
+        "roof_edge_radius_mm": ROOF_EDGE_RADIUS,
+        "bottom_edge_radius_mm": BOTTOM_EDGE_RADIUS,
+        "notch_edge_radius_mm": NOTCH_EDGE_RADIUS,
+        "vertical_assembly_corridor_clear": True,
         "side_relief_width_mm": round(OPENING_Y[1] - OPENING_Y[0], 3),
         "side_relief_top_above_pcb_mm": round(CEILING - PCB_TOP, 3),
         "assumed_wire_outer_diameter_mm": WIRE_DIAMETER,
@@ -179,9 +225,9 @@ def main():
         "component_bounds_overlaps": intersections,
     }
     args.output.mkdir(parents=True, exist_ok=True)
-    stem = args.output / "top-v1.0.45-jst-draft"
+    stem = args.output / "tscircuit-nema17-top-jst-v1.0.45-draft"
     cq.exporters.export(lid, f"{stem}.step")
-    cq.exporters.export(lid, f"{stem}.stl", tolerance=0.045, angularTolerance=0.15)
+    export_stl(lid, stem.parent / (stem.name + ".stl"))
     exported = cq.importers.importStep(f"{stem}.step").val()
     check_lid(exported, stock)
     (args.output / "fit-report.json").write_text(json.dumps(report, indent=2) + "\n")

@@ -1,40 +1,42 @@
-# NEMA17 taller lid for PCB v1.0.45
+# Rounded NEMA17 lid for PCB v1.0.45
 
-This draft adapts the original plain v4 lid for the [RP2040 motor controller
+This fit-test draft adapts the plain v4 lid for the [RP2040 motor controller
 v1.0.45](https://tscircuit.com/imrishabh18/rp2040-motor-controller?version=1.0.45#3d).
-The v1.0.45 board has a top-entry JST PH B4B-PH-K-S at J1. The mating plug
-seats into that header above the PCB, and the four wires curve over the board
-edge through the raised side relief.
+The v1.0.45 board has a top-entry JST PH B4B-PH-K-S at J1. Plug the
+double-ended harness into J1, then lower the one-piece lid over the wires.
+The side notch remains open to the bottom edge of the lid.
 
-![JST pinch point and proposed side section](clearance-preview.png)
+## Draft downloads
 
-## Draft files
+The [Motorcontrol Assets page](../../../../dist/assets.html#enclosure-rounded-jst)
+lists the drafts and opens the STL in the existing 3D preview.
 
-- [Editable STEP](top-v1.0.45-jst-draft.step)
-- [STL for a fit print](top-v1.0.45-jst-draft.stl)
+- [Editable STEP](../../../../dist/assets/nema17-enclosure/tscircuit-nema17-top-jst-v1.0.45-draft.step)
+- [STL for a fit print](../../../../dist/assets/nema17-enclosure/tscircuit-nema17-top-jst-v1.0.45-draft.stl)
 - [CAD fit report](fit-report.json)
 
-The assembled case is 21.8 mm high from the existing base datum and uses the
-42 × 42 mm footprint, released base, both USB-C openings, and the original
-31 × 31 mm screw pattern. The 1.4 mm roof is solid. The existing 11.3 mm-wide
-side relief extends to 15.4 mm above the PCB. The M3 head seats stay at Z=8.6 mm,
-so the screw wells are deeper and require a tool that can reach the heads.
+The lid is 15.2 mm tall and the assembled case is 20.2 mm high from the
+existing base datum. The 42 × 42 mm footprint uses the released base,
+both USB-C openings and the original 31 × 31 mm screw pattern. The four
+outside corners have a 4 mm radius. The top perimeter is rounded by 0.8 mm,
+and the lower perimeter and outer notch edges are rounded by 0.25 mm.
+The 9.8 × 13.8 mm notch leaves a solid 1.4 mm roof. The M3 head seats stay at
+Z=8.6 mm, so the screw wells are deeper and require a driver that can reach them.
 
 ## Fit evidence
 
-The builder compares the lower lid section to the released v4 geometry,
-checks the through-bores and head seats, and intersects the lid and base with
-111 component bounds from the pinned board export. It also checks a mated
-plug envelope and four swept wire solids. The wire model assumes 1.5 mm
-insulation diameter, an 8.03 mm mated height above the board, and a 4.5 mm
-bend radius. Conservative roof headroom is 1.15 mm. The CAD separation
-between the modeled wires and the lid is 1.27 mm.
+The builder checks the two USB-C opening profiles above the bottom edge round,
+the through-bores and seats, and 111 component bounds from the pinned board
+export. It checks the mated plug envelope, four swept wires and a continuous
+vertical corridor for lowering the lid over the cable. The wire model assumes
+a 1.6 mm insulation diameter, an 8.03 mm mated height above the board and a
+3.35 mm bend radius. Conservative roof headroom is 0.65 mm. The modeled
+wire-to-lid gap is 0.66 mm.
 
 Measure the seated lab pigtail, its insulation and bend, and both USB-C
-overmolds before a fit print. Motor mounting and fastener engagement still
-need verification on the actual StepperOnline 17E1K-05. For a first print,
-check that a driver reaches the recessed heads and inspect the sliced roof
-and opening edges for supports.
+overmolds before a fit print. Check the rounded opening and tool access in the
+slicer. Motor mounting and fastener engagement still need verification on the
+StepperOnline 17E1K-05.
 
 ## Rebuild
 

@@ -1,4 +1,5 @@
 """Check that the public enclosure catalog serves complete, correctly sized CAD."""
+from collections import Counter
 import hashlib
 from html.parser import HTMLParser
 import json
@@ -49,7 +50,7 @@ class EnclosureAssetsTest(unittest.TestCase):
         catalog = json.loads((ASSETS / "catalog.json").read_text())
         links = Links((ROOT / "dist/assets.html").read_text()).urls
         self.assertEqual({p["id"] for p in catalog["parts"]},
-                         {"plain", "sticker", "bottom"})
+                         {"plain", "sticker", "rounded-jst", "bottom"})
         for part in catalog["parts"]:
             with self.subTest(part=part["id"]):
                 for kind in ("stl", "step"):
@@ -74,6 +75,30 @@ class EnclosureAssetsTest(unittest.TestCase):
                 for actual, expected in zip(bounds, [42, 42, part["height_mm"]]):
                     self.assertAlmostEqual(actual, expected, places=4)
                 self.assertTrue((ASSETS / part["step"]).read_bytes().startswith(b"ISO-10303-21;"))
+
+    def test_rounded_jst_lid_has_a_revision_specific_preview(self):
+        catalog = json.loads((ASSETS / "catalog.json").read_text())
+        part = next(part for part in catalog["parts"] if part["id"] == "rounded-jst")
+        self.assertEqual(part["board_revision"], "1.0.45")
+        page = (ROOT / "dist/assets.html").read_text()
+        self.assertIn('data-enclosure-preview="rounded-jst"', page)
+        self.assertIn('id="enclosure-preview-rounded-jst"', page)
+        self.assertIn("PCB v1.0.45 fit-test draft.", page)
+
+    def test_rounded_jst_stl_is_watertight(self):
+        catalog = json.loads((ASSETS / "catalog.json").read_text())
+        part = next(part for part in catalog["parts"] if part["id"] == "rounded-jst")
+        stl = (ASSETS / part["stl"]).read_bytes()
+        edges = Counter()
+        for (ax, ay, az, bx, by, bz, cx, cy, cz) in (
+            struct.unpack_from("<9f", stl, offset + 12)
+            for offset in range(84, len(stl), 50)
+        ):
+            vertices = [(ax, ay, az), (bx, by, bz), (cx, cy, cz)]
+            self.assertEqual(len(set(vertices)), 3)
+            edges.update(tuple(sorted((v, w))) for v, w in zip(vertices, vertices[1:] + vertices[:1]))
+        self.assertTrue(edges)
+        self.assertEqual(set(edges.values()), {2})
 
     def test_local_asset_links_and_label_provenance(self):
         links = Links((ROOT / "dist/assets.html").read_text()).urls
