@@ -1,0 +1,6 @@
+.native-footer { display:flex; align-items:center; gap: .8rem; padding:1rem; color:#344256; font:14px system-ui; }
+.native-footer img { height:auto; }
+.native-footer button, dialog button { cursor:pointer; }
+dialog { max-width:min(90vw, 34rem); padding:1.5rem; font:1rem system-ui; color:#172438; background:white; border:1px solid #b7c3d3; border-radius:8px; }
+dialog::backdrop { background:#182c4266; }
+dialog select { max-width:100%; }

@@ -263,3 +263,9 @@ clipping or conversion errors are excluded, never displayed as zero current.
 
 Run `node tests/test_current_chart.cjs` and `scripts/test_native.sh` for graph
 aggregation and native capture-statistics regression checks.
+
+## Motorcontrol Desktop
+
+[Native USB dashboards, NEMA17 firmware updates and desktop builds](desktop/README.md)
+
+[NEMA17 kit booklet](dist/manual/NEMA17-Kit-Booklet.pdf) · [Duplex print sheet](dist/manual/NEMA17-Kit-Booklet-Duplex-Print.pdf) · [Editable Word file](docs/manual/NEMA17-Kit-Booklet.docx)
