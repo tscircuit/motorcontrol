@@ -1,0 +1,23 @@
+{
+  "rp2040_drv8825_pd": {
+    "file": "drv8825-pd.uf2",
+    "version": "1.0.23",
+    "build": "6c893b561e5ceb01",
+    "sha256": "3851987adbb20eb3806fe0de60d4077ffd7ca4255828dc995b1fb8191d99f348",
+    "commit": "ac88b95203527329d89be8bf36ebe48b5f701212"
+  },
+  "rp2040_drv8825": {
+    "file": "drv8825.uf2",
+    "version": "1.0.17",
+    "build": "02dfc32b877c0ad5",
+    "sha256": "fb3b94a7ed10e7b3617b33ddf83901169410bf520ebdce08433fa527de7da292",
+    "commit": "b561ae08df29f5218a222a029417b1bec31d84bf"
+  },
+  "rp2040_drv8847": {
+    "file": "drv8847.uf2",
+    "version": "1.0.17",
+    "build": "7c6a9f17924dbcc2",
+    "sha256": "9a2d55fd01cd3abb3a92c62a618f1b78476d29a847a210bf1b30646a04b596aa",
+    "commit": "b561ae08df29f5218a222a029417b1bec31d84bf"
+  }
+}
