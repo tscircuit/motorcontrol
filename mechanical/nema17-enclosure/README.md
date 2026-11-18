@@ -22,6 +22,8 @@ including the 1.6 mm PCB. The original CAD coordinates are retained; a slicer
 should place each imported part on the bed rather than treating assembly Z as
 a required print height.
 
+For the older board with the top-entry connector, see the [v1.0.45 JST lid draft](prototypes/v1.0.45-jst/README.md).
+
 ## First fit print
 
 Choose the **plain top** for a flat exterior without the sticker indentation.

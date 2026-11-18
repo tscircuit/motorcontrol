@@ -1,0 +1,25 @@
+{
+  "status": "Draft; physical fit and motor mounting pending",
+  "board_version": "1.0.45",
+  "case_footprint_mm": [
+    42,
+    42
+  ],
+  "case_height_mm": 21.8,
+  "roof_thickness_mm": 1.4,
+  "side_relief_width_mm": 11.3,
+  "side_relief_top_above_pcb_mm": 15.4,
+  "assumed_wire_outer_diameter_mm": 1.5,
+  "assumed_minimum_bend_radius_mm": 4.5,
+  "assumed_mated_connector_height_mm": 8.03,
+  "conservative_roof_headroom_mm": 1.15,
+  "modeled_wire_to_lid_distances_mm": [
+    1.267,
+    1.267,
+    1.267,
+    1.267
+  ],
+  "modeled_mated_plug_to_lid_distance_mm": 1.606,
+  "mated_plug_vertical_gap_above_other_components_mm": 1.396,
+  "component_bounds_overlaps": []
+}
