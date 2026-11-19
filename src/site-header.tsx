@@ -30,7 +30,7 @@ export function SiteHeader({ page }: { page: string }) {
     <header className="siteHeader">
       <nav className="siteNav" aria-label="Motorcontrol">
         <a className="brand" href="/">
-          <img src="assets/tscircuit-mark.png" width="30" height="30" alt="tscircuit" />
+          <img fetchPriority="low" src="assets/tscircuit-mark.png" width="30" height="30" alt="tscircuit" />
           Motorcontrol
         </a>
         <div className="navItems">
