@@ -1,15 +1,26 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BLDC · Motor control</title><meta name="description" content="Direct USB control for the RP2040 MCT8329A single BLDC motor controller."><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="bldc.css"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BLDC · Motor control</title><meta name="description" content="Direct USB control for the RP2040 MCT8329A single BLDC motor controller."><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="nav.css"><link rel="stylesheet" href="bldc.css"></head>
 <body class="bldc-page">
 <header class="siteHeader">
-  <nav class="siteNav" aria-label="Motorcontrol">
-    <a href="/">Motorcontrol</a>
+  <nav class="siteNav" aria-label="Site">
+    <a class="siteBrand" href="/"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#3b82f6"/><path d="M5 20h6l4-11 5 17 3-6h4" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>Motorcontrol</a>
+    <span class="siteNavMain">
+      <a href="/">Get started</a>
+      <a href="/#dashboards" aria-current="true">Dashboards</a>
+      <a href="firmware.html">Firmware</a>
+      <a href="assets.html">Printable parts</a>
+    </span>
+    <span class="siteNavEnd">
+      <a href="manual/NEMA17-Kit-Booklet.pdf">Kit booklet</a>
+      <a href="https://github.com/tscircuit/motorcontrol">GitHub</a>
+    </span>
+  </nav>
+  <nav class="dashboardNav" aria-label="Dashboards">
+    <a href="bench.html">Motor bench</a>
     <a href="single-motor.html">Single stepper</a>
     <a href="gantry.html">Gantry</a>
     <a href="three-axis-gantry.html">3-axis gantry</a>
     <a href="bldc.html" aria-current="page">BLDC</a>
-    <a href="firmware.html">Firmware</a>
-    <a href="assets.html">Assets</a>
   </nav>
 </header>
 <main>

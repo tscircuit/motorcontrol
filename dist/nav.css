@@ -1,0 +1,123 @@
+/* Site header shared by every page, including the generated assets page.
+   Plain CSS so it does not depend on either page stylesheet. */
+.siteHeader {
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.siteNav,
+.dashboardNav {
+  box-sizing: border-box;
+  max-width: var(--page-width, 72rem);
+  margin: 0 auto;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+}
+
+.siteNav {
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.siteHeader a {
+  color: #475569;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.siteNavMain,
+.siteNavEnd {
+  display: flex;
+  gap: 4px;
+}
+
+.siteNav a {
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.siteNav a:hover,
+.dashboardNav a:hover {
+  color: #1d4ed8;
+}
+
+.siteHeader a:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.siteNav .siteBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+  padding-left: 0;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.siteBrand svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+
+.siteNav a[aria-current] {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 500;
+}
+
+/* Reference links sit apart from the pages you work in. */
+.siteNavEnd {
+  margin-left: auto;
+}
+
+/* Phones: brand and reference links on one row, pages on the next. */
+@media (max-width: 639px) {
+  .siteNavMain {
+    order: 1;
+    flex-basis: 100%;
+    margin-left: -10px;
+  }
+
+  .siteNavMain a[href="/"] {
+    display: none;
+  }
+
+  .siteNav .siteNavEnd a:last-child {
+    padding-right: 0;
+  }
+}
+
+/* Second row: switch between dashboards without going back to the list. */
+.dashboardNav {
+  gap: 20px;
+  overflow-x: auto;
+  border-top: 1px solid #f1f5f9;
+}
+
+.dashboardNav a {
+  padding: 9px 0 7px;
+  border-bottom: 2px solid transparent;
+}
+
+.dashboardNav a[aria-current="page"] {
+  border-bottom-color: #1d4ed8;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+@media (min-width: 640px) {
+  .siteNav,
+  .dashboardNav {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
