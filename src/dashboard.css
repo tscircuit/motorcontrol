@@ -26,38 +26,14 @@ body.firmware-page {
   --page-width: 56rem;
 }
 
-body.bldc-page {
+body.bldc-page,
+body.home-page {
   --page-width: 64rem;
 }
 
-.siteHeader {
-  @apply border-0 border-b border-solid border-slate-200 bg-white;
-}
-
-.siteNav,
 main {
   max-width: var(--page-width);
-  @apply mx-auto px-4 sm:px-6;
-}
-
-.siteNav {
-  @apply flex flex-wrap items-center gap-x-5 gap-y-2 py-3 text-sm;
-}
-
-.siteNav a {
-  @apply text-slate-600 no-underline hover:text-blue-700;
-}
-
-.siteNav a:first-child {
-  @apply mr-1 font-semibold text-slate-900 hover:text-blue-700;
-}
-
-.siteNav a[aria-current="page"] {
-  @apply rounded-md bg-blue-50 px-2 py-1 font-medium text-blue-700;
-}
-
-main {
-  @apply py-8;
+  @apply mx-auto px-4 py-8 sm:px-6;
 }
 
 .pageHeading {
@@ -149,6 +125,10 @@ select {
 
 .connection {
   @apply my-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600;
+}
+
+.connection a {
+  @apply sm:ml-auto;
 }
 
 #state {
@@ -278,6 +258,18 @@ details[open] > summary {
 
 .motionFooter {
   @apply mb-2 mt-4 flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm text-slate-600;
+}
+
+.motionPanel details {
+  @apply mt-2;
+}
+
+.motionPanel summary {
+  @apply text-xs font-normal text-slate-600;
+}
+
+.motionPanel details[open] > summary {
+  @apply mb-1;
 }
 
 #motionState {

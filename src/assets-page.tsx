@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { enclosureCatalog } from "./enclosure-catalog";
 import type { EnclosurePart } from "./enclosure-catalog";
 
@@ -45,41 +46,50 @@ function EnclosurePartRow({ part }: { part: EnclosurePart }) {
   );
 }
 
+const primaryLinks = [
+  { href: "/", label: "Get started" },
+  { href: "/#dashboards", label: "Dashboards" },
+  { href: "firmware.html", label: "Firmware" },
+  { href: "assets.html", label: "Printable parts" },
+];
+
+// Same markup as the static pages; dist/nav.css styles it.
 function Header() {
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <nav
-        aria-label="Motorcontrol"
-        className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 text-sm sm:px-6"
-      >
-        <a className="mr-1 font-semibold" href="/">
+    <header
+      className="siteHeader"
+      style={{ "--page-width": "56rem" } as CSSProperties}
+    >
+      <nav className="siteNav" aria-label="Site">
+        <a className="siteBrand" href="/">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="32" height="32" rx="8" fill="#3b82f6" />
+            <path
+              d="M5 20h6l4-11 5 17 3-6h4"
+              fill="none"
+              stroke="#fff"
+              strokeWidth="3"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          </svg>
           Motorcontrol
         </a>
-        <a
-          className="text-slate-600 hover:text-blue-700"
-          href="single-motor.html"
-        >
-          Single stepper
-        </a>
-        <a className="text-slate-600 hover:text-blue-700" href="gantry.html">
-          Gantry
-        </a>
-        <a className="text-slate-600 hover:text-blue-700" href="three-axis-gantry.html">
-          3-axis gantry
-        </a>
-        <a className="text-slate-600 hover:text-blue-700" href="bldc.html">
-          BLDC
-        </a>
-        <a className="text-slate-600 hover:text-blue-700" href="firmware.html">
-          Firmware
-        </a>
-        <a
-          className="rounded-md bg-blue-50 px-2 py-1 font-medium text-blue-700"
-          aria-current="page"
-          href="assets.html"
-        >
-          Assets
-        </a>
+        <span className="siteNavMain">
+          {primaryLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              aria-current={link.href === "assets.html" ? "page" : undefined}
+            >
+              {link.label}
+            </a>
+          ))}
+        </span>
+        <span className="siteNavEnd">
+          <a href="manual/NEMA17-Kit-Booklet.pdf">Kit booklet</a>
+          <a href="https://github.com/tscircuit/motorcontrol">GitHub</a>
+        </span>
       </nav>
     </header>
   );
@@ -248,8 +258,9 @@ export function AssetsPage() {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="color-scheme" content="light" />
-        <title>Assets · Motorcontrol</title>
+        <title>Printable parts · Motorcontrol</title>
         <link rel="stylesheet" href="assets/viewer.css" />
+        <link rel="stylesheet" href="nav.css" />
         <script type="importmap">
           {JSON.stringify({
             imports: { three: "./vendor/three/three.module.min.js" },
@@ -259,7 +270,9 @@ export function AssetsPage() {
       <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
         <Header />
         <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-          <h1 className="text-2xl font-semibold tracking-tight">Assets</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Printable parts
+          </h1>
           <p className="mt-1 text-sm text-slate-600">
             Download printable motor spacers and the NEMA17 controller
             enclosure.

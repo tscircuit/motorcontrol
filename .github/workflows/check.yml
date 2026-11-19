@@ -30,6 +30,7 @@ jobs:
       - run: node tests/test_bldc.cjs
       - run: node tests/test_bldc_faults.cjs
       - run: node tests/test_dashboard.cjs
+      - run: node tests/test_site_nav.cjs
       - run: node tests/test_song.cjs
       - run: node --check dist/gantry.js
       - run: node tests/test_single_motor.cjs

@@ -1,0 +1,481 @@
+/* Get started page. Loaded after style.css.
+   Blue marks DATA and amber marks PWR everywhere on this page. */
+.home-page {
+  --data: #2563eb;
+  --data-tint: #eff6ff;
+  --pwr: #f59e0b;
+  --pwr-ink: #92400e;
+  --pwr-tint: #fffbeb;
+}
+
+.home-page main {
+  padding-bottom: 64px;
+}
+
+.home-page h2 {
+  margin: 0 0 16px;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.home-page main p {
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.home-page b {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Hero */
+.hero {
+  display: grid;
+  gap: 32px;
+  align-items: center;
+  padding: 24px 0 40px;
+}
+
+.hero h1 {
+  margin: 0 0 16px;
+  max-width: 12em;
+  font-size: clamp(34px, 5.2vw, 52px);
+  line-height: 1.04;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.hero .lead {
+  max-width: 30em;
+  font-size: 18px;
+  line-height: 28px;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin: 24px 0 12px;
+}
+
+.cta {
+  padding: 11px 18px;
+  border-radius: 8px;
+  background: #1d4ed8;
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cta:hover {
+  background: #1e40af;
+  color: #fff;
+}
+
+.home-page main .browserNote {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.home-page main .browserNote.unsupported {
+  max-width: 34em;
+  padding: 12px 14px;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  background: var(--pwr-tint);
+  color: var(--pwr-ink);
+}
+
+/* Hookup diagram */
+.hookup {
+  margin: 0;
+}
+
+.hookup svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: inherit;
+}
+
+.hookup text {
+  font-size: 16px;
+  font-weight: 500;
+  text-anchor: middle;
+  fill: #0f172a;
+}
+
+.hookup .part text {
+  font-size: 14px;
+  font-weight: 400;
+  fill: #475569;
+}
+
+.hookup .source rect {
+  fill: #fff;
+  stroke: #cbd5e1;
+  stroke-width: 1.5;
+}
+
+.hookup .cable {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.hookup .cable.data {
+  stroke: var(--data);
+}
+
+.hookup .cable.pwr {
+  stroke: var(--pwr);
+}
+
+.hookup .board {
+  fill: #0f172a;
+}
+
+.hookup .port text {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.hookup .port.data rect {
+  fill: var(--data);
+}
+
+.hookup .port.data text {
+  fill: #fff;
+}
+
+.hookup .port.pwr rect {
+  fill: var(--pwr);
+}
+
+.hookup .port.pwr text {
+  fill: #451a03;
+}
+
+.hookup .motorFace {
+  fill: #fff;
+  stroke: #cbd5e1;
+  stroke-width: 1.5;
+}
+
+.hookup .screws circle {
+  fill: #f1f5f9;
+  stroke: #cbd5e1;
+  stroke-width: 1.5;
+}
+
+.hookup .boss {
+  fill: #f8fafc;
+  stroke: #e2e8f0;
+  stroke-width: 1.5;
+}
+
+/* One tick per full step: 200 around the shaft, 50 in the highlighted quarter. */
+.hookup .ticks {
+  fill: none;
+  stroke: #cbd5e1;
+  stroke-width: 9;
+  stroke-dasharray: 0.3 0.7;
+  stroke-dashoffset: 0.15;
+}
+
+.hookup .ticks.quarter {
+  stroke: var(--data);
+}
+
+.hookup .shaft {
+  transform: rotate(90deg);
+  transform-origin: 440px 150px;
+}
+
+.hookup .shaft path {
+  stroke: #0f172a;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.hookup .shaft circle {
+  fill: #0f172a;
+}
+
+.hookup figcaption {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+  color: #475569;
+}
+
+/* The shaft steps through the same move the guide asks for: 50 steps at 40 steps/sec. */
+@media (prefers-reduced-motion: no-preference) {
+  .hookup .shaft {
+    animation: quarter-turn 1.25s steps(50, end) 0.9s backwards;
+  }
+}
+
+@keyframes quarter-turn {
+  from {
+    transform: rotate(0deg);
+  }
+}
+
+/* Safety */
+.home-page main .safety {
+  margin: 0 0 48px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--pwr);
+  border-radius: 0 8px 8px 0;
+  background: var(--pwr-tint);
+  color: #451a03;
+}
+
+.safety strong {
+  font-weight: 600;
+}
+
+/* First move */
+.guide {
+  display: grid;
+  gap: 40px;
+  margin-bottom: 56px;
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps li {
+  position: relative;
+  counter-increment: step;
+  padding: 0 0 24px 52px;
+}
+
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: -3px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #0f172a;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 34px;
+  text-align: center;
+}
+
+/* The line joining one step to the next. */
+.steps li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 37px;
+  bottom: 3px;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.steps h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.steps p,
+.home-page main .afterSteps {
+  max-width: 34em;
+}
+
+.tag {
+  display: inline-block;
+  margin-left: 2px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
+}
+
+.tag.data {
+  background: var(--data);
+  color: #fff;
+}
+
+.tag.pwr {
+  background: var(--pwr);
+  color: #451a03;
+}
+
+.home-page main .afterSteps {
+  padding-left: 52px;
+}
+
+/* Troubleshooting. style.css gives every aside the panel look. */
+.home-page aside {
+  align-self: start;
+}
+
+.home-page aside h2 {
+  margin-bottom: 8px;
+  font-size: 17px;
+}
+
+.home-page aside details {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.home-page aside summary {
+  padding: 12px 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: #0f172a;
+}
+
+.home-page aside details[open] > summary {
+  margin-bottom: 0;
+}
+
+.home-page aside details p {
+  padding-bottom: 14px;
+}
+
+.home-page main .helpMore {
+  margin-top: 14px;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+/* Dashboards */
+.home-page main .sectionIntro {
+  max-width: 40em;
+  margin: -8px 0 16px;
+}
+
+.dashboards,
+.more ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboards {
+  margin-bottom: 56px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.dashboards li + li {
+  border-top: 1px solid #e2e8f0;
+}
+
+.dashboards a {
+  display: grid;
+  gap: 2px 20px;
+  padding: 16px 18px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.dashboards li:first-child a {
+  border-radius: 10px 10px 0 0;
+}
+
+.dashboards li:last-child a {
+  border-radius: 0 0 10px 10px;
+}
+
+.dashboards a:hover {
+  background: #f8fafc;
+}
+
+.dashboards a:hover b {
+  color: #1d4ed8;
+}
+
+.dashboards b {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.dashboards span {
+  font-size: 15px;
+  line-height: 24px;
+  color: #475569;
+}
+
+.dashboards i {
+  font-style: normal;
+  font-size: 14px;
+  line-height: 24px;
+  color: #475569;
+}
+
+/* Reference links */
+.more ul {
+  display: grid;
+  gap: 20px 32px;
+}
+
+.more a {
+  display: block;
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.more span {
+  display: block;
+  max-width: 30em;
+  font-size: 14px;
+  line-height: 22px;
+  color: #475569;
+}
+
+@media (min-width: 640px) {
+  .dashboards a {
+    grid-template-columns: 9.5em minmax(0, 1fr) 5.5em;
+    align-items: baseline;
+  }
+
+  .dashboards i {
+    text-align: right;
+  }
+
+  .more ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .hero {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: 48px;
+    padding: 48px 0 56px;
+  }
+
+  .guide {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 56px;
+  }
+
+  .more ul {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
