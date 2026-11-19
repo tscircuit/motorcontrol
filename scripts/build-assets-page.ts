@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { SiteHeader } from "../src/site-header";
 import { AssetsPage } from "../src/assets-page";
 import { enclosureCatalog } from "../src/enclosure-catalog";
 
@@ -16,6 +17,16 @@ async function main(): Promise<void> {
         filename,
       );
     }
+  }
+  // The dashboards ship as static HTML. Stamp the same navigable header into
+  // each one so the links also work before JavaScript loads.
+  for (const page of ["index.html", "motor-bench.html", "single-motor.html", "gantry.html",
+    "three-axis-gantry.html", "bldc.html", "firmware.html"]) {
+    const path = `dist/${page}`;
+    const html = await readFile(path, "utf8");
+    const header = /<header class="siteHeader">[\s\S]*?<\/header>/;
+    assert.match(html, header, `Missing site header in ${page}`);
+    await writeFile(path, html.replace(header, renderToStaticMarkup(createElement(SiteHeader, { page }))));
   }
   await writeFile(
     "dist/assets.html",

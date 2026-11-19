@@ -1,3 +1,4 @@
+import { SiteHeader } from "./site-header";
 import { enclosureCatalog } from "./enclosure-catalog";
 import type { EnclosurePart } from "./enclosure-catalog";
 
@@ -42,46 +43,6 @@ function EnclosurePartRow({ part }: { part: EnclosurePart }) {
         </p>
       </div>
     </li>
-  );
-}
-
-function Header() {
-  return (
-    <header className="border-b border-slate-200 bg-white">
-      <nav
-        aria-label="Motorcontrol"
-        className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 text-sm sm:px-6"
-      >
-        <a className="mr-1 font-semibold" href="/">
-          Motorcontrol
-        </a>
-        <a
-          className="text-slate-600 hover:text-blue-700"
-          href="single-motor.html"
-        >
-          Single stepper
-        </a>
-        <a className="text-slate-600 hover:text-blue-700" href="gantry.html">
-          Gantry
-        </a>
-        <a className="text-slate-600 hover:text-blue-700" href="three-axis-gantry.html">
-          3-axis gantry
-        </a>
-        <a className="text-slate-600 hover:text-blue-700" href="bldc.html">
-          BLDC
-        </a>
-        <a className="text-slate-600 hover:text-blue-700" href="firmware.html">
-          Firmware
-        </a>
-        <a
-          className="rounded-md bg-blue-50 px-2 py-1 font-medium text-blue-700"
-          aria-current="page"
-          href="assets.html"
-        >
-          Assets
-        </a>
-      </nav>
-    </header>
   );
 }
 
@@ -250,6 +211,8 @@ export function AssetsPage() {
         <meta name="color-scheme" content="light" />
         <title>Assets · Motorcontrol</title>
         <link rel="stylesheet" href="assets/viewer.css" />
+        <link rel="stylesheet" href="site-nav.css" />
+        <script defer src="site-nav.js" />
         <script type="importmap">
           {JSON.stringify({
             imports: { three: "./vendor/three/three.module.min.js" },
@@ -257,7 +220,7 @@ export function AssetsPage() {
         </script>
       </head>
       <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
-        <Header />
+        <SiteHeader page="assets.html" />
         <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
           <h1 className="text-2xl font-semibold tracking-tight">Assets</h1>
           <p className="mt-1 text-sm text-slate-600">
