@@ -1,0 +1,65 @@
+.kitGuide { display: none; }
+#benchTitle, .kitSetup #kitTitle { color: inherit; font: inherit; }
+.kitSetup { background: #f7f9fc; }
+.kitSetup main {
+  max-width: 48rem;
+  margin: clamp(1rem, 4vw, 3rem) auto;
+  padding: clamp(1.15rem, 4vw, 2.5rem);
+  border: 1px solid #dce4ee;
+  border-radius: 1rem;
+  background: #fff;
+}
+.kitSetup .kitGuide { display: block; }
+.kitSetup .kitLabel {
+  color: #285bc2;
+  font: 600 .8rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.kitSteps {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.6rem;
+  padding: 0 0 1.25rem;
+  border-bottom: 1px solid #dde4ed;
+  margin: .9rem 0 1.75rem;
+}
+.kitSteps li {
+  display: inline-flex;
+  gap: .4rem;
+  align-items: center;
+  color: #5a687a;
+  font-size: .875rem;
+}
+.kitSteps li > span {
+  display: inline-grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: #edf1f6;
+}
+.kitSteps li[aria-current] { color: #1949a5; font-weight: 650; }
+.kitSteps li[aria-current] > span { background: #2356c7; color: #fff; }
+.kitSetup .pageHeading { align-items: flex-start; }
+.kitSetup .pageHeading h1 { margin-bottom: .75rem; font-size: clamp(1.7rem, 4vw, 2.4rem); line-height: 1.1; }
+.kitSetup #kitInstruction { color: #46566d; line-height: 1.6; font-size: 1.025rem; }
+.kitSetup #connect { min-height: 2.75rem; }
+.kitSetup .connection { margin: 1rem 0; }
+.kitSetup #kitHealth:not(:empty) { border-radius: .4rem; background: #fff5df; color: #794307; padding: .65rem .85rem; margin: 1rem 0; }
+.kitSetup :is(#boardLabel, #benchTitle, .pageHeading > a, main > details, .workspace, .currentCharts, main > .jogPanel, .resourceLinks, .metrics,
+  .stallControls, label[for="ledColor"], #ledColor, #applyLed, [data-default-power-note],
+  .motionControls > div:not(.motionActions), #timingStatus, #stepNote, .motionPanel > p:last-child, footer span:last-child) { display: none; }
+.kitSetup .motionActions { grid-column: 1 / -1; }
+.kitSetup .motionPanel, .kitSetup #hardwarePanel { margin: 1rem 0 0; background: #f7f9fc; }
+.kitSetup:not([data-kit-step="power"]) #hardwarePanel { display: none; }
+.kitSetup:not([data-kit-step="move"], [data-kit-step="done"]) .motionPanel { border: 0; padding: 0; margin: 0; background: transparent; }
+.kitSetup:not([data-kit-step="move"], [data-kit-step="done"]) .motionPanel :is(.sectionTitle, .motionFooter, p, #start, #stop:disabled) { display: none; }
+.kitSetup:not([data-kit-step="move"], [data-kit-step="done"]) .motionActions { margin: 0; }
+.kitSetup .kitLinks { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem 1rem; padding-top: 1rem; border-top: 1px solid #dde4ed; }
+.kitLinks a { font-size: .9rem; }
+@media (max-width: 49rem) {
+  .kitSetup main { margin: 1rem; }
+  .kitSteps { gap: .6rem .85rem; }
+}

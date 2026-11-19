@@ -27,7 +27,7 @@ class EnclosureAssetsTest(unittest.TestCase):
     def test_removed_wordmark_variant_and_card_images_are_not_published(self):
         page = (ROOT / "dist/assets.html").read_text()
         self.assertNotIn("enclosure-recessed", page)
-        self.assertNotIn("<img", page)
+        self.assertNotIn("<img", page.split("</header>", 1)[1])  # Catalog cards stay text-only.
         for filename in ("tscircuit-nema17-top-recessed-v4.stl",
                          "tscircuit-nema17-top-recessed-v4.step",
                          "recessed-preview.webp", "laser-preview.webp",

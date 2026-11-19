@@ -57,3 +57,43 @@ context.packet=JSON.stringify({...modern,motor_enabled:true,motor_power_ready:tr
 assert.equal(element('applyPd').disabled,true);assert.equal(element('applyLed').disabled,false);
 run('lastSeen=0;controls()');assert.equal(element('applyPd').disabled,true);assert.equal(element('applyLed').disabled,true);
 console.log('PASS DRV8825 RGB/current controls, power settling, motion and stale gating');
+
+// Exercise the quick start with the same receive/controls path as the full bench.
+context.URL = URL;
+context.location = { href: "https://example.test/motor-bench.html?setup=nema17" };
+context.history = { replaceState() {} };
+context.document.body = { classList: { add() {}, remove() {} }, dataset: {} };
+context.document.querySelectorAll = () => [];
+const kitScript = fs.readFileSync(__dirname + "/../dist/kit-setup.js", "utf8");
+const kitBoard = {
+ ...modern, board_id: "rp2040_drv8825_pd",
+ capabilities: { ...modern.capabilities, full_steps_per_revolution: 200 },
+};
+const step = () => context.document.body.dataset.kitStep;
+function receiveKit(fields) {
+ context.packet = JSON.stringify({ ...kitBoard, ...fields });
+ run("receive(packet)");
+}
+vm.runInContext(kitScript, context);
+assert.equal(step(), "connect");
+assert.equal(element("mode").value, "steps");
+assert.equal(element("steps").value, "50");
+assert.equal(element("speed").value, "40");
+receiveKit({ motor_power_ready: false });
+assert.equal(step(), "power");
+assert.equal(element("start").disabled, true);
+receiveKit({ motor_power_ready: true, alarm_active: true });
+assert.equal(element("start").disabled, true);
+receiveKit({ motor_power_ready: true });
+assert.equal(step(), "move");
+assert.equal(element("start").disabled, false);
+receiveKit({ motor_power_ready: true, motor_enabled: true });
+receiveKit({ motor_power_ready: true, steps_executed: 50, stop_reason: "Step move complete" });
+assert.equal(step(), "done");
+run("lastSeen=0;controls()");
+assert.equal(step(), "connect");
+assert.equal(element("start").disabled, true);
+receiveKit({ board_id: "rp2040_drv8452_nema23" });
+assert.equal(context.window.kitSetup, undefined);
+assert.ok(run("port"), "Leaving the guide retains the connected port");
+console.log("PASS quick start presets, power, alarm, completion, stale telemetry and board fallback");

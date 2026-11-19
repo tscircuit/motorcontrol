@@ -18,6 +18,10 @@ a.send=async(cmd,fields)=>{calls.push({cmd,fields});if(cmd==='jog')a.last.motor_
 const event=key=>({key,code:key,repeat:false,target:{tagName:'BODY'},preventDefault(){}});
 const flush=()=>new Promise(r=>setImmediate(r));
 (async()=>{
+ const menuEvent=event('ArrowDown');
+ menuEvent.target={tagName:'SUMMARY',closest:()=>({})};
+ listeners.keydown(menuEvent);listeners.keyup(menuEvent);await flush();
+ assert.equal(calls.length,0,'Navigating the header must not jog the motor');
  for(const [key,direction] of [['ArrowUp',1],['ArrowRight',1],['ArrowDown',-1],['ArrowLeft',-1]]){
   listeners.keydown(event(key));await flush();
   assert.equal(calls.filter(c=>c.cmd==='jog').at(-1).fields.direction,direction,key);

@@ -1,0 +1,139 @@
+:root {
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #fff;
+  color: #15223b;
+  -webkit-font-smoothing: antialiased;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.welcome, .welcomeFooter {
+  max-width: 74rem;
+  padding-inline: clamp(1rem, 4vw, 2.5rem);
+  margin-inline: auto;
+}
+.welcome a, .welcomeFooter a { color: #224fae; text-underline-offset: .2em; }
+.welcome :is(a, summary):focus-visible, .welcomeFooter a:focus-visible {
+  outline: 3px solid #2363de;
+  outline-offset: 4px;
+}
+.welcomeHero {
+  display: grid;
+  grid-template-columns: 1fr 1.08fr;
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+  padding-block: clamp(2.5rem, 5vw, 4.75rem);
+}
+.kicker, .assemblyFigure figcaption span {
+  margin: 0;
+  font: 600 .8rem/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.kicker { color: #285bc2; }
+.welcome h1 {
+  margin: 1rem 0 1.1rem;
+  font-size: clamp(3.5rem, 6.1vw, 5.4rem);
+  font-weight: 650;
+  letter-spacing: -.072em;
+  line-height: .99;
+}
+.welcome h1 em { color: #2659c8; font-style: normal; }
+.intro {
+  max-width: 27rem;
+  margin: 0;
+  color: #4d5c72;
+  font-size: clamp(1.08rem, 1.5vw, 1.2rem);
+  line-height: 1.55;
+}
+.heroActions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.4rem; margin-top: 1.75rem; }
+.welcome .startLink, .benchLink {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  min-height: 2.95rem;
+  font-size: 1rem;
+  font-weight: 650;
+}
+.welcome .startLink {
+  padding-inline: 1.15rem;
+  color: white;
+  background: #2356c7;
+  border-radius: .5rem;
+  text-decoration: none;
+}
+.welcome .startLink:hover { background: #163f9b; }
+.welcome .benchLink { color: #33465e; text-decoration-color: #b5c0d0; }
+.welcome svg { width: 1.15rem; height: 1.15rem; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.browserNote { margin: 1rem 0 0; display: flex; align-items: center; gap: .45rem; color: #5f6b7c; font-size: .875rem; line-height: 1.45; }
+.browserNote svg { width: 1rem; height: 1rem; }
+.assemblyFigure {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  aspect-ratio: 1.33;
+  border-radius: 1rem;
+  color: #fff;
+  background-color: #234ca7;
+  background-image: linear-gradient(#a9caff14 1px, transparent 1px), linear-gradient(90deg, #a9caff14 1px, transparent 1px), radial-gradient(ellipse at 58% 42%, #3762b7, #244da8 70%);
+  background-size: 24px 24px, 24px 24px, 100% 100%;
+}
+.assemblyArt { position: relative; flex: 1; min-height: 0; }
+.assemblyArt::before {
+  content: "";
+  position: absolute;
+  inset: 13% 20% 2%;
+  border: 1px dashed #b9d3ff52;
+  border-radius: 50%;
+  transform: rotate(-18deg);
+}
+.assemblyArt img { position: absolute; width: 82%; height: 87%; left: 9%; top: 9%; object-fit: contain; filter: drop-shadow(0 13px 8px #081e553b); }
+.assemblyFigure figcaption {
+  margin: 0 1.25rem;
+  padding: .8rem 0 .95rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  border-top: 1px solid #adc9ff63;
+}
+.assemblyFigure figcaption strong { font-weight: 550; font-size: .91rem; }
+.assemblyFigure figcaption span { color: #d7e7ff; font-size: .75rem; }
+.corner { position: absolute; top: 1.25rem; width: .7rem; height: .7rem; }
+.corner::before, .corner::after { content: ""; position: absolute; background: #b8d2fa; }
+.corner::before { width: 100%; height: 1px; top: 50%; }
+.corner::after { height: 100%; width: 1px; left: 50%; }
+.topLeft { left: 1.25rem; } .topRight { right: 1.25rem; }
+.workspaces { border-top: 1px solid #dce3eb; padding: 2.1rem 0 1.5rem; }
+.sectionHeading h2 { margin: 0; font-size: clamp(1.65rem, 3vw, 2rem); line-height: 1.2; font-weight: 620; letter-spacing: -.045em; }
+.sectionHeading p, .workspaceTile p, .connectionHelp p { color: #526175; line-height: 1.5; }
+.sectionHeading p { margin: .4rem 0 1.3rem; }
+.workspaceGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.welcome .workspaceTile { display: block; padding: 1.25rem; border: 1px solid #dce3eb; border-radius: .8rem; color: inherit; text-decoration: none; }
+a.workspaceTile:hover, .gantryTile:focus-within { border-color: #94b2ec; background: #f8faff; }
+.workspaceIcon { display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: .65rem; }
+.workspaceIcon svg { width: 1.5rem; height: 1.5rem; }
+.blue { color: #2459bf; background: #e8efff; }
+.teal { color: #177566; background: #e2f2ed; }
+.violet { color: #703cb0; background: #f1eafd; }
+.workspaceTile h3 { font-size: 1.18rem; letter-spacing: -.025em; font-weight: 650; margin: .9rem 0 .35rem; }
+.workspaceTile p { margin: 0; max-width: 29ch; }
+.connectionHelp { padding: .7rem 0 1.4rem; }
+.connectionHelp summary { cursor: pointer; color: #33465e; font-weight: 560; }
+.connectionHelp p { max-width: 48rem; }
+.welcomeFooter { display: flex; justify-content: space-between; gap: 1rem; color: #5c6a7c; font-size: .875rem; padding-block: 1.25rem; border-top: 1px solid #dce3eb; }
+.welcomeFooter a { color: inherit; }
+@media (max-width: 46rem) {
+  .welcomeHero { grid-template-columns: 1fr; gap: 1.65rem; }
+  .welcome h1 { font-size: clamp(3.5rem, 10vw, 4.5rem); }
+  .welcome h1 br { display: none; }
+  .assemblyFigure { aspect-ratio: 1.95; }
+  .workspaceGrid { grid-template-columns: 1fr; gap: .7rem; }
+  .welcome .workspaceTile { display: grid; grid-template-columns: auto 1fr; gap: 0 1rem; align-content: center; padding: 1rem; }
+  .workspaceIcon { grid-row: span 2; }
+  .workspaceTile h3 { margin: 0 0 .2rem; }
+  .workspaceTile p { max-width: none; }
+}
