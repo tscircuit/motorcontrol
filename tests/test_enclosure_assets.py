@@ -25,10 +25,12 @@ class Links(HTMLParser):
 
 
 class EnclosureAssetsTest(unittest.TestCase):
-    def test_nema14_contour_downloads_and_encoder_bore(self):
+    def test_nema14_wago_downloads_and_flat_spacer(self):
         assets = ROOT / "dist/assets/nema14-enclosure"
         catalog = json.loads((assets / "catalog.json").read_text())
-        links = Links((ROOT / "dist/assets.html").read_text()).urls
+        page = (ROOT / "dist/assets.html").read_text()
+        links = Links(page).urls
+        self.assertIn("NEMA14 WAGO controller enclosure", page)
         self.assertEqual(catalog["footprint_mm"], [35.2, 35.2])
         self.assertEqual(catalog["mounting_pitch_mm"], 26)
         self.assertEqual({part["id"] for part in catalog["parts"]}, {"top", "bottom"})
@@ -54,14 +56,25 @@ class EnclosureAssetsTest(unittest.TestCase):
                     size = max(v[axis] for v in vertices) - min(v[axis] for v in vertices)
                     self.assertAlmostEqual(size, expected, places=4)
                 if part["id"] == "bottom":
-                    self.assertAlmostEqual(min(math.hypot(x, y) for x, y, _ in vertices),
-                                           5.5, places=3)
-                    for triangle in triangles:
-                        # A nonzero projected face covering (0, 0) would block the bore.
-                        cross = [a[0] * b[1] - a[1] * b[0]
-                                 for a, b in zip(triangle, triangle[1:] + triangle[:1])]
-                        self.assertFalse(abs(sum(cross)) > 1e-9
-                                         and (min(cross) >= 0 or max(cross) <= 0))
+                    self.assertEqual(part["height_mm"], 3.3)
+                    self.assertEqual(len({round(v[2], 4) for v in vertices}), 2)
+                    holes = [(0, 0, 11.3)] + [
+                        (x, y, 3.1) for x in (-13, 13) for y in (-13, 13)
+                    ]
+                    for cx, cy, radius in holes:
+                        self.assertAlmostEqual(
+                            min(math.hypot(x - cx, y - cy) for x, y, _ in vertices),
+                            radius,
+                            places=3,
+                        )
+                        for triangle in triangles:
+                            # A projected face covering the axis would block this hole.
+                            cross = [
+                                (a[0] - cx) * (b[1] - cy) - (a[1] - cy) * (b[0] - cx)
+                                for a, b in zip(triangle, triangle[1:] + triangle[:1])
+                            ]
+                            self.assertFalse(abs(sum(cross)) > 1e-9
+                                             and (min(cross) >= 0 or max(cross) <= 0))
 
     def test_removed_wordmark_variant_and_card_images_are_not_published(self):
         page = (ROOT / "dist/assets.html").read_text()

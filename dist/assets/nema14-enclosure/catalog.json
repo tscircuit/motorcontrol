@@ -18,17 +18,17 @@
     },
     {
       "id": "bottom",
-      "title": "Contour bottom spacer",
+      "title": "Contour flat bottom spacer",
       "stl": "tscircuit-nema14-contour-bottom-v1.stl",
       "step": "tscircuit-nema14-contour-bottom-v1.step",
-      "notes": "Centered Ø11 mm through-hole for encoder and magnet clearance.",
-      "height_mm": 5.79
+      "notes": "Ø22.6 mm center opening and four straight Ø6.2 mm bolt holes.",
+      "height_mm": 3.3
     }
   ],
   "sha256": {
     "tscircuit-nema14-contour-top-v1.stl": "6e8cb2196cc804aeabfcb6d4df6c13d9edc5e18698d0a479529aa006e44ddb90",
     "tscircuit-nema14-contour-top-v1.step": "e8c633e65f7a45d843d407d1116c604c0a0b23e3d484b15d0fa6b04c3506e217",
-    "tscircuit-nema14-contour-bottom-v1.stl": "b3ef3d7c3722579fb501e233241f061330357be572aabfbd5733a90c42a3c534",
-    "tscircuit-nema14-contour-bottom-v1.step": "ce18127f8dd42103578eb8374d6c06164bc8ecedf6d19ac352daa0d0359fc321"
+    "tscircuit-nema14-contour-bottom-v1.stl": "41b475c9aa8165437c086d4f8e779cd15890b44722f4b7e7bc47528e26f9941c",
+    "tscircuit-nema14-contour-bottom-v1.step": "514781acdae1dbed18d626483fd5bfc4c4d486b9e2d000ae27933a1787d6cacb"
   }
 }

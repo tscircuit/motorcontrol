@@ -132,14 +132,13 @@ function Nema14EnclosureSection() {
   return (
     <section aria-labelledby="nema14-enclosure-heading" className="mt-5">
       <h2 id="nema14-enclosure-heading" className="text-2xl font-semibold tracking-tight">
-        NEMA14 RP2040 V2 controller enclosure
+        NEMA14 WAGO controller enclosure
       </h2>
       <p className="mt-1 text-sm text-slate-600">
         {footprint} mm · {catalog.mounting_pitch_mm} mm bolt pitch · Contour fit-test draft
-        for PCB {catalog.board_revision}.
       </p>
       <ul
-        aria-label="NEMA14 enclosure parts"
+        aria-label="NEMA14 WAGO enclosure parts"
         className="mt-5 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white"
       >
         {catalog.parts.map((part) => (
@@ -153,8 +152,8 @@ function Nema14EnclosureSection() {
         ))}
       </ul>
       <p className="mt-3 text-sm text-slate-600">
-        Check cable seating, rear motor attachment, and the encoder magnet air
-        gap with the actual hardware.{" "}
+        Use separate 2.5 mm PCB standoffs to clear the WAGO solder tails. Check
+        rear motor attachment and encoder magnet clearance with the actual hardware.{" "}
         <a
           className={linkClass}
           href="https://github.com/tscircuit/motorcontrol/tree/main/mechanical/nema14-enclosure"
