@@ -6,11 +6,12 @@ const linkClass = "text-blue-700 underline";
 const assetRoot = "assets/nema17-enclosure/";
 
 function EnclosurePartRow({ part }: { part: EnclosurePart }) {
+  const [width, depth] = part.footprint_mm ?? enclosureCatalog.footprint_mm;
   return (
     <li className="px-4 py-3" id={`enclosure-${part.id}`}>
       <h3 className="text-sm font-semibold">{part.title}</h3>
       <p className="mt-1 text-xs text-slate-600">
-        42 × 42 × {part.height_mm} mm · Ø3.6 mm bores.
+        {width} × {depth} × {part.height_mm} mm · Ø3.6 mm bores.
         {part.board_revision && <> PCB v{part.board_revision} fit-test draft.</>}{" "}
         {part.notes}
       </p>
@@ -58,7 +59,7 @@ function EnclosureSection() {
         NEMA17 controller enclosure
       </h2>
       <p className="mt-1 text-sm text-slate-600">
-        42 × 42 mm · 31 mm bolt pitch. The original v4 covers were modeled for
+        42 × 42 mm base · 31 mm bolt pitch. The original v4 covers were modeled for
         PCB v{enclosureCatalog.board_revision}. Check the board revision and
         motor before printing a batch.
       </p>

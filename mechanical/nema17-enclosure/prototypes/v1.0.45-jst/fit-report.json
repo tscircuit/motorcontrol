@@ -1,11 +1,18 @@
 {
   "status": "Draft; physical fit and motor mounting pending",
   "board_version": "1.0.45",
-  "case_footprint_mm": [
+  "base_footprint_mm": [
     42,
     42
   ],
+  "lid_footprint_mm": [
+    52.5,
+    42
+  ],
   "case_height_mm": 20.2,
+  "hood_projection_mm": 10.5,
+  "hood_outer_width_mm": 13.4,
+  "hood_outlet_direction": "downward through open underside",
   "roof_thickness_mm": 1.4,
   "outer_corner_radius_mm": 4.0,
   "roof_edge_radius_mm": 0.8,
@@ -19,10 +26,10 @@
   "assumed_mated_connector_height_mm": 8.03,
   "conservative_roof_headroom_mm": 0.65,
   "modeled_wire_to_lid_distances_mm": [
-    0.661,
-    0.661,
-    0.661,
-    0.661
+    0.65,
+    0.65,
+    0.65,
+    0.65
   ],
   "modeled_mated_plug_to_lid_distance_mm": 0.904,
   "mated_plug_vertical_gap_above_other_components_mm": 1.396,

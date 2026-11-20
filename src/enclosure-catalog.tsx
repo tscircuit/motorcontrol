@@ -6,6 +6,7 @@ export type EnclosurePart = {
   notes: string;
   height_mm: number;
   board_revision?: string;
+  footprint_mm?: readonly [number, number];
 };
 export type EnclosureCatalog = {
   revision: string;
@@ -45,13 +46,14 @@ export const enclosureCatalog: EnclosureCatalog = {
     },
     {
       id: "rounded-jst",
-      title: "Rounded top cover · open JST notch",
+      title: "Rounded top cover · JST wire hood",
       stl: "tscircuit-nema17-top-jst-v1.0.45-draft.stl",
       step: "tscircuit-nema17-top-jst-v1.0.45-draft.step",
       notes:
-        "One-piece lid with a solid roof. The open-bottom notch fits over a pre-crimped harness. 20.2 mm assembled height.",
+        "One-piece lid with a rounded side hood that covers the wire bend. The harness exits underneath. 20.2 mm assembled height.",
       height_mm: 15.2,
       board_revision: "1.0.45",
+      footprint_mm: [52.5, 42],
     },
     {
       id: "bottom",
@@ -72,9 +74,9 @@ export const enclosureCatalog: EnclosureCatalog = {
     "tscircuit-nema17-top-sticker-v4.step":
       "dc9e34c2bb9834f812cebb56aa3a3bdf58ba7caddbc7daba38fdf295f672bd91",
     "tscircuit-nema17-top-jst-v1.0.45-draft.stl":
-      "60d7f85b330a2318f5b4471ccd6c03eafb01b0a047e39ac32d5b48ce1d6a0723",
+      "9e781e44bd7c15da74e5828526dc2074d1d851ee6eb1af89fe7d478786faab90",
     "tscircuit-nema17-top-jst-v1.0.45-draft.step":
-      "2bddc6fe3c4eebda1150706e5d494e5ce6e519ff4a9c308af8b3c074d6a3b006",
+      "47708df980c99a34b835b5e0ebc04b39f1caba6efc7b82c0fa4240ac93e67ace",
     "tscircuit-nema17-bottom-v4.stl":
       "d17903ea9095163b85c737f05c5df93049944c757ce978f0401f665bb34e1100",
     "tscircuit-nema17-bottom-v4.step":

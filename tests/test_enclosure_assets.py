@@ -72,7 +72,8 @@ class EnclosureAssetsTest(unittest.TestCase):
                     vertices.extend([triangle[3:6], triangle[6:9], triangle[9:12]])
                 bounds = [max(v[i] for v in vertices) - min(v[i] for v in vertices)
                           for i in range(3)]
-                for actual, expected in zip(bounds, [42, 42, part["height_mm"]]):
+                footprint = part.get("footprint_mm", catalog["footprint_mm"])
+                for actual, expected in zip(bounds, [*footprint, part["height_mm"]]):
                     self.assertAlmostEqual(actual, expected, places=4)
                 self.assertTrue((ASSETS / part["step"]).read_bytes().startswith(b"ISO-10303-21;"))
 
@@ -84,6 +85,7 @@ class EnclosureAssetsTest(unittest.TestCase):
         self.assertIn('data-enclosure-preview="rounded-jst"', page)
         self.assertIn('id="enclosure-preview-rounded-jst"', page)
         self.assertIn("PCB v1.0.45 fit-test draft.", page)
+        self.assertIn("52.5 × 42 × 15.2 mm", page)
 
     def test_rounded_jst_stl_is_watertight(self):
         catalog = json.loads((ASSETS / "catalog.json").read_text())

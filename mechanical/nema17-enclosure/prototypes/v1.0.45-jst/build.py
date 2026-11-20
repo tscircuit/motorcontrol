@@ -21,11 +21,16 @@ CORNER_RADIUS = 4.0
 ROOF_EDGE_RADIUS = 0.8
 BOTTOM_EDGE_RADIUS = 0.25
 NOTCH_EDGE_RADIUS = 0.25
+HOOD_X = (19.0, 31.5)
+HOOD_Y = (-11.35, 2.05)
+HOOD_INNER_END = 30.1
 SCREW_SEAT = 8.6
 WIRE_DIAMETER = 1.6
 BEND_RADIUS = 3.35
 WIRE_X = 17.73
 WIRE_LAUNCH_Z = 14.0
+WIRE_TURN_DOWN_X = 24.0
+WIRE_EXIT_Z = 3.4
 WIRE_Y = (-7.65, -5.65, -3.65, -1.65)
 MATED_BOTTOM = PCB_TOP + 5.65
 MATED_TOP = PCB_TOP + 8.03
@@ -75,9 +80,24 @@ def round_notch(lid):
     return lid.fillet(NOTCH_EDGE_RADIUS, edges).clean()
 
 
+def build_wire_hood():
+    x0, x1 = HOOD_X
+    y0, y1 = HOOD_Y
+    shell = (cq.Workplane("XY", origin=((x0 + x1) / 2, (y0 + y1) / 2, PCB_TOP))
+             .rect(x1 - x0, y1 - y0).extrude(TOP - PCB_TOP)
+             .edges("|Z").fillet(1.6).edges(">Z").fillet(0.65)
+             .edges("<Z").fillet(BOTTOM_EDGE_RADIUS).val())
+    # The extension joins the lid along the roof. Keep its cheek walls and
+    # end wall outside the PCB outline and leave the underside open.
+    board_space = box(x0 - 0.1, y0 - 0.1, PCB_TOP - 0.1, 21, y1 + 0.1, CEILING)
+    wire_space = box(x0 - 0.1, OPENING_Y[0], PCB_TOP - 0.1,
+                     HOOD_INNER_END, OPENING_Y[1], CEILING)
+    return shell.cut(board_space, wire_space)
+
+
 def build_lid(stock):
-    # Keep the original USB-C cuts and lower post reliefs. Round the full
-    # exterior within the original 42 mm envelope.
+    # Keep the original USB-C cuts and lower post reliefs. The lid rounds
+    # into the 42 mm base outline, with the wire hood overhanging one side.
     overlap_z, splice_z = 9.80, 9.96
     outer = (rounded_prism(42, CORNER_RADIUS, PCB_TOP, TOP)
              .edges(">Z").fillet(ROOF_EDGE_RADIUS)
@@ -99,7 +119,7 @@ def build_lid(stock):
     ]
     notch = box(18.5, OPENING_Y[0], PCB_TOP - 0.1, 23, OPENING_Y[1], CEILING)
     lid = lower.fuse(upper, *jambs).intersect(outer).cut(notch).clean()
-    return cut_for_bolts(round_notch(lid)).clean()
+    return cut_for_bolts(round_notch(lid).fuse(build_wire_hood())).clean()
 
 
 def wire_envelope(y):
@@ -109,10 +129,15 @@ def wire_envelope(y):
     midpoint = cq.Vector(WIRE_X + BEND_RADIUS * (1 - math.cos(angle)), y,
                          WIRE_LAUNCH_Z + BEND_RADIUS * math.sin(angle))
     turn_end = cq.Vector(WIRE_X + BEND_RADIUS, y, WIRE_LAUNCH_Z + BEND_RADIUS)
-    exit_end = cq.Vector(27, y, turn_end.z)
+    down_start = cq.Vector(WIRE_TURN_DOWN_X, y, turn_end.z)
+    down_mid = cq.Vector(WIRE_TURN_DOWN_X + BEND_RADIUS * math.sin(angle), y,
+                         turn_end.z - BEND_RADIUS * (1 - math.cos(angle)))
+    down_end = cq.Vector(WIRE_TURN_DOWN_X + BEND_RADIUS, y, WIRE_LAUNCH_Z)
+    exit_end = cq.Vector(down_end.x, y, WIRE_EXIT_Z)
     path = cq.Wire.assembleEdges([
         cq.Edge.makeLine(start, rise), cq.Edge.makeThreePointArc(rise, midpoint, turn_end),
-        cq.Edge.makeLine(turn_end, exit_end),
+        cq.Edge.makeLine(turn_end, down_start), cq.Edge.makeThreePointArc(down_start, down_mid, down_end),
+        cq.Edge.makeLine(down_end, exit_end),
     ])
     profile = cq.Wire.makeCircle(WIRE_DIAMETER / 2, start, cq.Vector(0, 0, 1))
     return cq.Solid.sweep(profile, [], path)
@@ -121,7 +146,7 @@ def wire_envelope(y):
 def check_lid(lid, stock):
     assert lid.isValid() and len(lid.Solids()) == 1, "lid must be one valid solid"
     extent = bounds(lid)
-    for actual, expected in zip(extent, (-21, -21, PCB_TOP, 21, 21, TOP)):
+    for actual, expected in zip(extent, (-21, -21, PCB_TOP, HOOD_X[1], 21, TOP)):
         assert abs(actual - expected) < TOL, extent
 
     # Check the socket openings above the new bottom edge round.
@@ -130,8 +155,14 @@ def check_lid(lid, stock):
     assert original_usb.cut(new_usb).Volume() + new_usb.cut(original_usb).Volume() < TOL
     # The wire and mated plug are bounded by one clear vertical corridor.
     # The roof moves away from them as the lid is lifted.
-    corridor = box(15.77, -8.76, PCB_TOP - 0.01, 27.1, -0.54, CEILING)
+    wire_outer_x = WIRE_TURN_DOWN_X + BEND_RADIUS + WIRE_DIAMETER / 2
+    corridor = box(15.77, -8.76, WIRE_EXIT_Z, wire_outer_x + 0.01, -0.54, CEILING)
     assert lid.intersect(corridor).Volume() < TOL
+    # Confirm that the end wall shields the full wire run across the bend
+    # height, while the open underside remains in the assembly corridor.
+    shield = box(HOOD_INNER_END + 0.3, OPENING_Y[0] + 0.2, WIRE_LAUNCH_Z,
+                 HOOD_X[1] - 0.25, OPENING_Y[1] - 0.2, WIRE_LAUNCH_Z + BEND_RADIUS)
+    assert abs(lid.intersect(shield).Volume() - shield.Volume()) < TOL
     for x, y in MOUNT_CENTERS:
         shank = cq.Solid.makeCylinder(1.799, TOP + 0.1, cq.Vector(x, y, PCB_TOP))
         well = cq.Solid.makeCylinder(3.299, TOP - SCREW_SEAT, cq.Vector(x, y, SCREW_SEAT))
@@ -205,8 +236,12 @@ def main():
     report = {
         "status": "Draft; physical fit and motor mounting pending",
         "board_version": model["board_version"],
-        "case_footprint_mm": [42, 42],
+        "base_footprint_mm": [42, 42],
+        "lid_footprint_mm": [HOOD_X[1] + 21, 42],
         "case_height_mm": TOP,
+        "hood_projection_mm": round(HOOD_X[1] - 21, 3),
+        "hood_outer_width_mm": round(HOOD_Y[1] - HOOD_Y[0], 3),
+        "hood_outlet_direction": "downward through open underside",
         "roof_thickness_mm": 1.4,
         "outer_corner_radius_mm": CORNER_RADIUS,
         "roof_edge_radius_mm": ROOF_EDGE_RADIUS,
