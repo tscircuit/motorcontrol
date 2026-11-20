@@ -59,6 +59,9 @@ static double temperature;
 static int pd_voltage = 15, led_selection = -1;
 static double motor_voltage, data_voltage;
 static bool supply_sampled;
+#ifdef MOTOR_BOARD_A4988_V2
+static double winding_current[2];
+#endif
 #else
 static int pd_voltage = 5, led_selection = -1;
 #endif
@@ -139,15 +142,15 @@ static bool driver_fault(void) {
 }
 static bool read_reg(uint8_t reg, uint16_t *value) {
     uint8_t bytes[2];
-    if (i2c_write_timeout_us(i2c1, SENSOR_ADDRESS, &reg, 1, true, 2000) != 1 ||
-        i2c_read_timeout_us(i2c1, SENSOR_ADDRESS, bytes, 2, false, 2000) != 2)
+    if (i2c_write_timeout_us(TEMP_BUS, SENSOR_ADDRESS, &reg, 1, true, 2000) != 1 ||
+        i2c_read_timeout_us(TEMP_BUS, SENSOR_ADDRESS, bytes, 2, false, 2000) != 2)
         return false;
     *value = (bytes[0] << 8) | bytes[1];
     return true;
 }
 static bool write_reg(uint8_t reg, uint16_t value) {
     uint8_t bytes[] = {reg, value >> 8, value};
-    return i2c_write_timeout_us(i2c1, SENSOR_ADDRESS, bytes, 3, false, 2000) == 3;
+    return i2c_write_timeout_us(TEMP_BUS, SENSOR_ADDRESS, bytes, 3, false, 2000) == 3;
 }
 static bool sensor_verify(void) {
     uint16_t config, low, high;
@@ -157,7 +160,14 @@ static bool sensor_verify(void) {
 }
 static void sample(void) {
 #ifdef MOTOR_BOARD_A4988
-    /* The ADC is dedicated to rail sensing; this PCB has no current amplifiers. */
+#ifdef MOTOR_BOARD_A4988_V2
+    for (unsigned channel = 0; channel < 2; ++channel) {
+        adc_select_input(channel);
+        (void)adc_read();
+        /* INA240A1: 20 V/V, 50 milliohm shunt, reference at half supply. */
+        winding_current[channel] = (adc_read() / 4095.0 - 0.5) * 3.3 / (20.0 * 0.05);
+    }
+#endif
     adc_select_input(2);
     (void)adc_read();
     motor_voltage = adc_read() * (3.3 * 11.0 / 4095.0);
@@ -273,7 +283,11 @@ static bool emit(cJSON *o) {
     return ok;
 }
 static void currents(cJSON *o) {
-#if defined(MOTOR_BOARD_DRV8847) || defined(MOTOR_BOARD_A4988)
+#ifdef MOTOR_BOARD_A4988_V2
+    cJSON_AddItemToObject(o, "winding_current_a", cJSON_CreateDoubleArray(winding_current, 2));
+    add_number(o, "current_a", hypot(winding_current[0], winding_current[1]));
+    add_bool(o, "current_available", supply_sampled);
+#elif defined(MOTOR_BOARD_DRV8847) || defined(MOTOR_BOARD_A4988)
     null(o, "winding_current_a");
     null(o, "current_a");
     add_bool(o, "current_available", false);
@@ -453,7 +467,11 @@ static cJSON *capabilities(void) {
     add_bool(c, "current_stream_supported", false);
     add_bool(c, "pulse_test_supported", true);
     add_string(c, "step_note", "Fixed 1/16 hardware microsteps; selected increments group PIO pulses. Positions are commanded, not measured.");
+#ifdef MOTOR_BOARD_A4988_V2
+    add_string(c, "current_note", "Two sequential INA240 winding-current snapshots, nominal scaling.");
+#else
     add_string(c, "current_note", "No winding-current measurement on this PCB. ADC inputs measure supply voltages.");
+#endif
 #else
     add_number(c, "current_sample_hz", CURRENT_SAMPLE_HZ);
     add_bool(c, "current_stream_supported", true);
@@ -1382,16 +1400,20 @@ int main(void) {
 #if !defined(MOTOR_BOARD_DRV8847) && !defined(MOTOR_BOARD_A4988)
     current_capture_init();
 #endif
-    i2c_init(i2c1, 100000);
-    gpio_set_function(26, GPIO_FUNC_I2C);
-    gpio_set_function(27, GPIO_FUNC_I2C);
-    gpio_pull_up(26);
-    gpio_pull_up(27);
+    i2c_init(TEMP_BUS, 100000);
+    gpio_set_function(TEMP_SDA, GPIO_FUNC_I2C);
+    gpio_set_function(TEMP_SCL, GPIO_FUNC_I2C);
+    gpio_pull_up(TEMP_SDA);
+    gpio_pull_up(TEMP_SCL);
     sensor_initialized = write_reg(1, SENSOR_CONFIG) && write_reg(2, SENSOR_LOW_C * 256) &&
                          write_reg(3, SHUTDOWN_C * 256) && sensor_verify();
     sleep_ms(300);
 #ifdef MOTOR_BOARD_A4988
     adc_init();
+#ifdef MOTOR_BOARD_A4988_V2
+    adc_gpio_init(CURRENT_A_PIN);
+    adc_gpio_init(CURRENT_B_PIN);
+#endif
     adc_gpio_init(VM_SENSE_PIN);
     adc_gpio_init(DATA_PRESENT_PIN);
 #endif

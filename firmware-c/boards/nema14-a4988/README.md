@@ -52,3 +52,15 @@ These observations verify MCU-side command execution, not voltage at the A4988 p
 The PCB reference motor has 400 full steps/revolution, but NEMA frame size does not imply step angle. Set `-DMOTOR_FULL_STEPS_PER_REVOLUTION=200` for the user's 14HS13-0804S (1.8°, 0.8 A/phase), as confirmed by the [manufacturer](https://www.omc-stepperonline.com/nema-14-bipolar-1-8deg-18ncm-25-5oz-in-0-8a-5-4v-35x35x34mm-4-wires-14hs13-0804s). Firmware 1.0.20 adds this build override; absent an override, the NEMA14 reference remains 400. This changes displayed angles and RPM, not physical pulse generation or current. The connected device was updated with 200 full steps/revolution.
 
 The 14HS13-0804S uses black/green for winding A and red/blue for winding B (nominal 6.8 Ω each). The PCB's resistor-set approximately 0.35 A peak current cannot be raised by firmware. The user confirmed physical rotation with firmware 1.0.20. Loaded accuracy, phase current, supply transients, thermal-trip behavior and waveforms remain unmeasured. The motor geometry correction is not attributed as the cause of restored rotation.
+
+## V2 prototype
+
+Build the published [V2 board](https://tscircuit.com/AnasSarkiz/NEMA14_RP2040_V2) with `-DMOTOR_BOARD=nema14_a4988_v2` in a separate build directory. Use `-DMOTOR_INITIAL_NAME="NEMA14 V2 A4988"` for the USB name on fresh flash. Its protocol ID is `rp2040_a4988_nema14_v2`. Select the full-step count for the attached motor. The reference build defaults to 400.
+
+The [V2 schematic and firmware contract](https://github.com/AnasSarkiz/NEMA14_RP2040_V2/blob/1bedc87e95d88da2487e9e01c44a7dc101105816/docs/firmware-interface.md) move TMP102 to I²C0 on GPIO4/5. Two INA240A1 amplifiers drive GPIO26/27. Telemetry samples the winding currents sequentially at the 100 ms sensor interval, using nominal 1.65 V zero and 1 V/A gain. Sampling is asynchronous to bridge switching. The WAGO terminal uses winding A on poles 1–2 and winding B on 3–4.
+
+### Bench results, 2026-11-20
+
+- Flash readback passed for firmware 1.0.21, build `098d4c4b6e92a1f4`. The device returned the V2 protocol ID, approximately 14.9 V on motor power and 24–25 °C.
+- Driver-disabled diagnostic counted 320 pulses. Two powered moves of +40 and −40 full steps at 40 full steps/s counted 640 pulses each with zero reported underruns. Commanded position returned to zero. Final enable and sleep readbacks were 1 and 0.
+- The operator observed vibration. Shaft rotation remains unverified. The nominally scaled winding readings reached about ±1.25 A, exceeding the design's nominal 0.35 A phase limit. DATA USB telemetry read approximately 2.48 V with USB serial active. The actual phase currents, DATA rail voltage, as-built component values and motor winding connections require independent checks.
