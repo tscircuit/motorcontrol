@@ -10,10 +10,10 @@
   "parts": [
     {
       "id": "top",
-      "title": "Square top cover",
+      "title": "Stepped top cover",
       "stl": "tscircuit-nema14-contour-top-v1.stl",
       "step": "tscircuit-nema14-contour-top-v1.step",
-      "notes": "90° corners, a flat roof and recessed USB-C power and data wells.",
+      "notes": "90° corners, a raised WAGO hood, and recessed USB-C power and data openings.",
       "height_mm": 16.68
     },
     {
@@ -26,8 +26,8 @@
     }
   ],
   "sha256": {
-    "tscircuit-nema14-contour-top-v1.stl": "916ef5a9a9e2fbcb140b1d28a73b0a96fff47dc7f3f975f249383c437a2121ca",
-    "tscircuit-nema14-contour-top-v1.step": "8eee8d8405bd1b5df019a926b2b88171e8c053af011609bd7b9c46d87cfc3242",
+    "tscircuit-nema14-contour-top-v1.stl": "50ab2938727d3bc88c7576d6b18fbae4140ef179a238a6d61e5138edd102b89a",
+    "tscircuit-nema14-contour-top-v1.step": "b4e12884c2c94e5369203ac32dd02f2f14ed9696c95182daf2e0d2a8f80e7ad2",
     "tscircuit-nema14-contour-bottom-v1.stl": "6f0c8c811b52059bb8153ec9a20ad9dcb79378a45e080a14cc90bc550607a2dc",
     "tscircuit-nema14-contour-bottom-v1.step": "76afd4c9914b48fd83c19f02d1deddaa3c75f58fc3e85101e45ebfdcf963cef7"
   }

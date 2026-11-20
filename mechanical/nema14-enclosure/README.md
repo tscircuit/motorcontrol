@@ -1,6 +1,6 @@
 # NEMA14 WAGO enclosure
 
-This two-piece square enclosure is a fit-test design for the
+This two-piece stepped enclosure is a fit-test design for the
 [NEMA14 WAGO PCB](https://tscircuit.com/AnasSarkiz/NEMA14_RP2040_v2#3d).
 The nominal 35.2 × 35.2 mm footprint matches the
 [14HM11-0404S reference motor drawing](https://github.com/AnasSarkiz/NEMA14_RP2040_V2/blob/1bedc87e95d88da2487e9e01c44a7dc101105816/references/motor/14HM11-0404S.pdf).
@@ -9,7 +9,7 @@ visible above the flat spacer.
 
 | Part | Height | Features |
 | --- | --- | --- |
-| Top cover | 16.68 mm | Flat roof, tapered USB-C wells, individual WAGO lead slots, and M2.5 countersunk fastener seats |
+| Top cover | 16.68 mm | 90° corners and roof step, recessed USB-C openings, WAGO lead slots, and M2.5 counterbored fastener seats |
 | Flat bottom spacer | 3.30 mm | Ø22.6 mm center opening and four Ø6.2 mm through-holes on 26 mm pitch |
 
 The modeled stack is 24.08 mm high, including the 1.6 mm PCB and
@@ -17,19 +17,6 @@ separate 2.5 mm PCB standoffs. STEP and STL
 downloads are in `dist/assets/nema14-enclosure/` and on the
 [Assets page](../../dist/assets.html#nema14-enclosure-heading). The CAD exports
 retain their assembly coordinates.
-
-## Print orientation
-
-Place the **flat exterior roof** of the cover on the build plate with the
-cavity facing up. The USB-C wells taper inward and the connector and wire
-slots extend to the lower edge so the toolpath can build their walls without
-bridging across the openings. Lay the spacer flat. Check the sliced preview,
-especially the thin wall sections alongside components and the bolt seats.
-
-In PrusaSlicer 2.8.1 with a 0.4 mm nozzle, 0.20 mm layers, Arachne perimeters
-and a 45° support threshold, the roof-down cover used about 99% less support
-filament than the previous cover at the same settings. The spacer generated
-no supports.
 
 ## Spacer and encoder clearance
 

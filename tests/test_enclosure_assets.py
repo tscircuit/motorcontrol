@@ -55,12 +55,16 @@ class EnclosureAssetsTest(unittest.TestCase):
                 for axis, expected in enumerate([35.2, 35.2, part["height_mm"]]):
                     size = max(v[axis] for v in vertices) - min(v[axis] for v in vertices)
                     self.assertAlmostEqual(size, expected, places=4)
-                highest = max(v[2] for v in vertices)
-                roof_points = {(round(x, 3), round(y, 3)) for x, y, z in vertices
-                               if abs(z - highest) < 1e-4}
+                corners = {}
+                for x, y, z in vertices:
+                    key = (round(x, 3), round(y, 3))
+                    corners[key] = max(corners.get(key, z), z)
                 for x in (-17.6, 17.6):
                     for y in (-17.6, 17.6):
-                        self.assertIn((x, y), roof_points)
+                        self.assertIn((x, y), corners)
+                        if part["id"] == "top":
+                            self.assertAlmostEqual(corners[x, y], 17.48 if y < 0 else 10.35,
+                                                   places=4)
                 if part["id"] == "bottom":
                     self.assertEqual(part["height_mm"], 3.3)
                     self.assertEqual(len({round(v[2], 4) for v in vertices}), 2)
