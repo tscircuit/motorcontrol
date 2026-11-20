@@ -2,6 +2,7 @@
 import hashlib
 from html.parser import HTMLParser
 import json
+import math
 from pathlib import Path
 import struct
 import unittest
@@ -24,6 +25,67 @@ class Links(HTMLParser):
 
 
 class EnclosureAssetsTest(unittest.TestCase):
+    def test_nema14_wago_downloads_and_flat_spacer(self):
+        assets = ROOT / "dist/assets/nema14-enclosure"
+        catalog = json.loads((assets / "catalog.json").read_text())
+        page = (ROOT / "dist/assets.html").read_text()
+        links = Links(page).urls
+        self.assertIn("NEMA14 WAGO controller enclosure", page)
+        self.assertEqual(catalog["footprint_mm"], [35.2, 35.2])
+        self.assertEqual(catalog["mounting_pitch_mm"], 26)
+        self.assertEqual({part["id"] for part in catalog["parts"]}, {"top", "bottom"})
+        for part in catalog["parts"]:
+            with self.subTest(part=part["id"]):
+                for kind in ("stl", "step"):
+                    name = part[kind]
+                    self.assertIn(f"assets/nema14-enclosure/{name}", links)
+                    data = (assets / name).read_bytes()
+                    self.assertEqual(hashlib.sha256(data).hexdigest(),
+                                     catalog["sha256"][name])
+                self.assertTrue((assets / part["step"]).read_bytes().startswith(b"ISO-10303-21;"))
+                mesh = (assets / part["stl"]).read_bytes()
+                count = struct.unpack_from("<I", mesh, 80)[0]
+                self.assertGreater(count, 0)
+                self.assertEqual(len(mesh), 84 + count * 50)
+                triangles = [
+                    [record[3:6], record[6:9], record[9:12]]
+                    for record in struct.iter_unpack("<12fH", mesh[84:])
+                ]
+                vertices = [vertex for triangle in triangles for vertex in triangle]
+                for axis, expected in enumerate([35.2, 35.2, part["height_mm"]]):
+                    size = max(v[axis] for v in vertices) - min(v[axis] for v in vertices)
+                    self.assertAlmostEqual(size, expected, places=4)
+                corners = {}
+                for x, y, z in vertices:
+                    key = (round(x, 3), round(y, 3))
+                    corners[key] = max(corners.get(key, z), z)
+                for x in (-17.6, 17.6):
+                    for y in (-17.6, 17.6):
+                        self.assertIn((x, y), corners)
+                        if part["id"] == "top":
+                            self.assertAlmostEqual(corners[x, y], 17.48 if y < 0 else 10.35,
+                                                   places=4)
+                if part["id"] == "bottom":
+                    self.assertEqual(part["height_mm"], 3.3)
+                    self.assertEqual(len({round(v[2], 4) for v in vertices}), 2)
+                    holes = [(0, 0, 11.3)] + [
+                        (x, y, 3.1) for x in (-13, 13) for y in (-13, 13)
+                    ]
+                    for cx, cy, radius in holes:
+                        self.assertAlmostEqual(
+                            min(math.hypot(x - cx, y - cy) for x, y, _ in vertices),
+                            radius,
+                            places=3,
+                        )
+                        for triangle in triangles:
+                            # A projected face covering the axis would block this hole.
+                            cross = [
+                                (a[0] - cx) * (b[1] - cy) - (a[1] - cy) * (b[0] - cx)
+                                for a, b in zip(triangle, triangle[1:] + triangle[:1])
+                            ]
+                            self.assertFalse(abs(sum(cross)) > 1e-9
+                                             and (min(cross) >= 0 or max(cross) <= 0))
+
     def test_removed_wordmark_variant_and_card_images_are_not_published(self):
         page = (ROOT / "dist/assets.html").read_text()
         self.assertNotIn("enclosure-recessed", page)

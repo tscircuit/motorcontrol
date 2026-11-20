@@ -1,5 +1,5 @@
 export type EnclosurePart = {
-  id: "plain" | "sticker" | "bottom";
+  id: "plain" | "sticker" | "top" | "bottom";
   title: string;
   stl: string;
   step: string;
@@ -65,4 +65,45 @@ export const enclosureCatalog: EnclosureCatalog = {
     "tscircuit-nema17-bottom-v4.step":
       "092caf0026f08dbe3ef6dc612e584d34a99421d3b1a68902f10ed790d83e1135",
   },
+};
+
+export const nema14EnclosureCatalog: EnclosureCatalog = {
+  revision: "v1",
+  status: "Fit-test draft. Physical fit unverified.",
+  board_revision: "2.0.0-dev.11",
+  footprint_mm: [35.2, 35.2],
+  mounting_pitch_mm: 26,
+  parts: [
+    {
+      id: "top",
+      title: "Stepped top cover",
+      stl: "tscircuit-nema14-contour-top-v1.stl",
+      step: "tscircuit-nema14-contour-top-v1.step",
+      notes: "90° corners, a raised WAGO hood, and recessed USB-C power and data openings.",
+      height_mm: 16.68,
+    },
+    {
+      id: "bottom",
+      title: "Square flat bottom spacer",
+      stl: "tscircuit-nema14-contour-bottom-v1.stl",
+      step: "tscircuit-nema14-contour-bottom-v1.step",
+      notes: "Ø22.6 mm center opening and four straight Ø6.2 mm bolt holes.",
+      height_mm: 3.3,
+    },
+  ],
+  sha256: {
+    "tscircuit-nema14-contour-top-v1.stl":
+      "50ab2938727d3bc88c7576d6b18fbae4140ef179a238a6d61e5138edd102b89a",
+    "tscircuit-nema14-contour-top-v1.step":
+      "b4e12884c2c94e5369203ac32dd02f2f14ed9696c95182daf2e0d2a8f80e7ad2",
+    "tscircuit-nema14-contour-bottom-v1.stl":
+      "6f0c8c811b52059bb8153ec9a20ad9dcb79378a45e080a14cc90bc550607a2dc",
+    "tscircuit-nema14-contour-bottom-v1.step":
+      "76afd4c9914b48fd83c19f02d1deddaa3c75f58fc3e85101e45ebfdcf963cef7",
+  },
+};
+
+export const enclosureCatalogs = {
+  "nema17-enclosure": enclosureCatalog,
+  "nema14-enclosure": nema14EnclosureCatalog,
 };
