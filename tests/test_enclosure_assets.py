@@ -85,7 +85,7 @@ class EnclosureAssetsTest(unittest.TestCase):
         self.assertIn('data-enclosure-preview="rounded-jst"', page)
         self.assertIn('id="enclosure-preview-rounded-jst"', page)
         self.assertIn("PCB v1.0.45 fit-test draft.", page)
-        self.assertIn("52.5 × 42 × 15.2 mm", page)
+        self.assertIn("48.5 × 42 × 15.2 mm", page)
 
     def test_rounded_jst_stl_is_watertight(self):
         catalog = json.loads((ASSETS / "catalog.json").read_text())

@@ -21,15 +21,16 @@ CORNER_RADIUS = 4.0
 ROOF_EDGE_RADIUS = 0.8
 BOTTOM_EDGE_RADIUS = 0.25
 NOTCH_EDGE_RADIUS = 0.25
-HOOD_X = (19.0, 31.5)
-HOOD_Y = (-11.35, 2.05)
-HOOD_INNER_END = 30.1
+HOOD_X = (19.0, 27.5)
+HOOD_Y = (-10.95, 1.65)
+HOOD_INNER_END = 26.1
+HOOD_BOTTOM = 11.5
 SCREW_SEAT = 8.6
 WIRE_DIAMETER = 1.6
 BEND_RADIUS = 3.35
 WIRE_X = 17.73
 WIRE_LAUNCH_Z = 14.0
-WIRE_TURN_DOWN_X = 24.0
+WIRE_TURN_DOWN_X = 21.2
 WIRE_EXIT_Z = 3.4
 WIRE_Y = (-7.65, -5.65, -3.65, -1.65)
 MATED_BOTTOM = PCB_TOP + 5.65
@@ -83,8 +84,8 @@ def round_notch(lid):
 def build_wire_hood():
     x0, x1 = HOOD_X
     y0, y1 = HOOD_Y
-    shell = (cq.Workplane("XY", origin=((x0 + x1) / 2, (y0 + y1) / 2, PCB_TOP))
-             .rect(x1 - x0, y1 - y0).extrude(TOP - PCB_TOP)
+    shell = (cq.Workplane("XY", origin=((x0 + x1) / 2, (y0 + y1) / 2, HOOD_BOTTOM))
+             .rect(x1 - x0, y1 - y0).extrude(TOP - HOOD_BOTTOM)
              .edges("|Z").fillet(1.6).edges(">Z").fillet(0.65)
              .edges("<Z").fillet(BOTTOM_EDGE_RADIUS).val())
     # The extension joins the lid along the roof. Keep its cheek walls and
@@ -241,6 +242,7 @@ def main():
         "case_height_mm": TOP,
         "hood_projection_mm": round(HOOD_X[1] - 21, 3),
         "hood_outer_width_mm": round(HOOD_Y[1] - HOOD_Y[0], 3),
+        "hood_height_mm": round(TOP - HOOD_BOTTOM, 3),
         "hood_outlet_direction": "downward through open underside",
         "roof_thickness_mm": 1.4,
         "outer_corner_radius_mm": CORNER_RADIUS,

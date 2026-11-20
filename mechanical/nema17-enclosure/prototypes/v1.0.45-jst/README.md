@@ -19,8 +19,8 @@ lists the drafts and opens the STL in the existing 3D preview.
 The lid is 15.2 mm tall and the assembled case is 20.2 mm high from the
 existing base datum. The released base remains 42 × 42 mm, with the two
 USB-C openings and original 31 × 31 mm screw pattern. The lid extends
-10.5 mm on the JST side to cover the wire bend, giving it a 52.5 × 42 mm
-overall footprint. The rounded hood is 13.4 mm wide. The four body
+6.5 mm on the JST side to cover the wire bend, giving it a 48.5 × 42 mm
+overall footprint. The rounded hood is 12.6 mm wide and 8.7 mm tall. The four body
 outside corners have a 4 mm radius. The top perimeter is rounded by 0.8 mm,
 and the lower perimeter and outer notch edges are rounded by 0.25 mm.
 The 9.8 × 13.8 mm notch leads into the hood beneath a solid 1.4 mm roof.

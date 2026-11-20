@@ -6,12 +6,13 @@
     42
   ],
   "lid_footprint_mm": [
-    52.5,
+    48.5,
     42
   ],
   "case_height_mm": 20.2,
-  "hood_projection_mm": 10.5,
-  "hood_outer_width_mm": 13.4,
+  "hood_projection_mm": 6.5,
+  "hood_outer_width_mm": 12.6,
+  "hood_height_mm": 8.7,
   "hood_outlet_direction": "downward through open underside",
   "roof_thickness_mm": 1.4,
   "outer_corner_radius_mm": 4.0,
