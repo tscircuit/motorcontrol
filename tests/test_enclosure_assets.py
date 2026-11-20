@@ -2,6 +2,7 @@
 import hashlib
 from html.parser import HTMLParser
 import json
+import math
 from pathlib import Path
 import struct
 import unittest
@@ -24,6 +25,44 @@ class Links(HTMLParser):
 
 
 class EnclosureAssetsTest(unittest.TestCase):
+    def test_nema14_contour_downloads_and_encoder_bore(self):
+        assets = ROOT / "dist/assets/nema14-enclosure"
+        catalog = json.loads((assets / "catalog.json").read_text())
+        links = Links((ROOT / "dist/assets.html").read_text()).urls
+        self.assertEqual(catalog["footprint_mm"], [35.2, 35.2])
+        self.assertEqual(catalog["mounting_pitch_mm"], 26)
+        self.assertEqual({part["id"] for part in catalog["parts"]}, {"top", "bottom"})
+        for part in catalog["parts"]:
+            with self.subTest(part=part["id"]):
+                for kind in ("stl", "step"):
+                    name = part[kind]
+                    self.assertIn(f"assets/nema14-enclosure/{name}", links)
+                    data = (assets / name).read_bytes()
+                    self.assertEqual(hashlib.sha256(data).hexdigest(),
+                                     catalog["sha256"][name])
+                self.assertTrue((assets / part["step"]).read_bytes().startswith(b"ISO-10303-21;"))
+                mesh = (assets / part["stl"]).read_bytes()
+                count = struct.unpack_from("<I", mesh, 80)[0]
+                self.assertGreater(count, 0)
+                self.assertEqual(len(mesh), 84 + count * 50)
+                triangles = [
+                    [record[3:6], record[6:9], record[9:12]]
+                    for record in struct.iter_unpack("<12fH", mesh[84:])
+                ]
+                vertices = [vertex for triangle in triangles for vertex in triangle]
+                for axis, expected in enumerate([35.2, 35.2, part["height_mm"]]):
+                    size = max(v[axis] for v in vertices) - min(v[axis] for v in vertices)
+                    self.assertAlmostEqual(size, expected, places=4)
+                if part["id"] == "bottom":
+                    self.assertAlmostEqual(min(math.hypot(x, y) for x, y, _ in vertices),
+                                           5.5, places=3)
+                    for triangle in triangles:
+                        # A nonzero projected face covering (0, 0) would block the bore.
+                        cross = [a[0] * b[1] - a[1] * b[0]
+                                 for a, b in zip(triangle, triangle[1:] + triangle[:1])]
+                        self.assertFalse(abs(sum(cross)) > 1e-9
+                                         and (min(cross) >= 0 or max(cross) <= 0))
+
     def test_removed_wordmark_variant_and_card_images_are_not_published(self):
         page = (ROOT / "dist/assets.html").read_text()
         self.assertNotIn("enclosure-recessed", page)

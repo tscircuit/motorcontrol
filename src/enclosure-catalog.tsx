@@ -1,5 +1,5 @@
 export type EnclosurePart = {
-  id: "plain" | "sticker" | "bottom";
+  id: "plain" | "sticker" | "top" | "bottom";
   title: string;
   stl: string;
   step: string;
@@ -65,4 +65,45 @@ export const enclosureCatalog: EnclosureCatalog = {
     "tscircuit-nema17-bottom-v4.step":
       "092caf0026f08dbe3ef6dc612e584d34a99421d3b1a68902f10ed790d83e1135",
   },
+};
+
+export const nema14EnclosureCatalog: EnclosureCatalog = {
+  revision: "v1",
+  status: "Fit-test draft. Physical fit unverified.",
+  board_revision: "2.0.0-dev.11",
+  footprint_mm: [35.2, 35.2],
+  mounting_pitch_mm: 26,
+  parts: [
+    {
+      id: "top",
+      title: "Contour top cover",
+      stl: "tscircuit-nema14-contour-top-v1.stl",
+      step: "tscircuit-nema14-contour-top-v1.step",
+      notes: "Recessed guards for the USB-C power and data ports.",
+      height_mm: 16.68,
+    },
+    {
+      id: "bottom",
+      title: "Contour bottom spacer",
+      stl: "tscircuit-nema14-contour-bottom-v1.stl",
+      step: "tscircuit-nema14-contour-bottom-v1.step",
+      notes: "Centered Ø11 mm through-hole for encoder and magnet clearance.",
+      height_mm: 5.79,
+    },
+  ],
+  sha256: {
+    "tscircuit-nema14-contour-top-v1.stl":
+      "6e8cb2196cc804aeabfcb6d4df6c13d9edc5e18698d0a479529aa006e44ddb90",
+    "tscircuit-nema14-contour-top-v1.step":
+      "e8c633e65f7a45d843d407d1116c604c0a0b23e3d484b15d0fa6b04c3506e217",
+    "tscircuit-nema14-contour-bottom-v1.stl":
+      "b3ef3d7c3722579fb501e233241f061330357be572aabfbd5733a90c42a3c534",
+    "tscircuit-nema14-contour-bottom-v1.step":
+      "ce18127f8dd42103578eb8374d6c06164bc8ecedf6d19ac352daa0d0359fc321",
+  },
+};
+
+export const enclosureCatalogs = {
+  "nema17-enclosure": enclosureCatalog,
+  "nema14-enclosure": nema14EnclosureCatalog,
 };
