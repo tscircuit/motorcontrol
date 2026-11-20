@@ -30,34 +30,9 @@ body.bldc-page {
   --page-width: 64rem;
 }
 
-.siteHeader {
-  @apply border-0 border-b border-solid border-slate-200 bg-white;
-}
-
-.siteNav,
 main {
   max-width: var(--page-width);
-  @apply mx-auto px-4 sm:px-6;
-}
-
-.siteNav {
-  @apply flex flex-wrap items-center gap-x-5 gap-y-2 py-3 text-sm;
-}
-
-.siteNav a {
-  @apply text-slate-600 no-underline hover:text-blue-700;
-}
-
-.siteNav a:first-child {
-  @apply mr-1 font-semibold text-slate-900 hover:text-blue-700;
-}
-
-.siteNav a[aria-current="page"] {
-  @apply rounded-md bg-blue-50 px-2 py-1 font-medium text-blue-700;
-}
-
-main {
-  @apply py-8;
+  @apply mx-auto px-4 py-8 sm:px-6;
 }
 
 .pageHeading {

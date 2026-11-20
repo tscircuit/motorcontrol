@@ -1,0 +1,92 @@
+.siteHeader {
+  position: relative;
+  z-index: 5;
+  background: #fff;
+  border-bottom: 1px solid #dde3ec;
+  color: #162439;
+  font: 1rem/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.siteNav {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 74rem;
+  min-height: 4.5rem;
+  margin: auto;
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
+}
+.siteNav a, .siteNav summary {
+  color: inherit;
+  text-decoration: none;
+}
+.siteNav .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .65rem;
+  font-size: 1.27rem;
+  font-weight: 700;
+  letter-spacing: -.045em;
+}
+.siteNav .brand img { display: block; width: 1.875rem; height: 1.875rem; }
+.navItems { display: flex; align-items: center; gap: clamp(.4rem, 2vw, 1.4rem); }
+.navItems > a, .navGroup > summary {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  min-height: 2.75rem;
+  padding: .4rem .35rem;
+  color: #425169;
+  font-size: .9375rem;
+  font-weight: 540;
+  cursor: pointer;
+  list-style: none;
+}
+.siteNav a:focus-visible, .siteNav summary:focus-visible {
+  outline: 2px solid #2257c5;
+  outline-offset: 2px;
+  border-radius: .25rem;
+}
+.siteNav a:hover, .siteNav summary:hover, .siteNav [aria-current="page"],
+.navGroup:has([aria-current="page"]) > summary { color: #204fba; }
+.navGroup { position: relative; }
+.navGroup[open] > summary { margin: 0; }
+.navGroup > summary::-webkit-details-marker { display: none; }
+.navGroup > summary::after {
+  content: "";
+  width: .38rem;
+  height: .38rem;
+  margin: -.18rem .06rem 0 0;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+.navGroup[open] > summary::after { transform: translateY(.15rem) rotate(225deg); }
+.navList {
+  position: absolute;
+  inset: calc(100% + .1rem) 0 auto auto;
+  width: max-content;
+  min-width: 12.5rem;
+  padding: .4rem;
+  border: 1px solid #dce3ed;
+  border-radius: .7rem;
+  background: #fff;
+  box-shadow: 0 10px 24px #16243916;
+}
+.navList a {
+  display: block;
+  padding: .65rem .8rem;
+  border-radius: .38rem;
+  color: #35445a;
+  font-size: .9375rem;
+}
+.navList a:hover, .navList a[aria-current="page"] { background: #edf3ff; }
+@media (max-width: 39rem) {
+  .siteNav { flex-wrap: wrap; gap: 0; padding-top: .8rem; }
+  .navItems { width: 100%; justify-content: space-between; }
+  .navItems > a { padding-left: 0; }
+  .navList { max-width: calc(100vw - 2rem); }
+  .navGroup:first-of-type .navList { left: 50%; right: auto; transform: translateX(-50%); }
+}

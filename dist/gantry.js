@@ -199,10 +199,34 @@ if(typeof document!=='undefined'){
  $('stopAll').onclick=()=>void jog.stop('Stopped. Press a fresh arrow key to jog again.');
  // Latch the axis until arrow release, including when Shift is released first.
  const pressedKeys=new Map();
+ const inNavigation=e=>!!e.target.closest?.('.siteNav');
  const editing=e=>['SELECT','TEXTAREA'].includes(e.target.tagName)||(e.target.tagName==='INPUT'&&e.target.type!=='checkbox')||e.target.isContentEditable;
- document.addEventListener('focusin',e=>{if(editing(e)&&(jog.key||jog.active||jog.returning))void jog.stop('Paused while editing settings. Press an arrow after editing to jog.');});
- document.addEventListener('keydown',e=>{if(e.key==='Escape'||(e.code==='Space'&&!editing(e)&&(e.target!==$('holdPosition')||jog.key||jog.active||jog.returning))){e.preventDefault();void jog.stop();return;}if(!inputKeys[e.key]||(['SELECT','TEXTAREA'].includes(e.target.tagName)||(e.target.tagName==='INPUT'&&e.target.type!=='checkbox'))||e.target.isContentEditable)return;e.preventDefault();if(e.repeat)return;const key=threeAxis&&e.shiftKey&&['ArrowUp','ArrowDown'].includes(e.key)?'Shift+'+e.key:e.key;pressedKeys.set(e.key,key);jog.press(key);});
- document.addEventListener('keyup',e=>{if(inputKeys[e.key]){e.preventDefault();const key=pressedKeys.get(e.key)||e.key;pressedKeys.delete(e.key);void jog.release(key);}});
+ document.addEventListener('focusin', e => {
+  if ((editing(e) || inNavigation(e)) && (jog.key || jog.active || jog.returning))
+   void jog.stop('Jog paused. Return to the controls and press a fresh arrow to jog.');
+ });
+ document.addEventListener('keydown', e => {
+  const moving = jog.key || jog.active || jog.returning;
+  const spaceStops = !editing(e) && (moving || (!inNavigation(e) && e.target !== $('holdPosition')));
+  if (e.key === 'Escape' || (e.code === 'Space' && spaceStops)) {
+   e.preventDefault();
+   void jog.stop();
+   return;
+  }
+  if (!inputKeys[e.key] || editing(e) || inNavigation(e)) return;
+  e.preventDefault();
+  if (e.repeat) return;
+  const key = threeAxis && e.shiftKey && ['ArrowUp','ArrowDown'].includes(e.key) ? 'Shift+' + e.key : e.key;
+  pressedKeys.set(e.key, key);
+  jog.press(key);
+ });
+ document.addEventListener('keyup', e => {
+  if (!inputKeys[e.key] || (inNavigation(e) && !pressedKeys.has(e.key))) return;
+  e.preventDefault();
+  const key = pressedKeys.get(e.key) || e.key;
+  pressedKeys.delete(e.key);
+  void jog.release(key);
+ });
  window.addEventListener('blur',()=>void jog.stop('Paused because the page lost focus. Press an arrow when you return.'));window.addEventListener('pagehide',()=>void jog.stop());document.addEventListener('visibilitychange',()=>{if(document.hidden)void jog.stop('Paused because the page is hidden. Press an arrow when you return.');});
  jog.update=()=>{render();void jog.tick(readSpeeds(),Object.fromEntries(labels.map(label=>[label,$('invert'+label).checked])),$('jogResolution').value);};
  for(const id of [...speedIds,'jogResolution',...labels.map(label=>'invert'+label)])$(id).onchange=()=>{if(id==='jogResolution')$(id).blur();jog.update();};

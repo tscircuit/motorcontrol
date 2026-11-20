@@ -76,8 +76,20 @@ fillLimits(currentDefaults);
 $('speed').oninput=()=>{$('speedValue').textContent=$('speed').value+'%';};
 $('speed').onchange=()=>{if(client.last?.motor_enabled)void action('set_speed',{percent:Number($('speed').value)},'Speed command updated.');};
 function stopForPage(event){arrows.reset('Stopped on focus/visibility loss.',event?.type==='blur'?'focus_lost':event?.type==='pagehide'?'page_closed':event?.type==='visibilitychange'?'tab_hidden':'user_stop');}
-root.addEventListener('blur',stopForPage);root.addEventListener('pagehide',stopForPage);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopForPage({type:'visibilitychange'});});root.addEventListener('keydown',e=>{if((e.code==='Space'&&!['INPUT','SELECT','BUTTON'].includes(e.target.tagName))||e.code==='Escape'){e.preventDefault();stopForPage();}});
-function editing(target){return !!target?.closest?.('input,select,textarea,[contenteditable=true]');}
+root.addEventListener('blur',stopForPage);root.addEventListener('pagehide',stopForPage);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopForPage({type:'visibilitychange'});});
+const inNavigation = target => !!target?.closest?.('.siteNav');
+document.addEventListener('focusin', e => {
+ if (inNavigation(e.target) && arrows.held.size) stopForPage();
+});
+root.addEventListener('keydown', e => {
+ const canUseSpace = !['INPUT','SELECT','BUTTON'].includes(e.target.tagName);
+ const mustStop = busy || client.last?.armed || client.last?.motor_enabled || arrows.held.size;
+ if (e.code === 'Escape' || (e.code === 'Space' && canUseSpace && (!inNavigation(e.target) || mustStop))) {
+  e.preventDefault();
+  stopForPage();
+ }
+});
+function editing(target){return inNavigation(target) || !!target?.closest?.('input,select,textarea,[contenteditable=true]');}
 root.addEventListener('keydown',e=>{if(e.code in arrowDirections&&!editing(e.target)){e.preventDefault();if(!e.repeat)arrows.press(e.code);}});
 root.addEventListener('keyup',e=>{if(e.code in arrowDirections){if(arrows.held.has(e.code))e.preventDefault();arrows.release(e.code);}});
 for(const button of document.querySelectorAll('[data-arrow]')){

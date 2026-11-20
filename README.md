@@ -4,7 +4,7 @@
 
 MicroPython motor-control firmware with a Web Serial dashboard. Motion and safety logic are separated from driver chips, board wiring, and MCU services so additional hardware can reuse the controller and protocol.
 
-[Public dashboard](https://motorcontrol.tscircuit.com) · [Porting guide](docs/architecture.md) · [Serial protocol](docs/protocol.md)
+[Get started](https://motorcontrol.tscircuit.com) · [Motor bench](https://motorcontrol.tscircuit.com/motor-bench.html) · [Porting guide](docs/architecture.md) · [Serial protocol](docs/protocol.md)
 
 [Stall-testing record](stall-testing/README.md): fixture procedure, original recordings, model validation and incomplete mounted-XY homing attempts.
 
