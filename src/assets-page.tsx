@@ -6,11 +6,14 @@ const linkClass = "text-blue-700 underline";
 const assetRoot = "assets/nema17-enclosure/";
 
 function EnclosurePartRow({ part }: { part: EnclosurePart }) {
+  const [width, depth] = part.footprint_mm ?? enclosureCatalog.footprint_mm;
   return (
     <li className="px-4 py-3" id={`enclosure-${part.id}`}>
       <h3 className="text-sm font-semibold">{part.title}</h3>
       <p className="mt-1 text-xs text-slate-600">
-        42 × 42 × {part.height_mm} mm · Ø3.6 mm bores. {part.notes}
+        {width} × {depth} × {part.height_mm} mm · Ø3.6 mm bores.
+        {part.board_revision && <> PCB v{part.board_revision} fit-test draft.</>}{" "}
+        {part.notes}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
         <a className={linkClass} href={assetRoot + part.stl} download>
@@ -56,9 +59,9 @@ function EnclosureSection() {
         NEMA17 controller enclosure
       </h2>
       <p className="mt-1 text-sm text-slate-600">
-        42 × 42 mm · 31 mm bolt pitch · PCB v{enclosureCatalog.board_revision}{" "}
-        fit-test draft. Confirm the actual board and motor before printing a
-        batch.
+        42 × 42 mm base · 31 mm bolt pitch. The original v4 covers were modeled for
+        PCB v{enclosureCatalog.board_revision}. Check the board revision and
+        motor before printing a batch.
       </p>
       <p className="mt-3 text-sm text-slate-600">
         For a flat outer face, choose <strong>Plain top cover</strong>. Print
@@ -100,10 +103,6 @@ function EnclosureSection() {
         >
           Full assembly viewer
         </a>
-      </p>
-      <p className="mt-3 text-xs text-slate-600">
-        These STEP/STL files are unchanged v4 CAD exports. Their native CadQuery
-        model remains the source for geometry.
       </p>
     </section>
   );

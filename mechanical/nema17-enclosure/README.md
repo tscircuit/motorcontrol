@@ -7,7 +7,7 @@ change the board, motor, screw length, or enclosure dimensions.
 
 The downloads are served from `dist/assets/nema17-enclosure/` and listed on
 [`assets.html`](../../dist/assets.html#enclosure-heading). `catalog.json`
-records the revision, part names and SHA-256 hashes of all six public CAD downloads.
+records the revision, part names and SHA-256 hashes of the CAD downloads.
 
 | Part | Height | Exterior |
 | --- | --- | --- |
@@ -21,6 +21,10 @@ and Ø3.6 mm printed-part shaft bores. Top counterbores are Ø6.6 mm with a
 including the 1.6 mm PCB. The original CAD coordinates are retained; a slicer
 should place each imported part on the bed rather than treating assembly Z as
 a required print height.
+
+For the older board with the top-entry connector, see the
+[rounded v1.0.45 JST lid draft](prototypes/v1.0.45-jst/README.md). Its STEP and
+STL follow the same download and 3D-preview pattern.
 
 ## First fit print
 

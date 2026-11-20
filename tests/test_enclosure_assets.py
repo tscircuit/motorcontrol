@@ -1,4 +1,5 @@
 """Check that the public enclosure catalog serves complete, correctly sized CAD."""
+from collections import Counter
 import hashlib
 from html.parser import HTMLParser
 import json
@@ -49,7 +50,7 @@ class EnclosureAssetsTest(unittest.TestCase):
         catalog = json.loads((ASSETS / "catalog.json").read_text())
         links = Links((ROOT / "dist/assets.html").read_text()).urls
         self.assertEqual({p["id"] for p in catalog["parts"]},
-                         {"plain", "sticker", "bottom"})
+                         {"plain", "sticker", "rounded-jst", "bottom"})
         for part in catalog["parts"]:
             with self.subTest(part=part["id"]):
                 for kind in ("stl", "step"):
@@ -71,9 +72,39 @@ class EnclosureAssetsTest(unittest.TestCase):
                     vertices.extend([triangle[3:6], triangle[6:9], triangle[9:12]])
                 bounds = [max(v[i] for v in vertices) - min(v[i] for v in vertices)
                           for i in range(3)]
-                for actual, expected in zip(bounds, [42, 42, part["height_mm"]]):
+                footprint = part.get("footprint_mm", catalog["footprint_mm"])
+                for actual, expected in zip(bounds, [*footprint, part["height_mm"]]):
                     self.assertAlmostEqual(actual, expected, places=4)
                 self.assertTrue((ASSETS / part["step"]).read_bytes().startswith(b"ISO-10303-21;"))
+
+    def test_rounded_jst_lid_has_a_revision_specific_preview(self):
+        catalog = json.loads((ASSETS / "catalog.json").read_text())
+        part = next(part for part in catalog["parts"] if part["id"] == "rounded-jst")
+        self.assertEqual(part["board_revision"], "1.0.45")
+        page = (ROOT / "dist/assets.html").read_text()
+        self.assertIn('data-enclosure-preview="rounded-jst"', page)
+        self.assertIn('id="enclosure-preview-rounded-jst"', page)
+        self.assertIn("PCB v1.0.45 fit-test draft.", page)
+        self.assertIn("47 × 42 × 15.2 mm", page)
+
+    def test_rounded_jst_stl_is_watertight(self):
+        catalog = json.loads((ASSETS / "catalog.json").read_text())
+        part = next(part for part in catalog["parts"] if part["id"] == "rounded-jst")
+        stl = (ASSETS / part["stl"]).read_bytes()
+        edges = Counter()
+        hood_heights = []
+        for (ax, ay, az, bx, by, bz, cx, cy, cz) in (
+            struct.unpack_from("<9f", stl, offset + 12)
+            for offset in range(84, len(stl), 50)
+        ):
+            vertices = [(ax, ay, az), (bx, by, bz), (cx, cy, cz)]
+            self.assertEqual(len(set(vertices)), 3)
+            hood_heights.extend(z for x, _, z in vertices if x > 22.5)
+            edges.update(tuple(sorted((v, w))) for v, w in zip(vertices, vertices[1:] + vertices[:1]))
+        self.assertTrue(edges)
+        self.assertEqual(set(edges.values()), {2})
+        self.assertAlmostEqual(min(hood_heights), 5.0)
+        self.assertAlmostEqual(max(hood_heights), 20.2, places=5)
 
     def test_local_asset_links_and_label_provenance(self):
         links = Links((ROOT / "dist/assets.html").read_text()).urls
