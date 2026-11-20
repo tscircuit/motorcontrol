@@ -135,7 +135,7 @@ function Nema14EnclosureSection() {
         NEMA14 WAGO controller enclosure
       </h2>
       <p className="mt-1 text-sm text-slate-600">
-        {footprint} mm · {catalog.mounting_pitch_mm} mm bolt pitch · Contour fit-test draft
+        {footprint} mm · {catalog.mounting_pitch_mm} mm bolt pitch · Square fit-test draft
       </p>
       <ul
         aria-label="NEMA14 WAGO enclosure parts"
@@ -152,7 +152,8 @@ function Nema14EnclosureSection() {
         ))}
       </ul>
       <p className="mt-3 text-sm text-slate-600">
-        Use separate 2.5 mm PCB standoffs to clear the WAGO solder tails. Check
+        Print the cover with its flat exterior roof on the bed. Lay the spacer
+        flat. Use separate 2.5 mm PCB standoffs to clear the WAGO solder tails. Check
         rear motor attachment and encoder magnet clearance with the actual hardware.{" "}
         <a
           className={linkClass}
