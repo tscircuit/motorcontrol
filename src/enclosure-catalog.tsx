@@ -50,10 +50,10 @@ export const enclosureCatalog: EnclosureCatalog = {
       stl: "tscircuit-nema17-top-jst-v1.0.45-draft.stl",
       step: "tscircuit-nema17-top-jst-v1.0.45-draft.step",
       notes:
-        "One-piece lid with a short, rounded side hood that covers the wire bend. The harness exits underneath. 20.2 mm assembled height.",
+        "One-piece lid with a 5 mm, full-height rounded hood that covers the wire bend. The harness exits underneath. 20.2 mm assembled height.",
       height_mm: 15.2,
       board_revision: "1.0.45",
-      footprint_mm: [48.5, 42],
+      footprint_mm: [47, 42],
     },
     {
       id: "bottom",
@@ -74,9 +74,9 @@ export const enclosureCatalog: EnclosureCatalog = {
     "tscircuit-nema17-top-sticker-v4.step":
       "dc9e34c2bb9834f812cebb56aa3a3bdf58ba7caddbc7daba38fdf295f672bd91",
     "tscircuit-nema17-top-jst-v1.0.45-draft.stl":
-      "37eda345bf9301f324ea4330d2a11e2f5f88cc61ff92f706dbb73a3c7bcf2984",
+      "7b184488172a6c3c4c6832a0061c97326f8e02f04589f64168d2abf521120c07",
     "tscircuit-nema17-top-jst-v1.0.45-draft.step":
-      "cf540ecc76b824a591501778c298dcfa91fed23d5148e9edc6477708bb972488",
+      "e84e4c8fdd9e8f575f1a9bc23749011ebf915703eb5541a6c29896ad827d4199",
     "tscircuit-nema17-bottom-v4.stl":
       "d17903ea9095163b85c737f05c5df93049944c757ce978f0401f665bb34e1100",
     "tscircuit-nema17-bottom-v4.step":

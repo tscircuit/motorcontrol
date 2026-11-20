@@ -21,16 +21,15 @@ CORNER_RADIUS = 4.0
 ROOF_EDGE_RADIUS = 0.8
 BOTTOM_EDGE_RADIUS = 0.25
 NOTCH_EDGE_RADIUS = 0.25
-HOOD_X = (19.0, 27.5)
+HOOD_X = (19.0, 26.0)
 HOOD_Y = (-10.95, 1.65)
-HOOD_INNER_END = 26.1
-HOOD_BOTTOM = 11.5
+HOOD_INNER_END = 24.8
 SCREW_SEAT = 8.6
 WIRE_DIAMETER = 1.6
-BEND_RADIUS = 3.35
-WIRE_X = 17.73
+BEND_RADIUS = 3.0
+WIRE_X = 17.25
 WIRE_LAUNCH_Z = 14.0
-WIRE_TURN_DOWN_X = 21.2
+WIRE_TURN_DOWN_X = WIRE_X + BEND_RADIUS + 0.1
 WIRE_EXIT_Z = 3.4
 WIRE_Y = (-7.65, -5.65, -3.65, -1.65)
 MATED_BOTTOM = PCB_TOP + 5.65
@@ -84,8 +83,8 @@ def round_notch(lid):
 def build_wire_hood():
     x0, x1 = HOOD_X
     y0, y1 = HOOD_Y
-    shell = (cq.Workplane("XY", origin=((x0 + x1) / 2, (y0 + y1) / 2, HOOD_BOTTOM))
-             .rect(x1 - x0, y1 - y0).extrude(TOP - HOOD_BOTTOM)
+    shell = (cq.Workplane("XY", origin=((x0 + x1) / 2, (y0 + y1) / 2, PCB_TOP))
+             .rect(x1 - x0, y1 - y0).extrude(TOP - PCB_TOP)
              .edges("|Z").fillet(1.6).edges(">Z").fillet(0.65)
              .edges("<Z").fillet(BOTTOM_EDGE_RADIUS).val())
     # The extension joins the lid along the roof. Keep its cheek walls and
@@ -149,6 +148,12 @@ def check_lid(lid, stock):
     extent = bounds(lid)
     for actual, expected in zip(extent, (-21, -21, PCB_TOP, HOOD_X[1], 21, TOP)):
         assert abs(actual - expected) < TOL, extent
+    # Inspect the hood beyond the base outline so the lid itself cannot
+    # satisfy the flush-height check.
+    hood_tip = lid.intersect(box(22.5, HOOD_Y[0] - .1, PCB_TOP - .1,
+                                HOOD_X[1] + .1, HOOD_Y[1] + .1, TOP + .1))
+    hood_bounds = bounds(hood_tip)
+    assert abs(hood_bounds[2] - PCB_TOP) < TOL and abs(hood_bounds[5] - TOP) < TOL
 
     # Check the socket openings above the new bottom edge round.
     usb_region = box(-13, 19.42, PCB_TOP + BOTTOM_EDGE_RADIUS, 13, 22, 9.55)
@@ -183,7 +188,8 @@ def check_lid(lid, stock):
         assert wire.intersect(lid).Volume() < TOL
         gaps.append(wire.distance(lid))
     conservative_headroom = CEILING - (WIRE_LAUNCH_Z + BEND_RADIUS + WIRE_DIAMETER / 2)
-    assert min(gaps) >= conservative_headroom - TOL, gaps
+    end_gap = HOOD_INNER_END - wire_outer_x
+    assert min(gaps) >= min(conservative_headroom, end_gap) - TOL, gaps
     return gaps, plug_gap, conservative_headroom
 
 
@@ -242,7 +248,7 @@ def main():
         "case_height_mm": TOP,
         "hood_projection_mm": round(HOOD_X[1] - 21, 3),
         "hood_outer_width_mm": round(HOOD_Y[1] - HOOD_Y[0], 3),
-        "hood_height_mm": round(TOP - HOOD_BOTTOM, 3),
+        "hood_height_mm": round(TOP - PCB_TOP, 3),
         "hood_outlet_direction": "downward through open underside",
         "roof_thickness_mm": 1.4,
         "outer_corner_radius_mm": CORNER_RADIUS,
@@ -254,6 +260,7 @@ def main():
         "side_relief_top_above_pcb_mm": round(CEILING - PCB_TOP, 3),
         "assumed_wire_outer_diameter_mm": WIRE_DIAMETER,
         "assumed_minimum_bend_radius_mm": BEND_RADIUS,
+        "assumed_wire_launch_x_mm": WIRE_X,
         "assumed_mated_connector_height_mm": round(MATED_TOP - PCB_TOP, 3),
         "conservative_roof_headroom_mm": round(headroom, 3),
         "modeled_wire_to_lid_distances_mm": [round(gap, 3) for gap in gaps],

@@ -19,8 +19,9 @@ lists the drafts and opens the STL in the existing 3D preview.
 The lid is 15.2 mm tall and the assembled case is 20.2 mm high from the
 existing base datum. The released base remains 42 × 42 mm, with the two
 USB-C openings and original 31 × 31 mm screw pattern. The lid extends
-6.5 mm on the JST side to cover the wire bend, giving it a 48.5 × 42 mm
-overall footprint. The rounded hood is 12.6 mm wide and 8.7 mm tall. The four body
+5 mm on the JST side to cover the wire bend, giving it a 47 × 42 mm
+overall footprint. The rounded hood is 12.6 mm wide and flush with both
+the top and bottom of the 15.2 mm lid. The four body
 outside corners have a 4 mm radius. The top perimeter is rounded by 0.8 mm,
 and the lower perimeter and outer notch edges are rounded by 0.25 mm.
 The 9.8 × 13.8 mm notch leads into the hood beneath a solid 1.4 mm roof.
@@ -35,8 +36,9 @@ export. It checks the mated plug envelope, four swept wires and a continuous
 vertical corridor for lowering the lid over the cable. It checks that the
 hood end wall shields the second bend from the side. The wire model assumes
 a 1.6 mm insulation diameter, an 8.03 mm mated height above the board and a
-3.35 mm bend radius. Conservative roof headroom is 0.65 mm. The modeled
-wire-to-lid gap is 0.65 mm through both bends.
+3 mm bend radius. To fit both bends in the 5 mm hood, the wires rise from
+the plug near its centre at X=17.25 mm in the assembly datum. Conservative
+roof headroom is 1.0 mm and the modeled minimum wire-to-wall gap is 0.65 mm.
 
 Measure the seated lab pigtail, its insulation and bend, and both USB-C
 overmolds before a fit print. Check the rounded opening and tool access in the
