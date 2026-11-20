@@ -1,3 +1,6 @@
+#ifdef MOTOR_BOARD_A4988_V2
+#define i2c0 0
+#endif
 #define MOTOR_HOST_TEST
 #define MOTOR_BOARD_A4988 1
 #define main firmware_entry
@@ -61,13 +64,27 @@ int main(int argc, char **argv) {
     check("{\"cmd\":\"set_led\",\"color\":\"cyan\"}",true);
     snprintf(device_id, sizeof(device_id), "nema14-test");
     snprintf(session, sizeof(session), "nema14-session");
+#ifdef MOTOR_BOARD_A4988_V2
+    fake_adc_values[0] = 2300;
+    fake_adc_values[1] = 1800;
+#endif
     sample(); output_length=0; status(false);
     cJSON *s=cJSON_Parse(output); assert(s);
+#ifdef MOTOR_BOARD_A4988_V2
+    assert(TEMP_BUS == i2c0 && TEMP_SDA == 4 && TEMP_SCL == 5);
+    assert(!strcmp(cJSON_GetObjectItem(s,"board_id")->valuestring,"rp2040_a4988_nema14_v2"));
+    assert(!strcmp(cJSON_GetObjectItem(s,"firmware_version")->valuestring,"1.0.21"));
+    cJSON *coils = cJSON_GetObjectItem(s,"winding_current_a");
+    assert(cJSON_IsTrue(cJSON_GetObjectItem(s,"current_available")));
+    assert(fabs(cJSON_GetArrayItem(coils,0)->valuedouble - 0.20348) < 0.001);
+    assert(fabs(cJSON_GetArrayItem(coils,1)->valuedouble + 0.19945) < 0.001);
+#else
     assert(!strcmp(cJSON_GetObjectItem(s,"board_id")->valuestring,"rp2040_a4988_nema14"));
     assert(!strcmp(cJSON_GetObjectItem(s,"firmware_version")->valuestring,"1.0.20"));
-    assert(cJSON_GetObjectItem(s,"steps_per_revolution")->valueint==FULL_STEPS_PER_REVOLUTION);
     assert(cJSON_IsNull(cJSON_GetObjectItem(s,"current_a")));
     assert(cJSON_IsFalse(cJSON_GetObjectItem(s,"current_available")));
+#endif
+    assert(cJSON_GetObjectItem(s,"steps_per_revolution")->valueint==FULL_STEPS_PER_REVOLUTION);
     assert(cJSON_IsFalse(cJSON_GetObjectItem(s,"driver_fault_asserted")));
     cJSON *caps=cJSON_GetObjectItem(s,"capabilities");
     assert(cJSON_GetObjectItem(caps,"full_steps_per_revolution")->valueint==FULL_STEPS_PER_REVOLUTION);

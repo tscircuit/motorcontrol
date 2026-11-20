@@ -9,6 +9,11 @@
 #else
 #include "boards/nema17-drv8825-1.0.42/board.h"
 #endif
+#ifndef TEMP_BUS
+#define TEMP_BUS i2c1
+#define TEMP_SDA 26
+#define TEMP_SCL 27
+#endif
 #ifndef BOARD_FIRMWARE_VERSION
 #define BOARD_FIRMWARE_VERSION "1.0.17"
 #endif
