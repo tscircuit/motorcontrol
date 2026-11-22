@@ -24,8 +24,14 @@ class Links(HTMLParser):
                 self.urls.add(value)
 
 
+def face_crosses_xy(triangle, x, y):
+    edges = zip(triangle, triangle[1:] + triangle[:1])
+    cross = [(a[0] - x) * (b[1] - y) - (a[1] - y) * (b[0] - x) for a, b in edges]
+    return abs(sum(cross)) > 1e-9 and (min(cross) >= 0 or max(cross) <= 0)
+
+
 class EnclosureAssetsTest(unittest.TestCase):
-    def test_nema14_wago_downloads_and_flat_spacer(self):
+    def test_nema14_wago_downloads_and_pin_relief(self):
         assets = ROOT / "dist/assets/nema14-enclosure"
         catalog = json.loads((assets / "catalog.json").read_text())
         page = (ROOT / "dist/assets.html").read_text()
@@ -63,11 +69,12 @@ class EnclosureAssetsTest(unittest.TestCase):
                     for y in (-17.6, 17.6):
                         self.assertIn((x, y), corners)
                         if part["id"] == "top":
-                            self.assertAlmostEqual(corners[x, y], 17.48 if y < 0 else 10.35,
+                            self.assertAlmostEqual(corners[x, y], 16.3 if y < 0 else 10.35,
                                                    places=4)
                 if part["id"] == "bottom":
-                    self.assertEqual(part["height_mm"], 3.3)
-                    self.assertEqual(len({round(v[2], 4) for v in vertices}), 2)
+                    self.assertEqual(part["height_mm"], 5.8)
+                    z_levels = {round(v[2], 4) for v in vertices}
+                    self.assertEqual(z_levels, {-6.6, -4.3, -0.8})
                     holes = [(0, 0, 11.3)] + [
                         (x, y, 3.1) for x in (-13, 13) for y in (-13, 13)
                     ]
@@ -77,14 +84,20 @@ class EnclosureAssetsTest(unittest.TestCase):
                             radius,
                             places=3,
                         )
-                        for triangle in triangles:
-                            # A projected face covering the axis would block this hole.
-                            cross = [
-                                (a[0] - cx) * (b[1] - cy) - (a[1] - cy) * (b[0] - cx)
-                                for a, b in zip(triangle, triangle[1:] + triangle[:1])
-                            ]
-                            self.assertFalse(abs(sum(cross)) > 1e-9
-                                             and (min(cross) >= 0 or max(cross) <= 0))
+                        self.assertFalse(any(face_crosses_xy(t, cx, cy) for t in triangles))
+
+                    # The two WAGO pin positions outside the center bore need
+                    # the recess above the flat motor-facing side.
+                    for x in (-1.3, 5.7):
+                        for dx in (-0.9, 0, 0.9):
+                            for dy in (-0.9, 0, 0.9):
+                                hit_levels = {
+                                    round(v[2], 4) for t in triangles
+                                    if face_crosses_xy(t, x + dx, -12.05 + dy) for v in t
+                                }
+                                if math.hypot(x + dx, -12.05 + dy) >= 11.3:
+                                    self.assertIn(-4.3, hit_levels)
+                                self.assertLessEqual(max(hit_levels, default=-6.6), -4.3)
 
     def test_removed_wordmark_variant_and_card_images_are_not_published(self):
         page = (ROOT / "dist/assets.html").read_text()

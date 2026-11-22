@@ -152,8 +152,9 @@ function Nema14EnclosureSection() {
         ))}
       </ul>
       <p className="mt-3 text-sm text-slate-600">
-        Use separate 2.5 mm PCB standoffs to clear the WAGO solder tails. Check
-        rear motor attachment and encoder magnet clearance with the actual hardware.{" "}
+        Seat the PCB with the WAGO solder tails above the bottom housing’s
+        relief pocket. Check rear motor attachment and encoder magnet clearance
+        with the actual hardware.{" "}
         <a
           className={linkClass}
           href="https://github.com/tscircuit/motorcontrol/tree/main/mechanical/nema14-enclosure"
