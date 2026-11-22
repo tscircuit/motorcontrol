@@ -71,6 +71,17 @@ class EnclosureAssetsTest(unittest.TestCase):
                         self.assertIn((x, y), corners)
                 if part["id"] == "top":
                     self.assertEqual(footprint, [38.25, 38.25])
+                    roof = max(v[2] for v in vertices)
+                    for x, y in ((0, 0), (-19.65, 4.5), (0.6, 19.65)):
+                        self.assertTrue(any(face_crosses_xy(t, x, y) for t in triangles
+                                            if all(abs(v[2] - roof) < 1e-4 for v in t)))
+                    for x in (-13, 13):
+                        for y in (-13, 13):
+                            for radius in (1.6, 3.05):
+                                sample_x = x + math.copysign(radius, x)
+                                heights = [v[2] for t in triangles
+                                           if face_crosses_xy(t, sample_x, y) for v in t]
+                                self.assertAlmostEqual(max(heights), roof - 8.10, places=4)
                     for x in (-6.0, -2.0, 2.0, 6.0):
                         for y in (-15.0, -10.0, -5.2):
                             self.assertFalse(any(face_crosses_xy(t, x, y) for t in triangles

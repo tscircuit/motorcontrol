@@ -9,11 +9,11 @@ visible at the seam between the cover and housing.
 
 | Part | Height | Features |
 | --- | --- | --- |
-| R4 top cover | 17.25 mm | Two USB-C plug collars, an open WAGO service bay, and a flat exterior side opposite the USB-C data port |
+| R5 top cover | 13.55 mm | Flat top across both USB-C collars, four equal-depth screw pockets, and an open WAGO service bay |
 | R2 bottom housing | 5.80 mm | 3.50 mm deep WAGO pin pocket, flat motor-facing side, Ø22.6 mm center opening, and four Ø6.2 mm through-holes on 26 mm pitch |
 
 The two collars project 3.05 mm past the motor outline on their respective
-sides. The overall envelope is 38.25 × 38.25 × 24.65 mm, including the 1.6 mm
+sides. The overall envelope is 38.25 × 38.25 × 20.95 mm, including the 1.6 mm
 PCB. STEP and STL
 downloads are in `dist/assets/nema14-enclosure/` and on the
 [Assets page](../../dist/assets.html#nema14-enclosure-heading). The CAD exports
@@ -23,9 +23,14 @@ retain their assembly coordinates.
 
 Each collar has a nominal 13.3 × 8.4 mm pocket for a 12.7 × 7.8 mm USB-C plug
 body. In CAD the seated plug envelope contacts the collar within 0.45 mm of
-translation in each of the four lateral directions. The DATA collar has a
-driver access notch. Use M2.5 screw heads within the tested Ø4.7 × 1.45 mm
-envelope and check that the real plugs seat before testing side loads.
+translation in each of the four lateral directions. Check that the real
+plugs seat before testing side loads.
+
+All four M2.5 screws seat 8.1 mm below the flat top in Ø6.4 mm pockets.
+This leaves 0.85 mm radial clearance for a Ø4.7 mm screw head and room for
+the driver shaft. Use heads up to 1.45 mm tall for the checked fit. The
+DATA-side head has 0.51 mm of clearance beneath the nominal USB-C plug body.
+Unplug the DATA cable to reach that screw from above.
 
 The rear bay is open across the WAGO terminal so its push tabs can be reached
 from above while wires enter from the rear. CAD checks covered the tool
@@ -55,7 +60,7 @@ with the actual hardware.
 
 ## Native CAD
 
-Open [nema14-wago-r4.FCStd](nema14-wago-r4.FCStd) in FreeCAD 1.0 or newer. The top
+Open [nema14-wago-r5.FCStd](nema14-wago-r5.FCStd) in FreeCAD 1.0 or newer. The top
 cover is a native solid. The bottom housing extrudes the editable
 `FlatSpacerProfile` sketch and cuts the editable `WagoRelief` pocket.
 The center opening and four bolt holes are dimensioned in the sketch.

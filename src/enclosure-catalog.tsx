@@ -69,7 +69,7 @@ export const enclosureCatalog: EnclosureCatalog = {
 };
 
 export const nema14EnclosureCatalog: EnclosureCatalog = {
-  revision: "r4",
+  revision: "r5",
   status: "Fit-test draft. Physical fit unverified.",
   board_revision: "2.0.0-dev.11",
   footprint_mm: [35.2, 35.2],
@@ -77,12 +77,12 @@ export const nema14EnclosureCatalog: EnclosureCatalog = {
   parts: [
     {
       id: "top",
-      title: "Top cover with USB-C braces and WAGO access",
-      stl: "tscircuit-nema14-wago-top-r4.stl",
-      step: "tscircuit-nema14-wago-top-r4.step",
-      notes: "Two recessed USB-C plug collars, an open WAGO service bay, and one flat exterior side.",
+      title: "Flat top cover with USB-C braces and WAGO access",
+      stl: "tscircuit-nema14-wago-top-r5.stl",
+      step: "tscircuit-nema14-wago-top-r5.step",
+      notes: "Two flush USB-C plug collars, an open WAGO service bay, and four equal-depth Ø6.4 mm screw pockets.",
       footprint_mm: [38.25, 38.25],
-      height_mm: 17.25,
+      height_mm: 13.55,
     },
     {
       id: "bottom",
@@ -94,10 +94,10 @@ export const nema14EnclosureCatalog: EnclosureCatalog = {
     },
   ],
   sha256: {
-    "tscircuit-nema14-wago-top-r4.stl":
-      "550414c9044b68d3fc7808f2c7e429238324bfa9001850077d6309ea5814fa95",
-    "tscircuit-nema14-wago-top-r4.step":
-      "89a1a38188b2657bb0b6f4676efcfbf47f90c596e6bb492ace5c081fe639ee7f",
+    "tscircuit-nema14-wago-top-r5.stl":
+      "3950c5d4227e44804184e94f950704d8606c70066107f683888878314438802e",
+    "tscircuit-nema14-wago-top-r5.step":
+      "03d5baff10a21c012a499a93d5640c7e734364ec5212f56bac673b013d8d7d62",
     "tscircuit-nema14-wago-bottom-r2.stl":
       "a61e4fd7f3ef5ec6872272e5f3ea574f24e3ee1ea56e8f4b2e931b54b140b04e",
     "tscircuit-nema14-wago-bottom-r2.step":
