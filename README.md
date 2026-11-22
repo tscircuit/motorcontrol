@@ -114,10 +114,10 @@ See [`mechanical/nema17-enclosure/`](mechanical/nema17-enclosure/) for native CA
 source, rebuilding, dimensions and fit-test notes. These are the existing v4
 fit-study parts for PCB v1.0.57; physical fit is not yet verified.
 
-The [NEMA14 WAGO enclosure](mechanical/nema14-enclosure/) has a square
-35.2 × 35.2 mm footprint, two protected USB-C openings, and a bottom housing
-with a WAGO pin pocket and Ø22.6 mm center opening. Both parts have STEP and
-STL downloads and rotatable 3D previews.
+The [NEMA14 WAGO enclosure](mechanical/nema14-enclosure/) has a 35.2 × 35.2 mm
+motor interface, two USB-C plug collars, an open WAGO service bay, and a bottom
+housing with a pin pocket and Ø22.6 mm center opening. Both parts have STEP
+and STL downloads and rotatable 3D previews.
 
 The editable page is `src/assets-page.tsx`, and its typed enclosure catalog is
 `src/enclosure-catalog.tsx`. Preview controls remain in `src/enclosure-assets.ts`.

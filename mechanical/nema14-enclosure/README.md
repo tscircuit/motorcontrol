@@ -2,21 +2,36 @@
 
 This two-piece enclosure is a fit-test design for the
 [NEMA14 WAGO PCB](https://tscircuit.com/AnasSarkiz/NEMA14_RP2040_v2#3d).
-The nominal 35.2 × 35.2 mm footprint matches the
+The 35.2 × 35.2 mm motor interface matches the
 [14HM11-0404S reference motor drawing](https://github.com/AnasSarkiz/NEMA14_RP2040_V2/blob/1bedc87e95d88da2487e9e01c44a7dc101105816/references/motor/14HM11-0404S.pdf).
 The four PCB mounting points are on a 26 × 26 mm pattern. The PCB edge is
 visible at the seam between the cover and housing.
 
 | Part | Height | Features |
 | --- | --- | --- |
-| R3 top cover | 19.60 mm | Convex WAGO roof, flat exterior side opposite the USB-C data port, recessed USB-C openings, and M2.5 counterbored fastener seats |
+| R4 top cover | 17.25 mm | Two USB-C plug collars, an open WAGO service bay, and a flat exterior side opposite the USB-C data port |
 | R2 bottom housing | 5.80 mm | 3.50 mm deep WAGO pin pocket, flat motor-facing side, Ø22.6 mm center opening, and four Ø6.2 mm through-holes on 26 mm pitch |
 
-The roof rises 2.80 mm from its two sides to the center. The modeled stack is
-27.00 mm high, including the 1.6 mm PCB. STEP and STL
+The two collars project 3.05 mm past the motor outline on their respective
+sides. The overall envelope is 38.25 × 38.25 × 24.65 mm, including the 1.6 mm
+PCB. STEP and STL
 downloads are in `dist/assets/nema14-enclosure/` and on the
 [Assets page](../../dist/assets.html#nema14-enclosure-heading). The CAD exports
 retain their assembly coordinates.
+
+## Plug support and WAGO access
+
+Each collar has a nominal 13.3 × 8.4 mm pocket for a 12.7 × 7.8 mm USB-C plug
+body. In CAD the seated plug envelope contacts the collar within 0.45 mm of
+translation in each of the four lateral directions. The DATA collar has a
+driver access notch. Use M2.5 screw heads within the tested Ø4.7 × 1.45 mm
+envelope and check that the real plugs seat before testing side loads.
+
+The rear bay is open across the WAGO terminal so its push tabs can be reached
+from above while wires enter from the rear. CAD checks covered the tool
+envelope and the reference harness when lowering the cover. The
+cover uses continuous walls over the LEDs. Clear or translucent material is
+an option for viewing status lights through the shell.
 
 ## Spacer and encoder clearance
 
@@ -28,8 +43,8 @@ the center opening. The relief pocket clears them and gives 1.60 mm of
 additional depth below the nominal supplier-model pin tips. The CAD check
 found no overlap with the WAGO supplier model, populated component envelopes, the
 optional encoder model, the reference motor leads, or a 12.7 × 7.8 mm USB-C
-plug envelope at either port. The roof covers the component locations and
-the vent slots sit between components.
+plug envelope at either port. The roof shields the modeled electronics
+outside the connector bays.
 
 The release leaves the encoder unpopulated. For an encoder-equipped build,
 verify the actual rear shaft or magnet carrier, alignment, and magnet-to-sensor
@@ -40,7 +55,7 @@ with the actual hardware.
 
 ## Native CAD
 
-Open [nema14-wago-r3.FCStd](nema14-wago-r3.FCStd) in FreeCAD 1.0 or newer. The top
+Open [nema14-wago-r4.FCStd](nema14-wago-r4.FCStd) in FreeCAD 1.0 or newer. The top
 cover is a native solid. The bottom housing extrudes the editable
 `FlatSpacerProfile` sketch and cuts the editable `WagoRelief` pocket.
 The center opening and four bolt holes are dimensioned in the sketch.

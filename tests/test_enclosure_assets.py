@@ -58,7 +58,8 @@ class EnclosureAssetsTest(unittest.TestCase):
                     for record in struct.iter_unpack("<12fH", mesh[84:])
                 ]
                 vertices = [vertex for triangle in triangles for vertex in triangle]
-                for axis, expected in enumerate([35.2, 35.2, part["height_mm"]]):
+                footprint = part.get("footprint_mm", catalog["footprint_mm"])
+                for axis, expected in enumerate([*footprint, part["height_mm"]]):
                     size = max(v[axis] for v in vertices) - min(v[axis] for v in vertices)
                     self.assertAlmostEqual(size, expected, places=4)
                 corners = {}
@@ -69,10 +70,11 @@ class EnclosureAssetsTest(unittest.TestCase):
                     for y in (-17.6, 17.6):
                         self.assertIn((x, y), corners)
                 if part["id"] == "top":
-                    highest = max(v[2] for v in vertices)
-                    for x in (-17.6, 17.6):
-                        side = [z for cx, _, z in vertices if abs(cx - x) < 1e-4]
-                        self.assertAlmostEqual(highest - max(side), 2.8, places=3)
+                    self.assertEqual(footprint, [38.25, 38.25])
+                    for x in (-6.0, -2.0, 2.0, 6.0):
+                        for y in (-15.0, -10.0, -5.2):
+                            self.assertFalse(any(face_crosses_xy(t, x, y) for t in triangles
+                                                 if min(v[2] for v in t) >= 13.92))
                 if part["id"] == "bottom":
                     self.assertEqual(part["height_mm"], 5.8)
                     z_levels = {round(v[2], 4) for v in vertices}

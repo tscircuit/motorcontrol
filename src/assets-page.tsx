@@ -135,7 +135,7 @@ function Nema14EnclosureSection() {
         NEMA14 WAGO controller enclosure
       </h2>
       <p className="mt-1 text-sm text-slate-600">
-        {footprint} mm · {catalog.mounting_pitch_mm} mm bolt pitch · Fit-test draft
+        {footprint} mm motor footprint · {catalog.mounting_pitch_mm} mm bolt pitch · Fit-test draft
       </p>
       <ul
         aria-label="NEMA14 WAGO enclosure parts"
@@ -147,14 +147,14 @@ function Nema14EnclosureSection() {
             part={part}
             root="assets/nema14-enclosure/"
             idPrefix="nema14-enclosure"
-            dimensions={`${footprint} × ${part.height_mm} mm.`}
+            dimensions={`${part.footprint_mm?.join(" × ") ?? footprint} × ${part.height_mm} mm.`}
           />
         ))}
       </ul>
       <p className="mt-3 text-sm text-slate-600">
-        Seat the PCB with the WAGO solder tails above the bottom housing’s
-        relief pocket. Check rear motor attachment and encoder magnet clearance
-        with the actual hardware.{" "}
+        The USB-C collars project 3.05 mm past two motor edges. They fit the
+        modeled 12.7 × 7.8 mm plug bodies. The rear bay gives access to the
+        WAGO push tabs with the cover installed.{" "}
         <a
           className={linkClass}
           href="https://github.com/tscircuit/motorcontrol/tree/main/mechanical/nema14-enclosure"
