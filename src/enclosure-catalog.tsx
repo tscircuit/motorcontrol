@@ -68,7 +68,7 @@ export const enclosureCatalog: EnclosureCatalog = {
 };
 
 export const nema14EnclosureCatalog: EnclosureCatalog = {
-  revision: "r2",
+  revision: "r3",
   status: "Fit-test draft. Physical fit unverified.",
   board_revision: "2.0.0-dev.11",
   footprint_mm: [35.2, 35.2],
@@ -76,11 +76,11 @@ export const nema14EnclosureCatalog: EnclosureCatalog = {
   parts: [
     {
       id: "top",
-      title: "Rounded top cover",
-      stl: "tscircuit-nema14-wago-top-r2.stl",
-      step: "tscircuit-nema14-wago-top-r2.step",
-      notes: "Rounded WAGO hood, a flat exterior side, and recessed USB-C openings.",
-      height_mm: 17.25,
+      title: "Crowned top cover",
+      stl: "tscircuit-nema14-wago-top-r3.stl",
+      step: "tscircuit-nema14-wago-top-r3.step",
+      notes: "Convex WAGO roof, flat exterior side, and recessed USB-C openings.",
+      height_mm: 19.6,
     },
     {
       id: "bottom",
@@ -92,10 +92,10 @@ export const nema14EnclosureCatalog: EnclosureCatalog = {
     },
   ],
   sha256: {
-    "tscircuit-nema14-wago-top-r2.stl":
-      "1c7e9b1625222ab68bfcb263f628b25ba20ba598383b7b32b65237892e0e5841",
-    "tscircuit-nema14-wago-top-r2.step":
-      "92f1413b47ed4cb0e55688d6d8f623efbb76035c0d654bc17575cc0606a31ee8",
+    "tscircuit-nema14-wago-top-r3.stl":
+      "f941f93e47371831851a5d7c0ed5b1bee4227d01c512f61e1a0b3c4d497191f8",
+    "tscircuit-nema14-wago-top-r3.step":
+      "b361a933e7e7dacdf8355f8c14386a2de80a9a2243831a643b385c8b4f3c687c",
     "tscircuit-nema14-wago-bottom-r2.stl":
       "a61e4fd7f3ef5ec6872272e5f3ea574f24e3ee1ea56e8f4b2e931b54b140b04e",
     "tscircuit-nema14-wago-bottom-r2.step":

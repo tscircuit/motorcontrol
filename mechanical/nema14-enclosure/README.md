@@ -9,10 +9,11 @@ visible at the seam between the cover and housing.
 
 | Part | Height | Features |
 | --- | --- | --- |
-| Top cover | 17.25 mm | Rounded WAGO hood, flat exterior side opposite the USB-C data port, recessed USB-C openings, and M2.5 counterbored fastener seats |
-| Bottom housing | 5.80 mm | 3.50 mm deep WAGO pin pocket, flat motor-facing side, Ø22.6 mm center opening, and four Ø6.2 mm through-holes on 26 mm pitch |
+| R3 top cover | 19.60 mm | Convex WAGO roof, flat exterior side opposite the USB-C data port, recessed USB-C openings, and M2.5 counterbored fastener seats |
+| R2 bottom housing | 5.80 mm | 3.50 mm deep WAGO pin pocket, flat motor-facing side, Ø22.6 mm center opening, and four Ø6.2 mm through-holes on 26 mm pitch |
 
-The modeled stack is 24.65 mm high, including the 1.6 mm PCB. STEP and STL
+The roof rises 2.80 mm from its two sides to the center. The modeled stack is
+27.00 mm high, including the 1.6 mm PCB. STEP and STL
 downloads are in `dist/assets/nema14-enclosure/` and on the
 [Assets page](../../dist/assets.html#nema14-enclosure-heading). The CAD exports
 retain their assembly coordinates.
@@ -39,7 +40,7 @@ with the actual hardware.
 
 ## Native CAD
 
-Open [nema14-wago-r2.FCStd](nema14-wago-r2.FCStd) in FreeCAD 1.0 or newer. The top
+Open [nema14-wago-r3.FCStd](nema14-wago-r3.FCStd) in FreeCAD 1.0 or newer. The top
 cover is a native solid. The bottom housing extrudes the editable
 `FlatSpacerProfile` sketch and cuts the editable `WagoRelief` pocket.
 The center opening and four bolt holes are dimensioned in the sketch.

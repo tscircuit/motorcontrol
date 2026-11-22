@@ -68,9 +68,11 @@ class EnclosureAssetsTest(unittest.TestCase):
                 for x in (-17.6, 17.6):
                     for y in (-17.6, 17.6):
                         self.assertIn((x, y), corners)
-                        if part["id"] == "top":
-                            self.assertAlmostEqual(corners[x, y], 16.3 if y < 0 else 10.35,
-                                                   places=4)
+                if part["id"] == "top":
+                    highest = max(v[2] for v in vertices)
+                    for x in (-17.6, 17.6):
+                        side = [z for cx, _, z in vertices if abs(cx - x) < 1e-4]
+                        self.assertAlmostEqual(highest - max(side), 2.8, places=3)
                 if part["id"] == "bottom":
                     self.assertEqual(part["height_mm"], 5.8)
                     z_levels = {round(v[2], 4) for v in vertices}
