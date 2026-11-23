@@ -1,22 +1,33 @@
 import { SiteHeader } from "./site-header";
-import { enclosureCatalog } from "./enclosure-catalog";
+import { enclosureCatalog, nema14EnclosureCatalog } from "./enclosure-catalog";
 import type { EnclosurePart } from "./enclosure-catalog";
 
 const linkClass = "text-blue-700 underline";
 const assetRoot = "assets/nema17-enclosure/";
 
-function EnclosurePartRow({ part }: { part: EnclosurePart }) {
+function EnclosurePartRow({
+  part,
+  root,
+  idPrefix,
+  dimensions,
+}: {
+  part: EnclosurePart;
+  root: string;
+  idPrefix: string;
+  dimensions: string;
+}) {
+  const previewId = `${idPrefix}-preview-${part.id}`;
   return (
-    <li className="px-4 py-3" id={`enclosure-${part.id}`}>
+    <li className="px-4 py-3" id={`${idPrefix}-${part.id}`}>
       <h3 className="text-sm font-semibold">{part.title}</h3>
       <p className="mt-1 text-xs text-slate-600">
-        42 × 42 × {part.height_mm} mm · Ø3.6 mm bores. {part.notes}
+        {dimensions} {part.notes}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-        <a className={linkClass} href={assetRoot + part.stl} download>
+        <a className={linkClass} href={root + part.stl} download>
           STL · {part.title}
         </a>
-        <a className={linkClass} href={assetRoot + part.step} download>
+        <a className={linkClass} href={root + part.step} download>
           STEP · {part.title}
         </a>
         <button
@@ -24,12 +35,12 @@ function EnclosurePartRow({ part }: { part: EnclosurePart }) {
           className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm hover:bg-slate-50"
           data-enclosure-preview={part.id}
           aria-expanded="false"
-          aria-controls={`enclosure-preview-${part.id}`}
+          aria-controls={previewId}
         >
           Preview
         </button>
       </div>
-      <div id={`enclosure-preview-${part.id}`} className="mt-3" hidden>
+      <div id={previewId} className="mt-3" hidden>
         <div
           data-enclosure-model=""
           className="relative h-64 overflow-hidden rounded-md border border-slate-200 bg-white sm:h-80"
@@ -70,7 +81,13 @@ function EnclosureSection() {
         className="mt-5 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white"
       >
         {enclosureCatalog.parts.map((part) => (
-          <EnclosurePartRow key={part.id} part={part} />
+          <EnclosurePartRow
+            key={part.id}
+            part={part}
+            root={assetRoot}
+            idPrefix="enclosure"
+            dimensions={`42 × 42 × ${part.height_mm} mm · Ø3.6 mm bores.`}
+          />
         ))}
       </ul>
       <p className="mt-3 flex flex-wrap gap-3 text-sm">
@@ -104,6 +121,46 @@ function EnclosureSection() {
       <p className="mt-3 text-xs text-slate-600">
         These STEP/STL files are unchanged v4 CAD exports. Their native CadQuery
         model remains the source for geometry.
+      </p>
+    </section>
+  );
+}
+
+function Nema14EnclosureSection() {
+  const catalog = nema14EnclosureCatalog;
+  const footprint = catalog.footprint_mm.join(" × ");
+  return (
+    <section aria-labelledby="nema14-enclosure-heading" className="mt-5">
+      <h2 id="nema14-enclosure-heading" className="text-2xl font-semibold tracking-tight">
+        NEMA14 WAGO controller enclosure
+      </h2>
+      <p className="mt-1 text-sm text-slate-600">
+        {footprint} mm motor footprint · {catalog.mounting_pitch_mm} mm bolt pitch · Fit-test draft
+      </p>
+      <ul
+        aria-label="NEMA14 WAGO enclosure parts"
+        className="mt-5 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white"
+      >
+        {catalog.parts.map((part) => (
+          <EnclosurePartRow
+            key={part.id}
+            part={part}
+            root="assets/nema14-enclosure/"
+            idPrefix="nema14-enclosure"
+            dimensions={`${part.footprint_mm?.join(" × ") ?? footprint} × ${part.height_mm} mm.`}
+          />
+        ))}
+      </ul>
+      <p className="mt-3 text-sm text-slate-600">
+        The USB-C collars project 3.05 mm past two motor edges. They fit the
+        modeled 12.7 × 7.8 mm plug bodies. The rear bay gives access to the
+        WAGO push tabs with the cover installed.{" "}
+        <a
+          className={linkClass}
+          href="https://github.com/tscircuit/motorcontrol/tree/main/mechanical/nema14-enclosure"
+        >
+          Native FreeCAD model and fit notes
+        </a>
       </p>
     </section>
   );
@@ -224,10 +281,10 @@ export function AssetsPage() {
         <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
           <h1 className="text-2xl font-semibold tracking-tight">Assets</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Download printable motor spacers and the NEMA17 controller
-            enclosure.
+            Download printable motor spacers and controller enclosures.
           </p>
           <EnclosureSection />
+          <Nema14EnclosureSection />
           <SpacerSection />
         </main>
         <SpacerTemplate />

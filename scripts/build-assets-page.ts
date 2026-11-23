@@ -5,18 +5,22 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SiteHeader } from "../src/site-header";
 import { AssetsPage } from "../src/assets-page";
-import { enclosureCatalog } from "../src/enclosure-catalog";
+import { enclosureCatalogs } from "../src/enclosure-catalog";
 
 async function main(): Promise<void> {
-  for (const part of enclosureCatalog.parts) {
-    for (const filename of [part.stl, part.step]) {
-      const bytes = await readFile(`dist/assets/nema17-enclosure/${filename}`);
-      assert.equal(
-        createHash("sha256").update(bytes).digest("hex"),
-        enclosureCatalog.sha256[filename],
-        filename,
-      );
+  for (const [directory, catalog] of Object.entries(enclosureCatalogs)) {
+    const root = `dist/assets/${directory}`;
+    for (const part of catalog.parts) {
+      for (const filename of [part.stl, part.step]) {
+        const bytes = await readFile(`${root}/${filename}`);
+        assert.equal(
+          createHash("sha256").update(bytes).digest("hex"),
+          catalog.sha256[filename],
+          filename,
+        );
+      }
     }
+    await writeFile(`${root}/catalog.json`, JSON.stringify(catalog, null, 2) + "\n");
   }
   // The dashboards ship as static HTML. Stamp the same navigable header into
   // each one so the links also work before JavaScript loads.
@@ -33,10 +37,6 @@ async function main(): Promise<void> {
     "<!doctype html>\n<!-- Generated from src/assets-page.tsx; edit the TSX source. -->\n" +
       renderToStaticMarkup(createElement(AssetsPage)) +
       "\n",
-  );
-  await writeFile(
-    "dist/assets/nema17-enclosure/catalog.json",
-    JSON.stringify(enclosureCatalog, null, 2) + "\n",
   );
 }
 
