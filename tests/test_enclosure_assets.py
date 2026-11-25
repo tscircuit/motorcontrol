@@ -114,6 +114,80 @@ class EnclosureAssetsTest(unittest.TestCase):
                                     self.assertIn(-4.3, hit_levels)
                                 self.assertLessEqual(max(hit_levels, default=-6.6), -4.3)
 
+    def test_nema17_flat_top_downloads_flat_face_and_led_holes(self):
+        assets = ROOT / "dist/assets/nema17-flat-top-enclosure"
+        catalog = json.loads((assets / "catalog.json").read_text())
+        page = (ROOT / "dist/assets.html").read_text()
+        links = Links(page).urls
+        self.assertIn("NEMA17 flat-top controller enclosure", page)
+        self.assertEqual(catalog["board_revision"], "1.0.58")
+        self.assertEqual(catalog["footprint_mm"], [45.3, 45.32])
+        self.assertEqual(catalog["mounting_pitch_mm"], 31)
+        self.assertEqual({part["id"] for part in catalog["parts"]}, {"top", "bottom"})
+        bolts = [(x, y) for x in (-15.5, 15.5) for y in (-15.5, 15.5)]
+        leds = [(-18.0, 11.5), (-14.9, -7.9)]  # D_PWR, D_STATUS on PCB v1.0.58
+        for part in catalog["parts"]:
+            with self.subTest(part=part["id"]):
+                for kind in ("stl", "step"):
+                    name = part[kind]
+                    self.assertIn(f"assets/nema17-flat-top-enclosure/{name}", links)
+                    data = (assets / name).read_bytes()
+                    self.assertEqual(hashlib.sha256(data).hexdigest(),
+                                     catalog["sha256"][name])
+                self.assertTrue((assets / part["step"]).read_bytes().startswith(b"ISO-10303-21;"))
+                mesh = (assets / part["stl"]).read_bytes()
+                count = struct.unpack_from("<I", mesh, 80)[0]
+                self.assertGreater(count, 0)
+                self.assertEqual(len(mesh), 84 + count * 50)
+                triangles = [
+                    [record[3:6], record[6:9], record[9:12]]
+                    for record in struct.iter_unpack("<12fH", mesh[84:])
+                ]
+                vertices = [vertex for triangle in triangles for vertex in triangle]
+                for axis, expected in enumerate([*catalog["footprint_mm"], part["height_mm"]]):
+                    size = max(v[axis] for v in vertices) - min(v[axis] for v in vertices)
+                    self.assertAlmostEqual(size, expected, places=4)
+
+                def levels(x, y):
+                    return sorted({round(v[2], 3) for t in triangles
+                                   if face_crosses_xy(t, x, y)
+                                   and max(v[2] for v in t) - min(v[2] for v in t) < 1e-4
+                                   for v in t})
+
+                # Bolt bores run through both parts.
+                for x, y in bolts:
+                    self.assertFalse(any(face_crosses_xy(t, x, y) for t in triangles))
+                if part["id"] == "top":
+                    # Assembly coordinates: PCB top at 5.0, flat top at 12.3.
+                    self.assertAlmostEqual(min(v[2] for v in vertices), 5.0, places=4)
+                    # The roof is one 1.4 mm slab: flat outside, flat inside.
+                    for x, y in ((0, 0), (10, 5), (-10, 5), (18, 0), (0, -9), (-18, 0), (0, 18)):
+                        self.assertEqual(levels(x, y), [10.9, 12.3])
+                    # Nothing stands above the top face.
+                    self.assertAlmostEqual(max(v[2] for v in vertices), 12.3, places=4)
+                    # A clear line of sight straight up from each LED...
+                    for x, y in leds:
+                        self.assertFalse(any(face_crosses_xy(t, x, y) for t in triangles))
+                        # ...through a Ø1.5 mm hole, with roof all round it.
+                        for angle in range(0, 360, 45):
+                            dx, dy = math.cos(math.radians(angle)), math.sin(math.radians(angle))
+                            self.assertEqual(levels(x + 0.6 * dx, y + 0.6 * dy), [])
+                            self.assertEqual(levels(x + 0.9 * dx, y + 0.9 * dy)[-1], 12.3)
+                    # Screw heads seat 3.7 mm below the top face.
+                    for x, y in bolts:
+                        self.assertEqual(levels(x + 2.5, y)[-1], 8.6)
+                if part["id"] == "bottom":
+                    self.assertAlmostEqual(min(v[2] for v in vertices), 0.0, places=4)
+                    # Ø22.6 mm rotor opening, 1 mm insulating floor around it.
+                    self.assertFalse(any(face_crosses_xy(t, 0, 0) for t in triangles))
+                    self.assertAlmostEqual(
+                        min(math.hypot(x, y) for x, y, _ in vertices), 11.3, places=2)
+                    for x, y in ((0, 14), (14, 0), (0, -14), (-14, 0)):
+                        self.assertEqual(levels(x, y), [0.0, 1.0])
+                    # The PCB rests on the four bolt sleeves, 3.4 mm up.
+                    for x, y in bolts:
+                        self.assertEqual(levels(x - math.copysign(2.6, x), y), [0.0, 3.4])
+
     def test_removed_wordmark_variant_and_card_images_are_not_published(self):
         page = (ROOT / "dist/assets.html").read_text()
         self.assertNotIn("enclosure-recessed", page)
