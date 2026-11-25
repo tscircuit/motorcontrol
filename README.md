@@ -114,6 +114,11 @@ See [`mechanical/nema17-enclosure/`](mechanical/nema17-enclosure/) for native CA
 source, rebuilding, dimensions and fit-test notes. These are the existing v4
 fit-study parts for PCB v1.0.57; physical fit is not yet verified.
 
+The [NEMA17 flat-top enclosure](mechanical/nema17-flat-top-enclosure/) is a
+spacer tray and cover for PCB v1.0.58 with a single flat top face, side-facing
+USB-C and JST openings, and a hole over each LED. It walls in the PCB edge, so
+it measures 45.3 × 45.32 mm. Physical fit is not yet verified.
+
 The [NEMA14 WAGO enclosure](mechanical/nema14-enclosure/) has a 35.2 × 35.2 mm
 motor interface, two USB-C plug collars, an open WAGO service bay, and a bottom
 housing with a pin pocket and Ø22.6 mm center opening. Both parts have STEP

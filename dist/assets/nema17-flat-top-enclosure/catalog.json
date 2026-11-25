@@ -1,0 +1,34 @@
+{
+  "revision": "r1",
+  "status": "Fit-test draft. Physical fit unverified.",
+  "board_revision": "1.0.58",
+  "footprint_mm": [
+    45.3,
+    45.32
+  ],
+  "mounting_pitch_mm": 31,
+  "parts": [
+    {
+      "id": "top",
+      "title": "Flat-top cover with LED holes",
+      "stl": "tscircuit-nema17-flat-top-cover-r1.stl",
+      "step": "tscircuit-nema17-flat-top-cover-r1.step",
+      "notes": "One flat top face with four recessed M3 pockets and a Ø1.5 mm hole over each LED. USB-C and JST openings are in the side walls.",
+      "height_mm": 7.3
+    },
+    {
+      "id": "bottom",
+      "title": "Spacer tray",
+      "stl": "tscircuit-nema17-flat-top-spacer-r1.stl",
+      "step": "tscircuit-nema17-flat-top-spacer-r1.step",
+      "notes": "Holds the PCB 3.4 mm off the motor and walls in its back face and edges. Ø22.6 mm center opening.",
+      "height_mm": 4.9
+    }
+  ],
+  "sha256": {
+    "tscircuit-nema17-flat-top-cover-r1.stl": "5d8ed71ba8fd35a8e73db57deb4135a9092dbccd2e850e73b8db24427d0b6b36",
+    "tscircuit-nema17-flat-top-cover-r1.step": "a526ba8edd808e2847b4fa77c61503781b69b657b9578349712f7dd08176a261",
+    "tscircuit-nema17-flat-top-spacer-r1.stl": "4f6b705398dc0cf50fad03dd77048b52820633001bafeeec190b53974fb1e0ee",
+    "tscircuit-nema17-flat-top-spacer-r1.step": "a5e3282ee78432dd11913d1e70bc326a7a67d122f5e8eb3542345a1a75fc5cae"
+  }
+}

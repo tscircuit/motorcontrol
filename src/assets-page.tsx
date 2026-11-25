@@ -1,5 +1,9 @@
 import { SiteHeader } from "./site-header";
-import { enclosureCatalog, nema14EnclosureCatalog } from "./enclosure-catalog";
+import {
+  enclosureCatalog,
+  nema14EnclosureCatalog,
+  nema17FlatTopEnclosureCatalog,
+} from "./enclosure-catalog";
 import type { EnclosurePart } from "./enclosure-catalog";
 
 const linkClass = "text-blue-700 underline";
@@ -121,6 +125,55 @@ function EnclosureSection() {
       <p className="mt-3 text-xs text-slate-600">
         These STEP/STL files are unchanged v4 CAD exports. Their native CadQuery
         model remains the source for geometry.
+      </p>
+    </section>
+  );
+}
+
+function Nema17FlatTopEnclosureSection() {
+  const catalog = nema17FlatTopEnclosureCatalog;
+  const footprint = catalog.footprint_mm.join(" × ");
+  return (
+    <section aria-labelledby="nema17-flat-top-enclosure-heading" className="mt-5">
+      <h2
+        id="nema17-flat-top-enclosure-heading"
+        className="text-2xl font-semibold tracking-tight"
+      >
+        NEMA17 flat-top controller enclosure
+      </h2>
+      <p className="mt-1 text-sm text-slate-600">
+        {footprint} mm · {catalog.mounting_pitch_mm} mm bolt pitch · PCB v
+        {catalog.board_revision} fit-test draft
+      </p>
+      <p className="mt-3 text-sm text-slate-600">
+        The top is a single flat face, so the motor can stand on it and a label
+        can go on it. The two parts meet at the PCB surface and wall in the
+        board on every side, which makes them 1.5 mm wider than the PCB all
+        round. Print the cover with its top face on the bed.
+      </p>
+      <ul
+        aria-label="NEMA17 flat-top enclosure parts"
+        className="mt-5 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white"
+      >
+        {catalog.parts.map((part) => (
+          <EnclosurePartRow
+            key={part.id}
+            part={part}
+            root="assets/nema17-flat-top-enclosure/"
+            idPrefix="nema17-flat-top-enclosure"
+            dimensions={`${footprint} × ${part.height_mm} mm.`}
+          />
+        ))}
+      </ul>
+      <p className="mt-3 text-sm text-slate-600">
+        The power LED hole sits beside one screw pocket. The status LED hole is
+        inside the area a centered 38.1 × 19.05 mm label covers.{" "}
+        <a
+          className={linkClass}
+          href="https://github.com/tscircuit/motorcontrol/tree/main/mechanical/nema17-flat-top-enclosure"
+        >
+          Native CadQuery source and fit notes
+        </a>
       </p>
     </section>
   );
@@ -284,6 +337,7 @@ export function AssetsPage() {
             Download printable motor spacers and controller enclosures.
           </p>
           <EnclosureSection />
+          <Nema17FlatTopEnclosureSection />
           <Nema14EnclosureSection />
           <SpacerSection />
         </main>

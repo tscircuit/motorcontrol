@@ -1,0 +1,118 @@
+{
+ "board": "imrishabh18/rp2040-motor-controller v1.0.58",
+ "revision": "r1",
+ "footprint_mm": [
+  45.3,
+  45.32
+ ],
+ "overall_height_mm": 12.3,
+ "spacer": {
+  "height_mm": 4.9,
+  "pcb_seat_z_mm": 3.4,
+  "floor_mm": 1.0,
+  "center_opening_mm": 22.6,
+  "volume_cm3": 2.73
+ },
+ "cover": {
+  "height_mm": 7.3,
+  "roof_mm": 1.4,
+  "ceiling_above_pcb_mm": 5.9,
+  "tallest_part_above_pcb_mm": 5.5,
+  "flat_top_area_mm2": 1729.1,
+  "volume_cm3": 4.26
+ },
+ "wall_mm": 1.2,
+ "pcb_edge_gap_mm": 0.3,
+ "seam_gap_mm": 0.2,
+ "seam_z_mm": 5.0,
+ "screws": {
+  "pattern_mm": 31.0,
+  "bore_mm": 3.6,
+  "head_pocket_mm": 6.6,
+  "head_seat_z_mm": 8.6,
+  "pocket_depth_mm": 3.7,
+  "m3_cap_head_below_top_mm": 0.7
+ },
+ "usb": {
+  "mouth_y_mm": 22.05,
+  "recess_floor_y_mm": 22.26,
+  "outer_wall_y_mm": 22.66,
+  "mouth_behind_recess_floor_mm": 0.21
+ },
+ "j1": {
+  "envelope_min": [
+   12.1375,
+   -10.2,
+   5.0
+  ],
+  "envelope_max": [
+   20.7375,
+   1.8,
+   10.5
+  ],
+  "model_shift_x_mm": -2.5
+ },
+ "led_holes": [
+  {
+   "led": "D_PWR",
+   "x_mm": -18.0,
+   "y_mm": 11.5,
+   "diameter_mm": 1.5,
+   "led_top_below_roof_underside_mm": 5.29
+  },
+  {
+   "led": "D_STATUS",
+   "x_mm": -14.9,
+   "y_mm": -7.9,
+   "diameter_mm": 1.5,
+   "led_top_below_roof_underside_mm": 5.54
+  }
+ ],
+ "component_reliefs": [
+  {
+   "part": "U_PD_PG",
+   "relief_mm3": 0.008
+  },
+  {
+   "part": "Q_STATUS_B",
+   "relief_mm3": 0.501
+  },
+  {
+   "part": "Q_STATUS_G",
+   "relief_mm3": 0.757
+  },
+  {
+   "part": "BZ1",
+   "relief_mm3": 6.531
+  },
+  {
+   "part": "R_TEMP_SCL",
+   "relief_mm3": 0.013
+  },
+  {
+   "part": "R_ISEN_B",
+   "relief_mm3": 0.012
+  },
+  {
+   "part": "R_ISEN_A",
+   "relief_mm3": 0.276
+  },
+  {
+   "part": "J_MOTOR_USB",
+   "relief_mm3": 2.336
+  },
+  {
+   "part": "R_VCP",
+   "relief_mm3": 0.013
+  },
+  {
+   "part": "R_BOOT",
+   "relief_mm3": 0.041
+  },
+  {
+   "part": "D_VBUS",
+   "relief_mm3": 0.186
+  }
+ ],
+ "component_clearance_mm": 0.3
+}
