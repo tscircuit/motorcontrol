@@ -1,5 +1,5 @@
 {
-  "revision": "r1",
+  "revision": "r2",
   "status": "Fit-test draft. Physical fit unverified.",
   "board_revision": "1.0.58",
   "footprint_mm": [
@@ -10,10 +10,10 @@
   "parts": [
     {
       "id": "top",
-      "title": "Flat-top cover with LED holes",
-      "stl": "tscircuit-nema17-flat-top-cover-r1.stl",
-      "step": "tscircuit-nema17-flat-top-cover-r1.step",
-      "notes": "One flat top face with four recessed M3 pockets and a Ø1.5 mm hole over each LED. USB-C and JST openings are in the side walls.",
+      "title": "Flat-top cover with LED openings",
+      "stl": "tscircuit-nema17-flat-top-cover-r2.stl",
+      "step": "tscircuit-nema17-flat-top-cover-r2.step",
+      "notes": "One flat top face with four recessed M3 pockets. Each LED has a Ø1.5 mm hole above it and a 4 × 2.4 mm notch in the side wall beside it. USB-C and JST openings are in the other side walls.",
       "height_mm": 7.3
     },
     {
@@ -26,8 +26,8 @@
     }
   ],
   "sha256": {
-    "tscircuit-nema17-flat-top-cover-r1.stl": "5d8ed71ba8fd35a8e73db57deb4135a9092dbccd2e850e73b8db24427d0b6b36",
-    "tscircuit-nema17-flat-top-cover-r1.step": "a526ba8edd808e2847b4fa77c61503781b69b657b9578349712f7dd08176a261",
+    "tscircuit-nema17-flat-top-cover-r2.stl": "9b7d5012a736aa4b6d6d018c97d63d4549ba569ddbc59a35b37cc2ddc9bfee86",
+    "tscircuit-nema17-flat-top-cover-r2.step": "ec438c59fa6292044c7be91bae073b6af48580417b1af482bec8c72502333af2",
     "tscircuit-nema17-flat-top-spacer-r1.stl": "4f6b705398dc0cf50fad03dd77048b52820633001bafeeec190b53974fb1e0ee",
     "tscircuit-nema17-flat-top-spacer-r1.step": "a5e3282ee78432dd11913d1e70bc326a7a67d122f5e8eb3542345a1a75fc5cae"
   }

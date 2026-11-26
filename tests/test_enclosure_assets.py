@@ -173,6 +173,16 @@ class EnclosureAssetsTest(unittest.TestCase):
                             dx, dy = math.cos(math.radians(angle)), math.sin(math.radians(angle))
                             self.assertEqual(levels(x + 0.6 * dx, y + 0.6 * dy), [])
                             self.assertEqual(levels(x + 0.9 * dx, y + 0.9 * dy)[-1], 12.3)
+                    # Each LED also has a notch in the -X wall, open at the
+                    # cover's bottom edge and 2.4 mm tall; the wall is solid
+                    # from the bottom edge up between and beside the notches.
+                    wall_x = -22.05
+                    for _, y in leds:
+                        self.assertEqual(levels(wall_x, y), [7.4, 12.3])
+                        self.assertEqual(levels(wall_x, y + 0.9), [7.4, 12.3])
+                        self.assertEqual(levels(wall_x, y - 0.9), [7.4, 12.3])
+                    for y in (-14.0, -11.0, -4.0, 0.0, 8.0, 14.5):
+                        self.assertEqual(levels(wall_x, y), [5.1, 12.3])
                     # Screw heads seat 3.7 mm below the top face.
                     for x, y in bolts:
                         self.assertEqual(levels(x + 2.5, y)[-1], 8.6)
