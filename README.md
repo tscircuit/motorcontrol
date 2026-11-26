@@ -2,6 +2,8 @@
 
 **All three retained board generations have separate native C targets.** See the [firmware target directory](firmware-c/boards/README.md): second-generation NEMA17/DRV8847, latest NEMA17/DRV8825 (PCB 1.0.42), and NEMA23/DRV8452 (PCB 1.3.2). The oldest ordered NEMA17 board is retired. The latest NEMA17 target remains the default and retains its existing behavior. Build and flash the matching UF2 using the [native installation guide](firmware-c/README.md). All targets use the existing public dashboard and gantry protocol. The sections below describe retained MicroPython firmware as a migration reference.
 
+The [NEMA8 dual-USB-C bench firmware](firmware-c/nema8/) runs on the CH32X035F8U6 and controls its TMC2209 over a USB serial terminal.
+
 MicroPython motor-control firmware with a Web Serial dashboard. Motion and safety logic are separated from driver chips, board wiring, and MCU services so additional hardware can reuse the controller and protocol.
 
 [Get started](https://motorcontrol.tscircuit.com) · [Motor bench](https://motorcontrol.tscircuit.com/motor-bench.html) · [Porting guide](docs/architecture.md) · [Serial protocol](docs/protocol.md)
