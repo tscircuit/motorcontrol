@@ -18,7 +18,7 @@ import cadquery as cq
 ROOT = pathlib.Path(__file__).resolve().parent
 OUT = ROOT / "models"
 OUT.mkdir(exist_ok=True)
-REVISION = "r1"
+REVISIONS = {"spacer": "r1", "cover": "r2"}   # r2 added the LED side notches
 
 # ---- stack (matches the v4 NEMA17 enclosure, so the same bolts fit) ----------
 BASE_HEIGHT = 3.4        # motor rear plane -> PCB underside
@@ -64,9 +64,13 @@ J1_MODEL_DX = -2.5
 
 VENTS = False            # True adds v4-style slots on the -X and -Y walls
 
-# ---- indicator LEDs: one straight viewing hole through the roof over each -----
+# ---- indicator LEDs: a viewing hole through the roof over each, and a notch ---
+# ---- in the nearest side wall (-X for both) so they also show from the side ---
 LEDS = ("D_PWR", "D_STATUS")   # green power LED, RGB status LED
 LED_HOLE_D = 1.5
+LED_WINDOW_W = 4.0             # along the wall
+LED_WINDOW_H = 2.4             # above the PCB top; open at the seam
+LED_WINDOW_R = 1.0             # top corner radius
 
 D_IN = EDGE_GAP
 D_OUT = EDGE_GAP + WALL
@@ -154,6 +158,15 @@ def led_axes():
     return out
 
 
+def led_window(y):
+    """Notch in the -X wall beside an LED, open at the cover's bottom edge."""
+    x0, x1 = -30.0, -HALF_X + 1
+    z0, z1 = PCB_TOP - 1, PCB_TOP + LED_WINDOW_H
+    return (cq.Workplane("XY").box(x1 - x0, LED_WINDOW_W, z1 - z0, centered=False)
+            .translate((x0, y - LED_WINDOW_W / 2, z0))
+            .edges("|X").edges(">Z").fillet(LED_WINDOW_R).val())
+
+
 # ================================ spacer tray =================================
 def build_spacer():
     body = outline(D_OUT, 0, WALL_TOP).faces("<Z").edges().chamfer(BOTTOM_CHAMFER).val()
@@ -198,6 +211,7 @@ def build_enclosure():
     shell = shell.cut(box(HALF_X - 1, 30, j["min"][1] - CLEAR, j["max"][1] + CLEAR, PCB_TOP - 1, CEILING))
     for x, y, z in led_axes():
         shell = shell.cut(cyl(LED_HOLE_D, z, TOP + 1, x, y))
+        shell = shell.cut(led_window(y))
     if VENTS:
         for t in (-10, -5, 0, 5, 10):
             shell = shell.cut(box(-30, -HALF_X + 1, t - 0.6, t + 0.6, PCB_TOP + 1.6, PCB_TOP + 5.0))
@@ -248,6 +262,14 @@ def check(spacer, enclosure):
             r = LED_HOLE_D / 2 + 0.2
             probe = cyl(0.1, TOP - 0.3, TOP - 0.1, x + r * math.cos(math.radians(a)), y + r * math.sin(math.radians(a)))
             assert abs(enclosure.intersect(probe).Volume() - probe.Volume()) < 1e-7, ("led rim", x, y, a)
+        # nothing of the cover between the LED and the outside through its side notch
+        half = LED_WINDOW_W / 2 - LED_WINDOW_R
+        sight = box(-30, x, y - half, y + half, PCB_TOP + 0.01, PCB_TOP + LED_WINDOW_H - LED_WINDOW_R)
+        assert enclosure.intersect(sight).Volume() < 1e-6, ("led window", x, y)
+        # and the wall carries on above the notch
+        mid = -(HALF_X + D_IN + WALL / 2)
+        lintel = box(mid - 0.2, mid + 0.2, y - half, y + half, PCB_TOP + LED_WINDOW_H + 0.3, TOP - 1)
+        assert abs(enclosure.intersect(lintel).Volume() - lintel.Volume()) < 1e-7, ("led lintel", x, y)
     assert not problems, problems
     # the top face is one flat plane apart from the four pockets
     top_faces = [f for f in enclosure.Faces() if abs(f.Center().z - TOP) < 1e-6 and f.geomType() == "PLANE"]
@@ -262,13 +284,13 @@ def main():
 
     # Both parts stay in assembly coordinates, like the other enclosures here.
     for part, solid in (("spacer", spacer), ("cover", enclosure)):
-        stem = str(OUT / f"tscircuit-nema17-flat-top-{part}-{REVISION}")
+        stem = str(OUT / f"tscircuit-nema17-flat-top-{part}-{REVISIONS[part]}")
         cq.exporters.export(solid, stem + ".step")
         cq.exporters.export(solid, stem + ".stl", tolerance=0.02, angularTolerance=0.1)
 
     report = {
         "board": "imrishabh18/rp2040-motor-controller v1.0.58",
-        "revision": REVISION,
+        "revisions": REVISIONS,
         "footprint_mm": [round(2 * (HALF_X + D_OUT), 2), round(2 * (HALF_Y + D_OUT), 2)],
         "overall_height_mm": round(TOP, 2),
         "spacer": {"height_mm": round(WALL_TOP, 2), "pcb_seat_z_mm": BASE_HEIGHT, "floor_mm": FLOOR,
@@ -287,6 +309,10 @@ def main():
         "led_holes": [{"led": n, "x_mm": round(x, 3), "y_mm": round(y, 3), "diameter_mm": LED_HOLE_D,
                        "led_top_below_roof_underside_mm": round(CEILING - z, 2)}
                       for n, (x, y, z) in zip(LEDS, led_axes())],
+        "led_side_windows": [{"led": n, "wall": "-X", "center_y_mm": round(y, 3), "width_mm": LED_WINDOW_W,
+                              "height_above_pcb_mm": LED_WINDOW_H, "corner_radius_mm": LED_WINDOW_R,
+                              "led_to_inner_wall_mm": round(x + HALF_X + D_IN, 2)}
+                             for n, (x, y, z) in zip(LEDS, led_axes())],
         "component_reliefs": reliefs,
         "component_clearance_mm": CLEAR,
     }

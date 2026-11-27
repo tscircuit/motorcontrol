@@ -116,7 +116,7 @@ fit-study parts for PCB v1.0.57; physical fit is not yet verified.
 
 The [NEMA17 flat-top enclosure](mechanical/nema17-flat-top-enclosure/) is a
 spacer tray and cover for PCB v1.0.58 with a single flat top face, side-facing
-USB-C and JST openings, and a hole over each LED. It walls in the PCB edge, so
+USB-C and JST openings, and a top hole and side-wall notch for each LED. It walls in the PCB edge, so
 it measures 45.3 × 45.32 mm. Physical fit is not yet verified.
 
 The [NEMA14 WAGO enclosure](mechanical/nema14-enclosure/) has a 35.2 × 35.2 mm

@@ -166,8 +166,10 @@ function Nema17FlatTopEnclosureSection() {
         ))}
       </ul>
       <p className="mt-3 text-sm text-slate-600">
-        The power LED hole sits beside one screw pocket. The status LED hole is
-        inside the area a centered 38.1 × 19.05 mm label covers.{" "}
+        Both LEDs show through notches in the blank wall opposite the JST
+        connector, and through holes in the top. The status LED&apos;s top hole
+        is inside the area a centered 38.1 × 19.05 mm label covers; its side
+        notch stays open.{" "}
         <a
           className={linkClass}
           href="https://github.com/tscircuit/motorcontrol/tree/main/mechanical/nema17-flat-top-enclosure"

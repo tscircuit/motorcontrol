@@ -1,16 +1,16 @@
-# NEMA17 flat-top enclosure — r1 fit-test draft
+# NEMA17 flat-top enclosure — r2 fit-test draft
 
 A spacer tray and a cover for the
 [RP2040 motor-controller PCB](https://tscircuit.com/imrishabh18/rp2040-motor-controller)
 v1.0.58. The top is one flat face, so the motor can stand upright on it and a
 label can go on it. Nothing has been printed or test-fitted yet.
 
-![Assembled views](../../docs/nema17-flat-top-enclosure/assembly-r1.png)
+![Assembled views](../../docs/nema17-flat-top-enclosure/assembly-r2.png)
 
 | Part | Z range | Features |
 | --- | --- | --- |
-| Spacer tray (`spacer`) | 0 to 4.9 mm | 1 mm insulating floor, Ø22.6 mm center opening, four bolt sleeves that seat the PCB at 3.4 mm, and a wall around the PCB edge |
-| Cover (`cover`) | 5.0 to 12.3 mm | Flat top, four recessed M3 pockets, a Ø1.5 mm hole over each LED, USB-C and JST openings in the side walls |
+| Spacer tray (`spacer`, r1) | 0 to 4.9 mm | 1 mm insulating floor, Ø22.6 mm center opening, four bolt sleeves that seat the PCB at 3.4 mm, and a wall around the PCB edge |
+| Cover (`cover`, r2) | 5.0 to 12.3 mm | Flat top, four recessed M3 pockets, a hole above and a side-wall notch beside each LED, USB-C and JST openings in the side walls |
 
 The assembled envelope is 45.3 × 45.32 × 12.3 mm on a 31 × 31 mm bolt pattern.
 Z = 0 is the motor's rear face. The USB-C ports face +Y and the JST motor
@@ -42,21 +42,29 @@ face.
   13.3 × 8.4 mm-per-port recess for plug overmolds. The receptacle mouths sit
   0.21 mm behind the recess floor.
 - **JST PH:** a window in the +X wall from the PCB surface to the ceiling.
-- **LEDs:** a straight Ø1.5 mm hole through the 1.4 mm roof above `D_PWR`
-  (green power LED, x −18.0, y 11.5) and `D_STATUS` (RGB status LED, x −14.9,
-  y −7.9). The LEDs sit 5.3 to 5.5 mm below the roof, so each one is seen
-  directly only from within a few degrees of straight above; from other angles
-  the hole shows the lit interior.
+- **LED top holes:** a straight Ø1.5 mm hole through the 1.4 mm roof above
+  `D_PWR` (green power LED, x −18.0, y 11.5) and `D_STATUS` (RGB status LED,
+  x −14.9, y −7.9). The LEDs sit 5.3 to 5.5 mm below the roof, so each one is
+  seen directly only from within a few degrees of straight above; from other
+  angles the hole shows the lit interior.
+- **LED side notches (r2):** a 4 mm wide notch in the −X wall beside each LED,
+  open at the cover's bottom edge and reaching 2.4 mm above the PCB surface,
+  with R1 top corners. `D_PWR` is 3.45 mm from the inner wall and `D_STATUS`
+  is 6.55 mm from it. The parts between each LED and its notch are low:
+  0.5 mm passives, plus a 1.05 mm transistor (`Q_PD_ENABLE`) along one edge of
+  the status LED's notch. The notches need no support when the cover is
+  printed top face down.
 
 The BOOT and RUN buttons are not reachable with the cover on, and there are no
-vents. `VENTS = True` in `build-cad.py` adds v4-style slots to the two blank
-walls.
+vents. `VENTS = True` in `build-cad.py` adds v4-style slots to the −X and −Y
+walls; the −X slots would need moving to clear the LED notches.
 
 ## Label
 
 A 38.1 × 19.05 mm label (the v4 sticker) fits between the four screw pockets.
-Centered with its long side along X, as on v4, it covers the status LED hole;
-the power LED hole stays clear. Turned 90° it clears both holes.
+Centered with its long side along X, as on v4, it covers the status LED's top
+hole; the power LED's top hole stays clear. Turned 90° it clears both holes.
+The side notches are unaffected either way.
 
 ## Things to check on the first print
 
@@ -83,9 +91,10 @@ The builder writes STEP and STL to its ignored `models/` folder and
 `reports/design-report.json`. It fails if either part overlaps the PCB or
 comes within 0.25 mm of a component envelope, if a bolt bore, head pocket or
 LED sight line is obstructed, or if the top is not a single flat face. To
-publish a new revision, bump `REVISION`, copy the four files from `models/` to
-`dist/assets/nema17-flat-top-enclosure/`, and update the names, hashes and
-dimensions in `src/enclosure-catalog.tsx`.
+publish a new revision, bump the changed part in `REVISIONS`, copy its STEP
+and STL from `models/` to `dist/assets/nema17-flat-top-enclosure/`, and update
+the names, hashes and dimensions in `src/enclosure-catalog.tsx`. STEP files
+carry a timestamp, so do not re-copy a part whose geometry has not changed.
 
 `component-envelopes-v1.0.58.json` holds one bounding box per placed
 component. To regenerate it for a new board revision, download the release's
@@ -97,4 +106,4 @@ tsci export board.circuit.json -f glb
   > mechanical/nema17-flat-top-enclosure/component-envelopes-v1.0.58.json
 ```
 
-![Cross-sections](../../docs/nema17-flat-top-enclosure/sections-r1.png)
+![Cross-sections](../../docs/nema17-flat-top-enclosure/sections-r2.png)

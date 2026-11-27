@@ -1,6 +1,9 @@
 {
  "board": "imrishabh18/rp2040-motor-controller v1.0.58",
- "revision": "r1",
+ "revisions": {
+  "spacer": "r1",
+  "cover": "r2"
+ },
  "footprint_mm": [
   45.3,
   45.32
@@ -19,7 +22,7 @@
   "ceiling_above_pcb_mm": 5.9,
   "tallest_part_above_pcb_mm": 5.5,
   "flat_top_area_mm2": 1729.1,
-  "volume_cm3": 4.26
+  "volume_cm3": 4.24
  },
  "wall_mm": 1.2,
  "pcb_edge_gap_mm": 0.3,
@@ -66,6 +69,26 @@
    "y_mm": -7.9,
    "diameter_mm": 1.5,
    "led_top_below_roof_underside_mm": 5.54
+  }
+ ],
+ "led_side_windows": [
+  {
+   "led": "D_PWR",
+   "wall": "-X",
+   "center_y_mm": 11.5,
+   "width_mm": 4.0,
+   "height_above_pcb_mm": 2.4,
+   "corner_radius_mm": 1.0,
+   "led_to_inner_wall_mm": 3.45
+  },
+  {
+   "led": "D_STATUS",
+   "wall": "-X",
+   "center_y_mm": -7.9,
+   "width_mm": 4.0,
+   "height_above_pcb_mm": 2.4,
+   "corner_radius_mm": 1.0,
+   "led_to_inner_wall_mm": 6.55
   }
  ],
  "component_reliefs": [
