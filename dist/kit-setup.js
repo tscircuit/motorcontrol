@@ -1,14 +1,14 @@
-// The guide presents the existing bench controls. Its only preset is a finite
-// move from the printed NEMA17 manual. Connecting never requests power or motion.
+// Connecting never requests power or motion. The first move uses a short, finite command.
 (() => {
   const url = new URL(location.href);
   if (url.searchParams.get("setup") !== "nema17") return;
 
   const el = id => document.getElementById(id);
+  const firstMoveSteps = 20;
   const steps = {
     connect: ["Connect your controller", "With both USB cables unplugged, check the motor connection and secure the unloaded motor. Plug a USB data cable from your computer into DATA. Choose Connect board, then select the controller."],
     power: ["Add motor power", "Connect a compatible USB-C PD supply to PWR. Choose a voltage supported by both your kit and supply, then select Request voltage. For kits that support it, try 9 V. Wait for the power to settle."],
-    move: ["Try a quarter turn", "Keep the shaft clear and this tab visible. Select Start movement for 50 full steps at 40 steps per second. The move ends automatically. You can press Stop at any time."],
+    move: ["Run the motor", `Keep the shaft clear and this tab visible. Select Start movement to run ${firstMoveSteps} full steps at 40 steps per second. The motor stops automatically. You can press Stop at any time.`],
   };
   let sawMove = false;
   let completed = false;
@@ -27,7 +27,7 @@
     if (document.body.dataset.kitStep === step) return;
     document.body.dataset.kitStep = step;
     const [heading, instruction] = step === "done"
-      ? ["First move complete", "The controller finished its 50-step command. If you saw the shaft turn, you’re ready to explore the full Motor bench. To pack up, disconnect here and unplug PWR and DATA."]
+      ? ["First move complete", "The controller finished the move. If you saw the shaft turn, you’re ready to explore the full Motor bench. To pack up, disconnect here and unplug PWR and DATA."]
       : steps[step];
     el("kitTitle").textContent = heading;
     el("kitInstruction").textContent = instruction;
@@ -41,7 +41,7 @@
   el("resolution").value = "full";
   el("direction").value = "1";
   el("speed").value = "40";
-  el("steps").value = "50";
+  el("steps").value = String(firstMoveSteps);
   el("showBench").addEventListener("click", () => {
     exitGuide();
     el("connect").focus();
@@ -57,7 +57,7 @@
           !["rp2040_drv8825", "rp2040_drv8825_pd"].includes(board.board_id) ||
           !caps?.pd_voltages?.length || caps.resolutions?.full !== 1 ||
           caps.full_steps_per_revolution !== 200 || caps.min_speed_sps > 40 ||
-          (caps.max_speed_sps != null && caps.max_speed_sps < 40) || caps.max_steps < 50 || board.homing_required || board.homing_active)) {
+          (caps.max_speed_sps != null && caps.max_speed_sps < 40) || caps.max_steps < firstMoveSteps || board.homing_required || board.homing_active)) {
         exitGuide();
         el("message").textContent = "This controller uses the full Motor bench. Its available controls are shown here.";
         return;
@@ -73,7 +73,7 @@
           sawMove = true;
           completed = false;
         } else if (sawMove) {
-          completed = board.stop_reason === "Step move complete" && board.steps_executed === 50;
+          completed = board.stop_reason === "Step move complete" && board.steps_executed === firstMoveSteps;
           sawMove = false;
         }
         showStep(completed ? "done" : "move");
