@@ -7,12 +7,13 @@ export type EnclosurePart = {
   height_mm: number;
   footprint_mm?: readonly [number, number];
 };
-export type EnclosureCatalog = {
+export type EnclosureCatalog<Pitch extends number | readonly [number, number] = number> = {
   revision: string;
   status: string;
   board_revision: string;
   footprint_mm: readonly [number, number];
-  mounting_pitch_mm: number;
+  mounting_pitch_mm: Pitch;
+  print_plate?: string;
   parts: readonly EnclosurePart[];
   sha256: Record<string, string>;
 };
@@ -144,8 +145,48 @@ export const nema17FlatTopEnclosureCatalog: EnclosureCatalog = {
   },
 };
 
+export const nema23EnclosureCatalog: EnclosureCatalog<readonly [number, number]> = {
+  revision: "r1",
+  status: "Fit-test draft. Physical fit unverified.",
+  board_revision: "1.4.27",
+  footprint_mm: [60.2, 60.2],
+  mounting_pitch_mm: [50, 32],
+  print_plate: "tscircuit-nema23-wago-print-plate-r1.3mf",
+  parts: [
+    {
+      id: "top",
+      title: "Vented cover",
+      stl: "tscircuit-nema23-wago-cover-r1.stl",
+      step: "tscircuit-nema23-wago-cover-r1.step",
+      notes: "Open spring-clamp bay, two USB-C openings and recessed M3 screw seats. Print with the flat outer face down.",
+      height_mm: 17.3,
+    },
+    {
+      id: "bottom",
+      title: "Motor-side tray",
+      stl: "tscircuit-nema23-wago-tray-r1.stl",
+      step: "tscircuit-nema23-wago-tray-r1.step",
+      notes: "Supports the PCB 8 mm above the motor, with space for solder tails and a Ø24 mm center opening. Print with the motor face down.",
+      height_mm: 9.5,
+    },
+  ],
+  sha256: {
+    "tscircuit-nema23-wago-cover-r1.stl":
+      "263a36ba9f4665ded4f2bb056e170c5ed1dd828034c6ccfadd101c7f67e2b128",
+    "tscircuit-nema23-wago-cover-r1.step":
+      "e23d50e75aeb038bba6ffb114004dac9effcffe222ef35cce330d1b0e8e69ba6",
+    "tscircuit-nema23-wago-tray-r1.stl":
+      "d94f34e833e2bd064a55481f3df7c094bc84efc194300ac4f0d1670a957ef087",
+    "tscircuit-nema23-wago-tray-r1.step":
+      "61406320e76bb4ec8840bb4f8c7c78f5d2a8ddcfef2df2f264091a26ee5e9fa5",
+    "tscircuit-nema23-wago-print-plate-r1.3mf":
+      "841ad99a42b3090dacf6bae1d56f49e5214c319f6fd858d4b8be787668550e4d",
+  },
+};
+
 export const enclosureCatalogs = {
   "nema17-enclosure": enclosureCatalog,
   "nema17-flat-top-enclosure": nema17FlatTopEnclosureCatalog,
   "nema14-enclosure": nema14EnclosureCatalog,
+  "nema23-enclosure": nema23EnclosureCatalog,
 };

@@ -3,6 +3,7 @@ import {
   enclosureCatalog,
   nema14EnclosureCatalog,
   nema17FlatTopEnclosureCatalog,
+  nema23EnclosureCatalog,
 } from "./enclosure-catalog";
 import type { EnclosurePart } from "./enclosure-catalog";
 
@@ -221,6 +222,50 @@ function Nema14EnclosureSection() {
   );
 }
 
+function Nema23EnclosureSection() {
+  const catalog = nema23EnclosureCatalog;
+  const footprint = catalog.footprint_mm.join(" × ");
+  return (
+    <section aria-labelledby="nema23-enclosure-heading" className="mt-5">
+      <h2 id="nema23-enclosure-heading" className="text-2xl font-semibold tracking-tight">
+        NEMA23 WAGO-style controller enclosure
+      </h2>
+      <p className="mt-1 text-sm text-slate-600">
+        For the PCB marked REV N / PROTOTYPE, v{catalog.board_revision}. Assembled size{" "}
+        {footprint} × 26.9 mm. Rear bolt pattern {catalog.mounting_pitch_mm.join(" × ")} mm.
+        Physical fit is unverified.
+      </p>
+      <p className="mt-3 text-sm">
+        <a className={linkClass} href={"assets/nema23-enclosure/" + catalog.print_plate} download>
+          Download both parts arranged for printing (3MF)
+        </a>
+      </p>
+      <ul
+        aria-label="NEMA23 enclosure parts"
+        className="mt-5 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white"
+      >
+        {catalog.parts.map((part) => (
+          <EnclosurePartRow
+            key={part.id}
+            part={part}
+            root="assets/nema23-enclosure/"
+            idPrefix="nema23-enclosure"
+            dimensions={`${footprint} × ${part.height_mm} mm.`}
+          />
+        ))}
+      </ul>
+      <p className="mt-3 flex flex-wrap gap-3 text-sm">
+        <a className={linkClass} href="https://tscircuit.com/imrishabh18/nema-23-stepper-controller?version=1.4.27#pcb">
+          PCB layout
+        </a>
+        <a className={linkClass} href="https://github.com/tscircuit/motorcontrol/tree/023572dc7f0fd4efd3bdb7e0254c627c453e3cd9/mechanical/nema23-enclosure">
+          Assembly drawing, fasteners and CAD source
+        </a>
+      </p>
+    </section>
+  );
+}
+
 function SpacerSection() {
   return (
     <>
@@ -341,6 +386,7 @@ export function AssetsPage() {
           <EnclosureSection />
           <Nema17FlatTopEnclosureSection />
           <Nema14EnclosureSection />
+          <Nema23EnclosureSection />
           <SpacerSection />
         </main>
         <SpacerTemplate />
