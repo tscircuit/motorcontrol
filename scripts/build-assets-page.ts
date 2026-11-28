@@ -10,15 +10,15 @@ import { enclosureCatalogs } from "../src/enclosure-catalog";
 async function main(): Promise<void> {
   for (const [directory, catalog] of Object.entries(enclosureCatalogs)) {
     const root = `dist/assets/${directory}`;
-    for (const part of catalog.parts) {
-      for (const filename of [part.stl, part.step]) {
-        const bytes = await readFile(`${root}/${filename}`);
-        assert.equal(
-          createHash("sha256").update(bytes).digest("hex"),
-          catalog.sha256[filename],
-          filename,
-        );
-      }
+    const downloads = catalog.parts.flatMap((part) => [part.stl, part.step]);
+    if (catalog.print_plate) downloads.push(catalog.print_plate);
+    for (const filename of downloads) {
+      const bytes = await readFile(`${root}/${filename}`);
+      assert.equal(
+        createHash("sha256").update(bytes).digest("hex"),
+        catalog.sha256[filename],
+        filename,
+      );
     }
     await writeFile(`${root}/catalog.json`, JSON.stringify(catalog, null, 2) + "\n");
   }

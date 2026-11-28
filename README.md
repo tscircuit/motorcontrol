@@ -124,6 +124,11 @@ motor interface, two USB-C plug collars, an open WAGO service bay, and a bottom
 housing with a pin pocket and Ø22.6 mm center opening. Both parts have STEP
 and STL downloads and rotatable 3D previews.
 
+The [NEMA23 rear enclosure](mechanical/nema23-enclosure/) fits the geometry of
+Rishabh's v1.4.27 WAGO-style PCB. The scalloped tray and flat cover use the
+50 × 32 mm rear screw pattern. Both USB-C ports and the four spring clamps are
+accessible with the cover installed. The assembly is ready for a first fit print.
+
 The editable page is `src/assets-page.tsx`, and its typed enclosure catalog is
 `src/enclosure-catalog.tsx`. Preview controls remain in `src/enclosure-assets.ts`.
 Run `npm ci`, `npm run check:assets`, and `npm run build:assets`. React renders

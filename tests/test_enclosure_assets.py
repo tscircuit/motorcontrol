@@ -6,6 +6,8 @@ import math
 from pathlib import Path
 import struct
 import unittest
+import xml.etree.ElementTree as ET
+import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +33,86 @@ def face_crosses_xy(triangle, x, y):
 
 
 class EnclosureAssetsTest(unittest.TestCase):
+    def test_nema23_print_plate_has_two_separate_parts_on_the_bed(self):
+        assets = ROOT / "dist/assets/nema23-enclosure"
+        catalog = json.loads((assets / "catalog.json").read_text())
+        with zipfile.ZipFile(assets / catalog["print_plate"]) as archive:
+            model = ET.fromstring(archive.read("3D/3dmodel.model"))
+        self.assertEqual(model.get("unit"), "millimeter")
+        objects = {obj.get("id"): obj for obj in model.findall("{*}resources/{*}object")}
+        extents = {}
+        for item in model.findall("{*}build/{*}item"):
+            obj = objects[item.get("objectid")]
+            vertices = obj.findall("{*}mesh/{*}vertices/{*}vertex")
+            m = list(map(float, item.get("transform", "1 0 0 0 1 0 0 0 1 0 0 0").split()))
+            points = []
+            for v in vertices:
+                x, y, z = (float(v.get(axis)) for axis in "xyz")
+                points.append(tuple(x*m[i] + y*m[i+3] + z*m[i+6] + m[i+9] for i in range(3)))
+            xs, _, zs = zip(*points)
+            self.assertAlmostEqual(min(zs), 0, places=4)
+            extents[obj.get("name")] = (min(xs), max(xs), max(zs))
+            # The broad motor face or outer roof must contact the print bed.
+            bed_area = 0
+            for t in obj.findall("{*}mesh/{*}triangles/{*}triangle"):
+                a, b, c = (points[int(t.get(k))] for k in ("v1", "v2", "v3"))
+                if max(abs(p[2]) for p in (a, b, c)) < 1e-4:
+                    bed_area += abs((b[0]-a[0])*(c[1]-a[1]) - (c[0]-a[0])*(b[1]-a[1])) / 2
+            self.assertGreater(bed_area, 2000)
+        self.assertEqual(set(extents), {"cover", "tray"})
+        self.assertLess(extents["tray"][1], extents["cover"][0])
+        self.assertAlmostEqual(extents["tray"][2], 9.5, places=4)
+        self.assertAlmostEqual(extents["cover"][2], 17.3, places=4)
+
+    def test_nema23_rear_enclosure_downloads_and_connector_access(self):
+        directory = "nema23-enclosure"
+        assets = ROOT / "dist/assets" / directory
+        catalog = json.loads((assets / "catalog.json").read_text())
+        links = Links((ROOT / "dist/assets.html").read_text()).urls
+        self.assertEqual(catalog["board_revision"], "1.4.27")
+        self.assertEqual(catalog["mounting_pitch_mm"], [50, 32])
+        self.assertEqual({p["id"] for p in catalog["parts"]}, {"top", "bottom"})
+        filenames = [catalog["print_plate"]]
+        for part in catalog["parts"]:
+            filenames.extend([part["step"], part["stl"]])
+            data = (assets / part["stl"]).read_bytes()
+            count = struct.unpack_from("<I", data, 80)[0]
+            self.assertEqual(len(data), 84 + 50 * count)
+            triangles = [[r[3:6], r[6:9], r[9:12]] for r in struct.iter_unpack("<12fH", data[84:])]
+            vertices = [v for t in triangles for v in t]
+            for i, expected in enumerate([*catalog["footprint_mm"], part["height_mm"]]):
+                self.assertAlmostEqual(max(v[i] for v in vertices) - min(v[i] for v in vertices),
+                                       expected, places=4)
+            for x in (-25, 25):
+                for y in (-16, 16):
+                    self.assertFalse(any(face_crosses_xy(t, x, y) for t in triangles))
+                    # A point in the annulus measures the head seat above or PCB seat below.
+                    px = x - math.copysign(2.5, x)
+                    levels = [v[2] for t in triangles if face_crosses_xy(t, px, y)
+                              and max(v[2] for v in t) - min(v[2] for v in t) < 1e-4 for v in t]
+                    self.assertAlmostEqual(max(levels), 15 if part["id"] == "top" else 8, places=4)
+            # Both halves share the +Y USB openings. Probe the swept plug bodies.
+            usb_wall = [[(x, z, y) for x, y, z in t] for t in triangles if min(v[1] for v in t) > 27]
+            for port_x in (-7.875, 9):
+                for dx in (-6, 0, 6):
+                    for z in (7.5, 11.2, 15):
+                        self.assertFalse(any(face_crosses_xy(t, port_x + dx, z) for t in usb_wall))
+            if part["id"] == "top":
+                for x in (2.99, 5.53, 8.07, 10.61):
+                    self.assertFalse(any(face_crosses_xy(t, x, -22) for t in triangles))
+                # Both faces of the 1.8 mm roof cover the five former vent slots.
+                for x, y in ((8, -12.8), (8, -9), (8, -5.2), (-22, -5.7), (-22, -1.9)):
+                    levels = {round(t[0][2], 2) for t in triangles if face_crosses_xy(t, x, y)
+                              and max(v[2] for v in t) - min(v[2] for v in t) < 1e-4}
+                    self.assertEqual(levels, {25.1, 26.9}, (x, y))
+            else:
+                self.assertFalse(any(face_crosses_xy(t, 0, 0) for t in triangles))
+        self.assertEqual(set(filenames), set(catalog["sha256"]))
+        for name in filenames:
+            self.assertIn(f"assets/{directory}/{name}", links)
+            self.assertEqual(hashlib.sha256((assets / name).read_bytes()).hexdigest(),
+                             catalog["sha256"][name])
+
     def test_nema14_wago_downloads_and_pin_relief(self):
         assets = ROOT / "dist/assets/nema14-enclosure"
         catalog = json.loads((assets / "catalog.json").read_text())
