@@ -14,6 +14,7 @@ import trimesh
 HERE = Path(__file__).resolve().parent
 BOARD = json.loads((HERE / "board-v1.4.27.json").read_text())
 BOUNDS = BOARD["bounds_from_pcb_top_mm"]
+PART_REVISIONS = {"tray": "r1", "cover": "r2"}
 HOLES = [(x, y) for x, y, diameter in BOARD["rear_holes_mm"]]
 PCB_BOTTOM = 8.0  # published board-to-motor gap
 PCB_TOP = PCB_BOTTOM + BOARD["pcb_size_mm"][2]
@@ -119,18 +120,6 @@ def build_cover():
         cover = cover.cut(
             cylinder(*center(name), CEILING - 1, TOP + 1, 2.6 if name in INDICATORS else 3.6)
         )
-    # Air slots above the driver and buzzer. Both groups print flat on the bed.
-    for name, length, count in (("DRIVER", 15.0, 3), ("BZ1", 7.0, 2)):
-        x, y = center(name)
-        for row in range(count):
-            cy = y + (row - (count - 1) / 2) * 3.8
-            slot = (
-                cq.Workplane("XY", origin=(x, cy, CEILING - 1))
-                .slot2D(length, 1.7)
-                .extrude(TOP - CEILING + 2)
-                .val()
-            )
-            cover = cover.cut(slot)
     return cover.clean()
 
 
@@ -183,14 +172,14 @@ def check(tray, cover):
 def export_print_plate(out):
     plate = trimesh.Scene()
     for name, x in (("tray", 50), ("cover", 120)):
-        mesh = trimesh.load_mesh(out / f"tscircuit-nema23-wago-{name}-r1.stl")
+        mesh = trimesh.load_mesh(out / f"tscircuit-nema23-wago-{name}-{PART_REVISIONS[name]}.stl")
         assert mesh.is_volume and mesh.body_count == 1, name
         if name == "cover":
             mesh.apply_transform(trimesh.transformations.rotation_matrix(pi, [1, 0, 0]))
         mesh.apply_translation([x, 85, -mesh.bounds[0, 2]])
         mesh.units = "mm"
         plate.add_geometry(mesh, node_name=name, geom_name=name)
-    plate.export(out / "tscircuit-nema23-wago-print-plate-r1.3mf")
+    plate.export(out / "tscircuit-nema23-wago-print-plate-r2.3mf")
 
 
 if __name__ == "__main__":
@@ -200,6 +189,6 @@ if __name__ == "__main__":
     out.mkdir(exist_ok=True)
     for name, solid in (("tray", tray), ("cover", cover)):
         for ext in ("step", "stl"):
-            path = out / f"tscircuit-nema23-wago-{name}-r1.{ext}"
+            path = out / f"tscircuit-nema23-wago-{name}-{PART_REVISIONS[name]}.{ext}"
             cq.exporters.export(solid, str(path), tolerance=0.025, angularTolerance=0.12)
     export_print_plate(out)

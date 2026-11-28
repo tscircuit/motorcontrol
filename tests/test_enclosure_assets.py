@@ -100,6 +100,11 @@ class EnclosureAssetsTest(unittest.TestCase):
             if part["id"] == "top":
                 for x in (2.99, 5.53, 8.07, 10.61):
                     self.assertFalse(any(face_crosses_xy(t, x, -22) for t in triangles))
+                # Both faces of the 1.8 mm roof cover the five former vent slots.
+                for x, y in ((8, -12.8), (8, -9), (8, -5.2), (-22, -5.7), (-22, -1.9)):
+                    levels = {round(t[0][2], 2) for t in triangles if face_crosses_xy(t, x, y)
+                              and max(v[2] for v in t) - min(v[2] for v in t) < 1e-4}
+                    self.assertEqual(levels, {25.1, 26.9}, (x, y))
             else:
                 self.assertFalse(any(face_crosses_xy(t, 0, 0) for t in triangles))
         self.assertEqual(set(filenames), set(catalog["sha256"]))

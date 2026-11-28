@@ -1,4 +1,4 @@
-# NEMA23 rear controller enclosure · R1
+# NEMA23 rear controller enclosure · R2
 
 This two-piece enclosure is for the scalloped, 56 × 56 × 1.6 mm PCB marked
 **REV N / PROTOTYPE · v1.4.27**. The four-pole motor connector is a KEFA
@@ -11,7 +11,7 @@ The two USB-C receptacles face the opposite edge.
 
 ## Print
 
-Download the **3MF print plate** for both parts already oriented and spaced.
+The **R2 3MF print plate** contains the R2 cover and R1 tray already oriented and spaced.
 Individual STEP and STL files retain their assembly coordinates. For separate
 STLs, print the tray motor-face down and flip the cover flat outer face down.
 The assembled case is **60.2 × 60.2 × 26.9 mm** above the rear face.
@@ -43,8 +43,8 @@ about 40 minutes and 22 g.
 4. Insert the motor leads through the open end of the terminal bay. All four
    orange push tabs are accessible from above. The USB-C openings are sized
    for plug bodies up to the checked 12.7 × 7.8 mm envelope. Roof holes give
-   access to BOOT and RUN and a view of the two LEDs. Slots over the driver
-   and buzzer open into the cover cavity.
+   access to BOOT and RUN and a view of the two LEDs. The roof is 1.8 mm
+   thick over the driver and buzzer.
 
 ## Fit checks
 
