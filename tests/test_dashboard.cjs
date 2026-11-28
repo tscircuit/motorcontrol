@@ -77,7 +77,7 @@ function receiveKit(fields) {
 vm.runInContext(kitScript, context);
 assert.equal(step(), "connect");
 assert.equal(element("mode").value, "steps");
-assert.equal(element("steps").value, "50");
+assert.equal(element("steps").value, "20");
 assert.equal(element("speed").value, "40");
 receiveKit({ motor_power_ready: false });
 assert.equal(step(), "power");
@@ -88,7 +88,7 @@ receiveKit({ motor_power_ready: true });
 assert.equal(step(), "move");
 assert.equal(element("start").disabled, false);
 receiveKit({ motor_power_ready: true, motor_enabled: true });
-receiveKit({ motor_power_ready: true, steps_executed: 50, stop_reason: "Step move complete" });
+receiveKit({ motor_power_ready: true, steps_executed: 20, stop_reason: "Step move complete" });
 assert.equal(step(), "done");
 run("lastSeen=0;controls()");
 assert.equal(step(), "connect");
