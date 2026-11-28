@@ -258,7 +258,7 @@ function Nema23EnclosureSection() {
         <a className={linkClass} href="https://tscircuit.com/imrishabh18/nema-23-stepper-controller?version=1.4.27#pcb">
           PCB layout
         </a>
-        <a className={linkClass} href="https://github.com/tscircuit/motorcontrol/tree/023572dc7f0fd4efd3bdb7e0254c627c453e3cd9/mechanical/nema23-enclosure">
+        <a className={linkClass} href="https://github.com/tscircuit/motorcontrol/tree/6ee5f9df746d5c56fac4f6b3d0d1657d905501a8/mechanical/nema23-enclosure">
           Assembly drawing, fasteners and CAD source
         </a>
       </p>
