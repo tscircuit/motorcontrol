@@ -29,7 +29,7 @@ int main(void) {
     assert(frame);
     assert(cJSON_IsTrue(cJSON_GetObjectItem(frame, "pd_power_good")));
     assert(cJSON_GetObjectItem(frame, "pd_voltage_measured")->valuedouble == 9.0);
-    assert(strcmp(string(frame, "firmware_version"), "1.0.23") == 0);
+    assert(strcmp(string(frame, "firmware_version"), "1.0.24") == 0);
     cJSON_Delete(frame);
     heartbeat_seen = true;
     heartbeat_us = fake_us;

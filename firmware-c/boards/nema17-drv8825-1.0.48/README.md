@@ -1,8 +1,15 @@
 # NEMA17 DRV8825 with PD sensing
 
-Build with `-DMOTOR_BOARD=drv8825_pd`. Firmware 1.0.23 targets PCB 1.0.48
+Build with `-DMOTOR_BOARD=drv8825_pd`. Firmware 1.0.24 targets PCB 1.0.48
 (and 1.0.47 with the same populated sensing circuits). Board ID is
 `rp2040_drv8825_pd`. The existing `drv8825` target supports PCB 1.0.42.
+
+The 12 MHz crystal drives the application's system PLL at 750 MHz
+(12 / 2 × 125) and USB PLL at 768 MHz (12 × 64). Their post-dividers
+provide 125 MHz to the CPU and motor PIO and 48 MHz to USB. The stepper
+PIO state machines divide the system clock to their usual 10 MHz.
+USB firmware updates enter the chip's BOOTSEL ROM, which programs its own
+1.2 GHz PLL. Record that mode separately when defining the emissions test range.
 
 GPIO7 reads active-high POWER_GOOD with internal pulls disabled. INA226 at
 I²C1 address 0x40 measures raw PWR USB VBUS. GPIO26/27 also serve TMP102.

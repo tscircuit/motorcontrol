@@ -40,7 +40,13 @@ if(MOTOR_BOARD STREQUAL "nema23_drv8452")
     target_link_libraries(motorcontrol hardware_spi)
 endif()
 if(MOTOR_BOARD STREQUAL "drv8825_pd")
-    target_compile_definitions(motorcontrol PRIVATE MOTOR_BOARD_PD_SENSE=1)
+    # Apply the dividers during SDK startup, before USB and the motor PIO start.
+    # With the board's 12 MHz crystal, clk_sys is 750 / 3 / 2 = 125 MHz
+    # and clk_usb is 768 / 4 / 4 = 48 MHz.
+    target_compile_definitions(motorcontrol PRIVATE
+        MOTOR_BOARD_PD_SENSE=1
+        PLL_SYS_REFDIV=2 PLL_SYS_VCO_FREQ_HZ=750000000 PLL_SYS_POSTDIV1=3 PLL_SYS_POSTDIV2=2
+        PLL_USB_REFDIV=1 PLL_USB_VCO_FREQ_HZ=768000000 PLL_USB_POSTDIV1=4 PLL_USB_POSTDIV2=4)
 endif()
 if(MOTOR_BOARD STREQUAL "drv8825" OR MOTOR_BOARD STREQUAL "drv8825_pd")
     target_sources(motorcontrol PRIVATE stall_estimator.c)
@@ -69,7 +75,7 @@ target_link_libraries(motorcontrol pico_stdlib pico_rand pico_unique_id pico_mul
 target_link_options(motorcontrol PRIVATE "LINKER:-T,${CMAKE_CURRENT_LIST_DIR}/memory_guard.ld")
 pico_set_program_name(motorcontrol "motorcontrol-native")
 if(MOTOR_BOARD STREQUAL "drv8825_pd")
-    pico_set_program_version(motorcontrol "1.0.23")
+    pico_set_program_version(motorcontrol "1.0.24")
 else()
     pico_set_program_version(motorcontrol "1.0.17")
 endif()
