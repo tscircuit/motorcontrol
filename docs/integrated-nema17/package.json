@@ -1,0 +1,1 @@
+{"private":true,"scripts":{"drawing":"tsci export mounting.circuit.tsx --drawing mounting -f drawing-svg -o mounting.svg"},"dependencies":{"jscad-fiber":"0.0.93","react":"19.1.0","tscircuit":"0.0.3288"}}
